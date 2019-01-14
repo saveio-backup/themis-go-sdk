@@ -328,7 +328,10 @@ func (this *Channel) GetEndpointByAddress(nodeAddress common.Address) (*micropay
 	if err != nil {
 		return nil, err
 	}
-
+	//haven`t register
+	if ret == nil {
+		return nil, nil
+	}
 	buf, err := ret.Result.ToByteArray()
 	if err != nil {
 		return nil, err
