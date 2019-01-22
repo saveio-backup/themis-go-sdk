@@ -21,6 +21,7 @@ type ChainClient interface {
 	getSmartContract(qid, contractAddress string) ([]byte, error)
 	getSmartContractEvent(qid, txHash string) ([]byte, error)
 	getSmartContractEventByBlock(qid string, blockHeight uint32) ([]byte, error)
+	getSmartContractEventByBlockAndAddress(qid string, blockHeight uint32, contractAddress string) ([]byte, error)
 	getStorage(qid, contractAddress string, key []byte) ([]byte, error)
 	getMerkleProof(qid, txHash string) ([]byte, error)
 	getMemPoolTxState(qid, txHash string) ([]byte, error)
@@ -85,6 +86,7 @@ const (
 	GET_BALANCE           = "/api/v1/balance/"
 	GET_CONTRACT_STATE    = "/api/v1/contract/"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/"
+	GET_SMTCOCE_EVT_ADDR  = "/api/v1/smartcode/event/height/address/"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/"
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/"
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/"
@@ -132,27 +134,28 @@ var (
 )
 
 const (
-	WS_ACTION_HEARBEAT                    = "heartbeat"
-	WS_ACTION_SUBSCRIBE                   = "subscribe"
-	WS_ACTION_GET_BLOCK_TX_HASH_BY_HEIGHT = "getblocktxsbyheight"
-	WS_ACTION_GET_BLOCK_BY_HEIGHT         = "getblockbyheight"
-	WS_ACTION_GET_BLOCK_BY_HASH           = "getblockbyhash"
-	WS_ACTION_GET_BLOCK_HEIGHT            = "getblockheight"
-	WS_ACTION_GET_BLOCK_HASH              = "getblockhash"
-	WS_ACTION_GET_TRANSACTION             = "gettransaction"
-	WS_ACTION_SEND_TRANSACTION            = "sendrawtransaction"
-	WS_ACTION_GET_STORAGE                 = "getstorage"
-	WS_ACTION_GET_CONTRACT                = "getcontract"
-	WS_ACTION_GET_SMARTCONTRACT_BY_HEIGHT = "getsmartcodeeventbyheight"
-	WS_ACTION_GET_SMARTCONTRACT_BY_HASH   = "getsmartcodeeventbyhash"
-	WS_ACTION_GET_BLOCK_HEIGHT_BY_TX_HASH = "getblockheightbytxhash"
-	WS_ACTION_GET_MERKLE_PROOF            = "getmerkleproof"
-	WS_ACTION_GET_GENERATE_BLOCK_TIME     = "getgenerateblocktime"
-	WS_ACTION_GET_GAS_PRICE               = "getgasprice"
-	WS_ACTION_GET_MEM_POOL_TX_STATE       = "getmempooltxstate"
-	WS_ACTION_GET_MEM_POOL_TX_COUNT       = "getmempooltxcount"
-	WS_ACTION_GET_VERSION                 = "getversion"
-	WS_ACTION_GET_NETWORK_ID              = "getnetworkid"
+	WS_ACTION_HEARBEAT                            = "heartbeat"
+	WS_ACTION_SUBSCRIBE                           = "subscribe"
+	WS_ACTION_GET_BLOCK_TX_HASH_BY_HEIGHT         = "getblocktxsbyheight"
+	WS_ACTION_GET_BLOCK_BY_HEIGHT                 = "getblockbyheight"
+	WS_ACTION_GET_BLOCK_BY_HASH                   = "getblockbyhash"
+	WS_ACTION_GET_BLOCK_HEIGHT                    = "getblockheight"
+	WS_ACTION_GET_BLOCK_HASH                      = "getblockhash"
+	WS_ACTION_GET_TRANSACTION                     = "gettransaction"
+	WS_ACTION_SEND_TRANSACTION                    = "sendrawtransaction"
+	WS_ACTION_GET_STORAGE                         = "getstorage"
+	WS_ACTION_GET_CONTRACT                        = "getcontract"
+	WS_ACTION_GET_SMARTCONTRACT_BY_HEIGHT         = "getsmartcodeeventbyheight"
+	WS_ACTION_GET_SMARTCONTRACT_BY_HEIGHT_ADDRESS = "getsmartcodeeventbyheightaddr"
+	WS_ACTION_GET_SMARTCONTRACT_BY_HASH           = "getsmartcodeeventbyhash"
+	WS_ACTION_GET_BLOCK_HEIGHT_BY_TX_HASH         = "getblockheightbytxhash"
+	WS_ACTION_GET_MERKLE_PROOF                    = "getmerkleproof"
+	WS_ACTION_GET_GENERATE_BLOCK_TIME             = "getgenerateblocktime"
+	WS_ACTION_GET_GAS_PRICE                       = "getgasprice"
+	WS_ACTION_GET_MEM_POOL_TX_STATE               = "getmempooltxstate"
+	WS_ACTION_GET_MEM_POOL_TX_COUNT               = "getmempooltxcount"
+	WS_ACTION_GET_VERSION                         = "getversion"
+	WS_ACTION_GET_NETWORK_ID                      = "getnetworkid"
 
 	WS_SUB_ACTION_RAW_BLOCK     = "sendrawblock"
 	WS_SUB_ACTION_JSON_BLOCK    = "sendjsonblock"

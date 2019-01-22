@@ -108,6 +108,10 @@ func (this *RpcClient) getSmartContractEventByBlock(qid string, blockHeight uint
 	return this.sendRpcRequest(qid, RPC_GET_SMART_CONTRACT_EVENT, []interface{}{blockHeight})
 }
 
+func (this *RpcClient) getSmartContractEventByBlockAndAddress(qid string, blockHeight uint32, contractAddress string) ([]byte, error) {
+	return this.sendRpcRequest(qid, RPC_GET_SMART_CONTRACT_EVENT, []interface{}{blockHeight, contractAddress})
+}
+
 //GetRawTransaction return transaction by transaction hash
 func (this *RpcClient) getRawTransaction(qid, txHash string) ([]byte, error) {
 	return this.sendRpcRequest(qid, RPC_GET_TRANSACTION, []interface{}{txHash})
