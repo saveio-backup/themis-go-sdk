@@ -51,9 +51,10 @@ func (this *Channel) PreExecInvokeNativeContract(method string, params []interfa
 	return this.Client.PreExecTransaction(tx)
 }
 
-func (this *Channel) RegisterPaymentEndPoint(ip, port []byte, regAccount common.Address) ([]byte, error) {
+func (this *Channel) RegisterPaymentEndPoint(protocol, ip, port []byte, regAccount common.Address) ([]byte, error) {
 	params := &micropayment.NodeInfo{
 		WalletAddr: regAccount,
+		Protocol:   protocol,
 		IP:         ip,
 		Port:       port,
 	}
