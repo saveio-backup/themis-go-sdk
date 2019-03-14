@@ -11,6 +11,8 @@ import (
 	"github.com/oniio/oniChain/account"
 	"github.com/oniio/oniChain/common"
 	"github.com/oniio/oniChain/smartcontract/service/native/dns"
+	"encoding/json"
+	"fmt"
 )
 
 var (
@@ -249,3 +251,59 @@ func (this *Dns) QueryHeader(header string, ownerAddr common.Address) (*dns.Head
 	return &headerInfo, nil
 
 }
+
+func (this *Dns) DNSNodeReg(regWallet common.Address, ip, port []byte) (common.Uint256, error) {
+	if this.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	req := dns.DNSNodeInfo{
+		WalletAddr: regWallet,
+		IP:         ip,
+		Port:       port,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.DNS_NODE_REG, []interface{}{req})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+
+}
+
+func (this *Dns) QueryDnsNode(wallet common.Address) (*dns.DNSNodeInfo, error) {
+	req := wallet
+	ret, err := this.PreExecInvokeNativeContract(dns.QUERY_DNSNODE_BYADDR, []interface{}{req})
+	if err != nil {
+		return nil,err
+	}
+	data,err:=ret.Result.ToByteArray()
+	if err!=nil{
+		return nil, errors.New("QueryDnsNode result toByteArray error")
+	}
+	var dn dns.DNSNodeInfo
+	reader:=bytes.NewReader(data)
+	err=dn.Deserialize(reader)
+	if err!=nil{
+		return nil,errors.New("QueryDnsNode dnsNodeInfo deserialize error")
+	}
+	return &dn,nil
+}
+
+func (this *Dns) GetDnsNodes() (map[string]dns.DNSNodeInfo, error) {
+
+	dn:=make(map[string]dns.DNSNodeInfo)
+	ret, err := this.PreExecInvokeNativeContract(dns.GET_RANGE_MAP, nil)
+
+	if err != nil {
+		return nil,err
+	}
+	data,err:=ret.Result.ToByteArray()
+	if err!=nil{
+		return nil, errors.New("GetDnsNodes result toByteArray error")
+	}
+	err=json.Unmarshal(data,&dn)
+	if err!=nil{
+		return nil,errors.New("QueryDnsNode dnsNodeInfo deserialize error")
+	}
+	return dn,nil
+}
+

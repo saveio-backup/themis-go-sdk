@@ -8,12 +8,16 @@ import (
 	"github.com/oniio/oniChain-go-sdk/client"
 	"github.com/oniio/oniChain-go-sdk/wallet"
 	"github.com/oniio/oniChain/smartcontract/service/native/dns"
+	"github.com/oniio/oniChain/common"
+	"github.com/stretchr/testify/assert"
 )
 
 var walletPath = "./wallet.dat"
-var pwd = []byte("pwd")
+var pwd = []byte("123")
 var rpc_addr = "http://127.0.0.1:20336"
 var testDns *Dns
+var PARTICIPANT2_WALLETADDR = "AHPVWYfGniCcJgDMZnR8ozghL3Eis4PtNZ" // Channel
+var PARTICIPANT1_WALLETADDR = "AMZXn19S9bFEd7XpWxZa9PdxmYF3uapDRS" // Channel
 
 func init() {
 	var err error
@@ -31,8 +35,22 @@ func init() {
 	testDns.DefAcc = acc
 }
 func TestRegister(t *testing.T) {
+	var err error
+	w, err := wallet.OpenWallet(walletPath)
+	if err != nil {
+		fmt.Printf("Account.Open error:%s\n", err)
+	}
+	acc, err := w.GetDefaultAccount(pwd)
+	if err != nil {
+		fmt.Printf("GetDefaultAccount error:%s\n", err)
+	}
+	testDns := &Dns{}
+	testDns.Client = &client.ClientMgr{}
+	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
+	testDns.DefAcc = acc
+
 	fmt.Printf("====register a random default url with dsp header====\n")
-	ret1, err := dns.RegisterUrl("", dns.SYSTEM, "path://weqwquhdnskfudyzksdwj", "32123232", 123235)
+	ret1, err := testDns.RegisterUrl("", dns.SYSTEM, "path://weqwquhdnskfudyzksdwj", "32123232", 123235)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -281,4 +299,87 @@ func TestDeleteUrl(t *testing.T) {
 	if err == nil {
 		t.Errorf("delete ftp://www.onchain.com failed:%s", err)
 	}
+}
+
+func TestDns_DNSNodeReg(t *testing.T) {
+	var err error
+	w, err := wallet.OpenWallet(walletPath)
+	if err != nil {
+		fmt.Printf("Account.Open error:%s\n", err)
+	}
+	acc, err := w.GetDefaultAccount(pwd)
+	if err != nil {
+		fmt.Printf("GetDefaultAccount error:%s\n", err)
+	}
+	testDns := &Dns{}
+	testDns.Client = &client.ClientMgr{}
+	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
+	testDns.DefAcc = acc
+	fmt.Println("=======register dns node===========")
+	walletAddr,_:=common.AddressFromBase58(PARTICIPANT1_WALLETADDR)
+	ret1,err:=testDns.DNSNodeReg(walletAddr,[]byte("10.1.1.21"),[]byte("8080"))
+	assert.Nil(t,err)
+	fmt.Printf("Random Dnsnodereg txHash: %v\n", ret1.ToHexString())
+	assert.Nil(t, err)
+
+	fmt.Println("Wait For Generate Block......")
+	testDns.Client.WaitForGenerateBlock(30*time.Second, 1)
+	event, err := testDns.Client.GetSmartContractEvent(ret1.ToHexString())
+	if err != nil {
+		t.Errorf("1 GetSmartContractEvent error:%s", err)
+		return
+	}
+	fmt.Printf("regist a dns node Event: %+v  %+v\n", event, event.Notify)
+
+}
+
+func TestDns_QueryDnsNode(t *testing.T) {
+	var err error
+	w, err := wallet.OpenWallet(walletPath)
+	if err != nil {
+		fmt.Printf("Account.Open error:%s\n", err)
+	}
+	acc, err := w.GetDefaultAccount(pwd)
+	if err != nil {
+		fmt.Printf("GetDefaultAccount error:%s\n", err)
+	}
+	testDns := &Dns{}
+	testDns.Client = &client.ClientMgr{}
+	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
+	testDns.DefAcc = acc
+	fmt.Println("=======querry dns node===========")
+	walletAddr,_:=common.AddressFromBase58(PARTICIPANT2_WALLETADDR)
+	ret1,err:=testDns.QueryDnsNode(walletAddr)
+	assert.Nil(t,err)
+	fmt.Println("Wait For Generate Block......")
+	//testDns.Client.WaitForGenerateBlock(30*time.Second, 1)
+	fmt.Printf("ret wallet:%s\n",ret1.WalletAddr.ToBase58())
+	fmt.Printf("ret ip:%s\n",ret1.IP)
+	fmt.Printf("ret port:%s\n",ret1.Port)
+}
+
+func TestDns_GetDnsNodes(t *testing.T) {
+	var err error
+	w,err:=wallet.OpenWallet(walletPath)
+	if err!=nil{
+		fmt.Printf("open wallet error:%s\n",err)
+	}
+	acc,err:=w.GetDefaultAccount(pwd)
+	if err!=nil{
+		fmt.Printf("GetDefaultAccount error:%s\n",err)
+	}
+	testDns:=&Dns{}
+	testDns.Client=&client.ClientMgr{}
+	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
+	testDns.DefAcc=acc
+	fmt.Println("=======get dns nodes===========")
+	ret,err:=testDns.GetDnsNodes()
+	assert.Nil(t,err)
+	for k,v:=range ret{
+		fmt.Printf("k:%s\n",k)
+		fmt.Printf("v.wallet:%s\n",v.WalletAddr.ToBase58())
+		fmt.Printf("v.ip:%s\n",v.IP)
+		fmt.Printf("v.port:%s\n",v.Port)
+	}
+
 }
