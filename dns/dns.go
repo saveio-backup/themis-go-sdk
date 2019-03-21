@@ -291,6 +291,7 @@ func (this *Dns) UnregisterDNSNode() (common.Uint256, error) {
 
 // DNSNodeReg. register dns node to dns node govern contract
 func (this *Dns) DNSNodeReg(regWallet common.Address, ip, port []byte) (common.Uint256, error) {
+
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
 	}
