@@ -22,6 +22,7 @@ type NativeContract struct {
 	Dns          *dns.Dns
 	Fs           *fs.Fs
 	Channel      *channel.Channel
+	Governance   *governance.Governance
 }
 
 func newNativeContract(client *client.ClientMgr) *NativeContract {
@@ -34,6 +35,7 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 	native.Dns = &dns.Dns{Client: client}
 	native.Fs = &fs.Fs{Client: client}
 	native.Channel = &channel.Channel{Client: client}
+	native.Governance = &governance.Governance{Client: client}
 	return native
 }
 
@@ -41,4 +43,5 @@ func (this *NativeContract) SetDefaultAccount(acc *account.Account) {
 	this.Channel.DefAcc = acc
 	this.Fs.DefAcc = acc
 	this.Dns.DefAcc = acc
+	this.Governance.DefAcc = acc
 }
