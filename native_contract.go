@@ -7,6 +7,7 @@ import (
 	"github.com/oniio/oniChain-go-sdk/dns"
 	"github.com/oniio/oniChain-go-sdk/fs"
 	cgp "github.com/oniio/oniChain-go-sdk/globalparam"
+	"github.com/oniio/oniChain-go-sdk/governance"
 	"github.com/oniio/oniChain-go-sdk/ong"
 	"github.com/oniio/oniChain-go-sdk/ont"
 	"github.com/oniio/oniChain-go-sdk/ontid"

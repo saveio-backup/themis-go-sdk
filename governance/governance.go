@@ -132,7 +132,7 @@ func (this *Governance) AddInitPos(peerPubkey string, pos uint64) ([]byte, error
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		gov.ADD_INIT_POS,
-		[]interface{}{&gov.ChangeInitPosParam{PeerPubkey: peerPubKey, Address: this.DefAcc.Address, Pos: pos}},
+		[]interface{}{&gov.ChangeInitPosParam{PeerPubkey: peerPubkey, Address: this.DefAcc.Address, Pos: pos}},
 	)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (this *Governance) ReduceInitPos(peerPubkey string, pos uint64) ([]byte, er
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		gov.REDUCE_INIT_POS,
-		[]interface{}{&gov.ChangeInitPosParam{PeerPubkey: peerPubKey, Address: this.DefAcc.Address, Pos: pos}},
+		[]interface{}{&gov.ChangeInitPosParam{PeerPubkey: peerPubkey, Address: this.DefAcc.Address, Pos: pos}},
 	)
 	if err != nil {
 		return nil, err
