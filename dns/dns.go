@@ -2,6 +2,8 @@ package dns
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"strings"
 
@@ -10,9 +12,8 @@ import (
 	"github.com/oniio/oniChain-go-sdk/utils"
 	"github.com/oniio/oniChain/account"
 	"github.com/oniio/oniChain/common"
+	"github.com/oniio/oniChain/crypto/keypair"
 	"github.com/oniio/oniChain/smartcontract/service/native/dns"
-	"encoding/json"
-	"fmt"
 )
 
 var (
@@ -48,6 +49,16 @@ func (this *Dns) PreExecInvokeNativeContract(method string, params []interface{}
 	return this.Client.PreExecTransaction(tx)
 }
 
+// InitDNS. init dns native contract.
+func (this *Dns) InitDNS() (common.Uint256, error) {
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.INIT_NAME, []interface{}{})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// RegisterUrl. register url
 func (this *Dns) RegisterUrl(url string, rType uint64, name, desc string, ttl uint64) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -85,6 +96,7 @@ func (this *Dns) RegisterUrl(url string, rType uint64, name, desc string, ttl ui
 	return ret, nil
 }
 
+// RegisterHeader. register url header prefix
 func (this *Dns) RegisterHeader(header, desc string, ttl uint64) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -101,6 +113,8 @@ func (this *Dns) RegisterHeader(header, desc string, ttl uint64) (common.Uint256
 	}
 	return ret, nil
 }
+
+// Binding. bind url with name, desc, ttl
 func (this *Dns) Binding(url string, name, desc string, ttl uint64) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -124,6 +138,7 @@ func (this *Dns) Binding(url string, name, desc string, ttl uint64) (common.Uint
 	return ret, nil
 }
 
+// DeleteUrl. delete url
 func (this *Dns) DeleteUrl(url string) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -143,6 +158,8 @@ func (this *Dns) DeleteUrl(url string) (common.Uint256, error) {
 	}
 	return ret, nil
 }
+
+// DeleteHeader. delete header
 func (this *Dns) DeleteHeader(header string) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -157,6 +174,8 @@ func (this *Dns) DeleteHeader(header string) (common.Uint256, error) {
 	}
 	return ret, nil
 }
+
+// TransferUrl. transfer the ownership of url to other user.
 func (this *Dns) TransferUrl(url string, toAdder string) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -178,6 +197,8 @@ func (this *Dns) TransferUrl(url string, toAdder string) (common.Uint256, error)
 	}
 	return ret, nil
 }
+
+// TransferHeader. transfer the ownership of header to other user.
 func (this *Dns) TransferHeader(header, toAdder string) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -195,6 +216,7 @@ func (this *Dns) TransferHeader(header, toAdder string) (common.Uint256, error) 
 	return ret, err
 }
 
+// QueryUrl. query a url to find it's exist or not
 func (this *Dns) QueryUrl(url string, ownerAddr common.Address) (*dns.NameInfo, error) {
 	strs := strings.Split(url, "://")
 	if len(strs) != 2 {
@@ -225,6 +247,7 @@ func (this *Dns) QueryUrl(url string, ownerAddr common.Address) (*dns.NameInfo, 
 	return &name, nil
 }
 
+// QueryHeader. query a header to find it's exist or not
 func (this *Dns) QueryHeader(header string, ownerAddr common.Address) (*dns.HeaderInfo, error) {
 	req := dns.ReqInfo{
 		Header: []byte(header),
@@ -252,6 +275,21 @@ func (this *Dns) QueryHeader(header string, ownerAddr common.Address) (*dns.Head
 
 }
 
+// UnregisterDNSNode. unregister dns node to quit
+func (this *Dns) UnregisterDNSNode() (common.Uint256, error) {
+	pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+	param := dns.UnRegisterCandidateParam{
+		PeerPubkey: hex.EncodeToString(pk),
+		Address:    this.DefAcc.Address,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.UN_DNS_NODE_REG, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// DNSNodeReg. register dns node to dns node govern contract
 func (this *Dns) DNSNodeReg(regWallet common.Address, ip, port []byte) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
@@ -266,44 +304,154 @@ func (this *Dns) DNSNodeReg(regWallet common.Address, ip, port []byte) (common.U
 		return common.UINT256_EMPTY, err
 	}
 	return ret, nil
-
 }
 
 func (this *Dns) QueryDnsNode(wallet common.Address) (*dns.DNSNodeInfo, error) {
 	req := wallet
-	ret, err := this.PreExecInvokeNativeContract(dns.QUERY_DNSNODE_BYADDR, []interface{}{req})
+	ret, err := this.PreExecInvokeNativeContract(dns.GET_DNSNODE_BYADDR, []interface{}{req})
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	data,err:=ret.Result.ToByteArray()
-	if err!=nil{
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
 		return nil, errors.New("QueryDnsNode result toByteArray error")
 	}
 	var dn dns.DNSNodeInfo
-	reader:=bytes.NewReader(data)
-	err=dn.Deserialize(reader)
-	if err!=nil{
-		return nil,errors.New("QueryDnsNode dnsNodeInfo deserialize error")
+	reader := bytes.NewReader(data)
+	err = dn.Deserialize(reader)
+	if err != nil {
+		return nil, errors.New("QueryDnsNode dnsNodeInfo deserialize error")
 	}
-	return &dn,nil
+	return &dn, nil
 }
 
 func (this *Dns) GetDnsNodes() (map[string]dns.DNSNodeInfo, error) {
-
-	dn:=make(map[string]dns.DNSNodeInfo)
-	ret, err := this.PreExecInvokeNativeContract(dns.GET_RANGE_MAP, nil)
+	dn := make(map[string]dns.DNSNodeInfo)
+	ret, err := this.PreExecInvokeNativeContract(dns.GET_ALL_DNSNODES, nil)
 
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	data,err:=ret.Result.ToByteArray()
-	if err!=nil{
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
 		return nil, errors.New("GetDnsNodes result toByteArray error")
 	}
-	err=json.Unmarshal(data,&dn)
-	if err!=nil{
-		return nil,errors.New("QueryDnsNode dnsNodeInfo deserialize error")
+	err = json.Unmarshal(data, &dn)
+	if err != nil {
+		return nil, errors.New("QueryDnsNode dnsNodeInfo deserialize error")
 	}
-	return dn,nil
+	return dn, nil
 }
 
+// ApproveCandidate. approve a dns candidate node.
+func (this *Dns) ApproveCandidate(pubKey string) (common.Uint256, error) {
+	param := dns.ApproveCandidateParam{
+		PeerPubkey: pubKey,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.APPROVE_CANDIDATE, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// RejectDNSCandidate. reject a dns candidate node.
+func (this *Dns) RejectDNSCandidate(pubKey string) (common.Uint256, error) {
+	param := dns.PubKeyParam{
+		PeerPubkey: pubKey,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.REJECT_CANDIDATE, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// QuitNode. quit node.
+func (this *Dns) QuitNode() (common.Uint256, error) {
+	pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+	param := dns.QuitNodeParam{
+		PeerPubkey: hex.EncodeToString(pk),
+		Address:    this.DefAcc.Address,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.QUIT_NODE, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// AddInitPos. add init pos.
+func (this *Dns) AddInitPos(addPosAmount uint64) (common.Uint256, error) {
+	pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+	param := dns.ChangeInitPosParam{
+		PeerPubkey: hex.EncodeToString(pk),
+		Address:    this.DefAcc.Address,
+		Pos:        addPosAmount,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.ADD_INIT_POS, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// ReduceInitPos. reduce init pos.
+func (this *Dns) ReduceInitPos(changePosAmount uint64) (common.Uint256, error) {
+	pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+	param := dns.ChangeInitPosParam{
+		PeerPubkey: hex.EncodeToString(pk),
+		Address:    this.DefAcc.Address,
+		Pos:        changePosAmount,
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.REDUCE_INIT_POS, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// GetPeerPoolMap. get peer pool map
+func (this *Dns) GetPeerPoolMap() (*dns.PeerPoolMap, error) {
+	ret, err := this.PreExecInvokeNativeContract(dns.GET_PEER_POOLMAP, []interface{}{})
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, errors.New("GetPeerPoolMap result toByteArray err")
+	}
+	if len(data) == 0 {
+		return nil, errors.New("data is nil")
+	}
+	var peerPoolMap dns.PeerPoolMap
+	err = peerPoolMap.Deserialize(bytes.NewReader(data))
+	if err != nil {
+		return nil, errors.New("peerPoolMap deserialize error")
+	}
+	return &peerPoolMap, nil
+}
+
+// GetPeerPoolItem. get peer pool item
+func (this *Dns) GetPeerPoolItem(pubKey string) (*dns.PeerPoolItem, error) {
+	param := dns.PubKeyParam{
+		PeerPubkey: pubKey,
+	}
+	ret, err := this.PreExecInvokeNativeContract(dns.GET_PEER_POOLITEM, []interface{}{param})
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, errors.New("GetPeerPoolItem result toByteArray err")
+	}
+	if len(data) == 0 {
+		return nil, errors.New("data is nil")
+	}
+	var peerPoolItem dns.PeerPoolItem
+	err = peerPoolItem.Deserialize(bytes.NewReader(data))
+	if err != nil {
+		return nil, errors.New("peerPoolItem deserialize error")
+	}
+	return &peerPoolItem, nil
+}

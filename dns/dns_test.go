@@ -1,25 +1,32 @@
 package dns
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/oniio/oniChain-go-sdk/client"
 	"github.com/oniio/oniChain-go-sdk/wallet"
-	"github.com/oniio/oniChain/smartcontract/service/native/dns"
 	"github.com/oniio/oniChain/common"
+	"github.com/oniio/oniChain/crypto/keypair"
+	"github.com/oniio/oniChain/smartcontract/service/native/dns"
 	"github.com/stretchr/testify/assert"
 )
 
 var walletPath = "./wallet.dat"
-var pwd = []byte("123")
+var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
-var testDns *Dns
+var testDns = &Dns{}
+var txTimeout = 60
+var dnsIP = "tcp://127.0.0.1"
+var dnsPort = uint32(10000)
 var PARTICIPANT2_WALLETADDR = "AHPVWYfGniCcJgDMZnR8ozghL3Eis4PtNZ" // Channel
 var PARTICIPANT1_WALLETADDR = "AMZXn19S9bFEd7XpWxZa9PdxmYF3uapDRS" // Channel
 
 func init() {
+	rand.Seed(time.Now().UnixNano())
 	var err error
 	w, err := wallet.OpenWallet(walletPath)
 	if err != nil {
@@ -29,7 +36,6 @@ func init() {
 	if err != nil {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testDns := &Dns{}
 	testDns.Client = &client.ClientMgr{}
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
@@ -302,7 +308,6 @@ func TestDeleteUrl(t *testing.T) {
 }
 
 func TestDns_DNSNodeReg(t *testing.T) {
-	var err error
 	w, err := wallet.OpenWallet(walletPath)
 	if err != nil {
 		fmt.Printf("Account.Open error:%s\n", err)
@@ -316,9 +321,9 @@ func TestDns_DNSNodeReg(t *testing.T) {
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
 	fmt.Println("=======register dns node===========")
-	walletAddr,_:=common.AddressFromBase58(PARTICIPANT1_WALLETADDR)
-	ret1,err:=testDns.DNSNodeReg(walletAddr,[]byte("10.1.1.21"),[]byte("8080"))
-	assert.Nil(t,err)
+	walletAddr, _ := common.AddressFromBase58(PARTICIPANT1_WALLETADDR)
+	ret1, err := testDns.DNSNodeReg(walletAddr, []byte("10.1.1.21"), []byte("8080"))
+	assert.Nil(t, err)
 	fmt.Printf("Random Dnsnodereg txHash: %v\n", ret1.ToHexString())
 	assert.Nil(t, err)
 
@@ -334,7 +339,6 @@ func TestDns_DNSNodeReg(t *testing.T) {
 }
 
 func TestDns_QueryDnsNode(t *testing.T) {
-	var err error
 	w, err := wallet.OpenWallet(walletPath)
 	if err != nil {
 		fmt.Printf("Account.Open error:%s\n", err)
@@ -348,38 +352,159 @@ func TestDns_QueryDnsNode(t *testing.T) {
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
 	fmt.Println("=======querry dns node===========")
-	walletAddr,_:=common.AddressFromBase58(PARTICIPANT2_WALLETADDR)
-	ret1,err:=testDns.QueryDnsNode(walletAddr)
-	assert.Nil(t,err)
+	walletAddr, _ := common.AddressFromBase58(PARTICIPANT2_WALLETADDR)
+	ret1, err := testDns.QueryDnsNode(walletAddr)
+	assert.Nil(t, err)
 	fmt.Println("Wait For Generate Block......")
 	//testDns.Client.WaitForGenerateBlock(30*time.Second, 1)
-	fmt.Printf("ret wallet:%s\n",ret1.WalletAddr.ToBase58())
-	fmt.Printf("ret ip:%s\n",ret1.IP)
-	fmt.Printf("ret port:%s\n",ret1.Port)
+	fmt.Printf("ret wallet:%s\n", ret1.WalletAddr.ToBase58())
+	fmt.Printf("ret ip:%s\n", ret1.IP)
+	fmt.Printf("ret port:%s\n", ret1.Port)
 }
 
 func TestDns_GetDnsNodes(t *testing.T) {
-	var err error
-	w,err:=wallet.OpenWallet(walletPath)
-	if err!=nil{
-		fmt.Printf("open wallet error:%s\n",err)
+	w, err := wallet.OpenWallet(walletPath)
+	if err != nil {
+		fmt.Printf("open wallet error:%s\n", err)
 	}
-	acc,err:=w.GetDefaultAccount(pwd)
-	if err!=nil{
-		fmt.Printf("GetDefaultAccount error:%s\n",err)
+	acc, err := w.GetDefaultAccount(pwd)
+	if err != nil {
+		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testDns:=&Dns{}
-	testDns.Client=&client.ClientMgr{}
+	testDns := &Dns{}
+	testDns.Client = &client.ClientMgr{}
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
-	testDns.DefAcc=acc
+	testDns.DefAcc = acc
 	fmt.Println("=======get dns nodes===========")
-	ret,err:=testDns.GetDnsNodes()
-	assert.Nil(t,err)
-	for k,v:=range ret{
-		fmt.Printf("k:%s\n",k)
-		fmt.Printf("v.wallet:%s\n",v.WalletAddr.ToBase58())
-		fmt.Printf("v.ip:%s\n",v.IP)
-		fmt.Printf("v.port:%s\n",v.Port)
+	ret, err := testDns.GetDnsNodes()
+	assert.Nil(t, err)
+	for k, v := range ret {
+		fmt.Printf("k:%s\n", k)
+		fmt.Printf("v.wallet:%s\n", v.WalletAddr.ToBase58())
+		fmt.Printf("v.ip:%s\n", v.IP)
+		fmt.Printf("v.port:%s\n", v.Port)
+	}
+}
+
+func TestUnRegDNS(t *testing.T) {
+	tx, err := testDns.UnregisterDNSNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("UnregisterDNSNode txHash: %v\n", tx.ToHexString())
+	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGetPeerPoolItem(t *testing.T) {
+	pk := keypair.SerializePublicKey(testDns.DefAcc.PublicKey)
+	pkStr := hex.EncodeToString(pk)
+	item, err := testDns.GetPeerPoolItem(pkStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("PeerPubkey: %v\n", item.PeerPubkey)
+	fmt.Printf("WalletAddress: %v\n", item.WalletAddress)
+	fmt.Printf("Status: %v\n", item.Status)
+	fmt.Printf("InitPos: %v\n", item.InitPos)
+	fmt.Printf("TotalPos: %v\n", item.TotalPos)
+}
+
+func TestGetPeerPoolMap(t *testing.T) {
+	m, err := testDns.GetPeerPoolMap()
+	if err != nil {
+		t.Fatal(err)
 	}
 
+	for _, item := range m.PeerPoolMap {
+		fmt.Printf("PeerPubkey: %v\n", item.PeerPubkey)
+		fmt.Printf("WalletAddress: %v\n", item.WalletAddress)
+		fmt.Printf("Status: %v\n", item.Status)
+		fmt.Printf("InitPos: %v\n", item.InitPos)
+		fmt.Printf("TotalPos: %v\n\n", item.TotalPos)
+	}
+}
+
+func TestAddInitPos(t *testing.T) {
+	tx, err := testDns.AddInitPos(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("AddInitPos txHash: %v\n", tx.ToHexString())
+	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	node, err := testDns.QueryDnsNode(testDns.DefAcc.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("WalletAddr: %v\n", node.WalletAddr.ToBase58())
+	fmt.Printf("IP: %s\n", node.IP)
+	fmt.Printf("Port: %s\n", node.Port)
+	fmt.Printf("PeerPubKey: %v\n", node.PeerPubKey)
+	fmt.Printf("InitDeposit: %v\n", node.InitDeposit)
+}
+
+func TestReduceInitPos(t *testing.T) {
+	tx, err := testDns.ReduceInitPos(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("AddInitPos txHash: %v\n", tx.ToHexString())
+	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	node, err := testDns.QueryDnsNode(testDns.DefAcc.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("WalletAddr: %v\n", node.WalletAddr.ToBase58())
+	fmt.Printf("IP: %s\n", node.IP)
+	fmt.Printf("Port: %s\n", node.Port)
+	fmt.Printf("PeerPubKey: %v\n", node.PeerPubKey)
+	fmt.Printf("InitDeposit: %v\n", node.InitDeposit)
+}
+
+func TestQuitNode(t *testing.T) {
+	tx, err := testDns.QuitNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("QuitNode txHash: %v\n", tx.ToHexString())
+	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestApproveCandidate(t *testing.T) {
+	pk := keypair.SerializePublicKey(testDns.DefAcc.PublicKey)
+	pkStr := hex.EncodeToString(pk)
+	tx, err := testDns.ApproveCandidate(pkStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("ApproveCandidate txHash: %v\n", tx.ToHexString())
+	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRejectCandidate(t *testing.T) {
+	pk := keypair.SerializePublicKey(testDns.DefAcc.PublicKey)
+	pkStr := hex.EncodeToString(pk)
+	tx, err := testDns.RejectDNSCandidate(pkStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("ApproveCandidate txHash: %v\n", tx.ToHexString())
+	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
+	if err != nil {
+		t.Fatal(err)
+	}
 }
