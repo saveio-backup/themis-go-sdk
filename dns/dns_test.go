@@ -453,7 +453,7 @@ func TestReduceInitPos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("AddInitPos txHash: %v\n", tx.ToHexString())
+	fmt.Printf("Reduce InitPos txHash: %v\n", tx.ToHexString())
 	_, err = testDns.Client.PollForTxConfirmed(time.Duration(txTimeout)*time.Second, tx[:])
 	if err != nil {
 		t.Fatal(err)
