@@ -3,9 +3,10 @@ package dns
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"strings"
+
+	"encoding/json"
 
 	"github.com/oniio/oniChain-go-sdk/client"
 	sdkcom "github.com/oniio/oniChain-go-sdk/common"
