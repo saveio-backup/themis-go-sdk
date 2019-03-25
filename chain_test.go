@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestOnt_Transfer(t *testing.T) {
-	txHash, err := testChain.Native.Ont.Transfer(testGasPrice, testGasLimit, testDefAcc, testDefAcc.Address, 1)
+	txHash, err := testChain.Native.Usdt.Transfer(testGasPrice, testGasLimit, testDefAcc, testDefAcc.Address, 1)
 	if err != nil {
 		t.Errorf("NewTransferTransaction error:%s", err)
 		return
@@ -63,21 +63,6 @@ func TestOnt_Transfer(t *testing.T) {
 		fmt.Printf("ContractAddress:%s\n", notify.ContractAddress)
 		fmt.Printf("States:%+v\n", notify.States)
 	}
-}
-
-func TestOng_WithDrawONG(t *testing.T) {
-	unboundONG, err := testChain.Native.Ong.UnboundONG(testDefAcc.Address)
-	if err != nil {
-		t.Errorf("UnboundONG error:%s", err)
-		return
-	}
-	fmt.Printf("Address:%s UnboundONG:%d\n", testDefAcc.Address.ToBase58(), unboundONG)
-	_, err = testChain.Native.Ong.WithdrawONG(0, 20000, testDefAcc, unboundONG)
-	if err != nil {
-		t.Errorf("WithDrawONG error:%s", err)
-		return
-	}
-	fmt.Printf("Address:%s WithDrawONG amount:%d success\n", testDefAcc.Address.ToBase58(), unboundONG)
 }
 
 func TestGlobalParam_GetGlobalParams(t *testing.T) {
@@ -147,7 +132,7 @@ func TestWsScribeEvent(t *testing.T) {
 func TestWsTransfer(t *testing.T) {
 	wsClient := testChain.ClientMgr.GetWebSocketClient()
 	testChain.ClientMgr.SetDefaultClient(wsClient)
-	txHash, err := testChain.Native.Ont.Transfer(testGasPrice, testGasLimit, testDefAcc, testDefAcc.Address, 1)
+	txHash, err := testChain.Native.Usdt.Transfer(testGasPrice, testGasLimit, testDefAcc, testDefAcc.Address, 1)
 	if err != nil {
 		t.Errorf("NewTransferTransaction error:%s", err)
 		return

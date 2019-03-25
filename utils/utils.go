@@ -53,12 +53,10 @@ func GetContractAddress(contractCode string) (common.Address, error) {
 func GetAssetAddress(asset string) (common.Address, error) {
 	var contractAddress common.Address
 	switch strings.ToUpper(asset) {
-	case "ONT":
-		contractAddress = nvutils.OntContractAddress
-	case "ONG":
-		contractAddress = nvutils.OngContractAddress
+	case "USDT":
+		contractAddress = nvutils.UsdtContractAddress
 	default:
-		return common.ADDRESS_EMPTY, fmt.Errorf("asset:%s not equal ont or ong", asset)
+		return common.ADDRESS_EMPTY, fmt.Errorf("asset:%s not equal usdt", asset)
 	}
 	return contractAddress, nil
 }

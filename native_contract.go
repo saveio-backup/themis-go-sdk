@@ -8,15 +8,13 @@ import (
 	"github.com/oniio/oniChain-go-sdk/fs"
 	cgp "github.com/oniio/oniChain-go-sdk/globalparam"
 	"github.com/oniio/oniChain-go-sdk/governance"
-	"github.com/oniio/oniChain-go-sdk/ong"
-	"github.com/oniio/oniChain-go-sdk/ont"
 	"github.com/oniio/oniChain-go-sdk/ontid"
+	"github.com/oniio/oniChain-go-sdk/usdt"
 	"github.com/oniio/oniChain/account"
 )
 
 type NativeContract struct {
-	Ont          *ont.Ont
-	Ong          *ong.Ong
+	Usdt         *usdt.Usdt
 	OntId        *ontid.OntId
 	GlobalParams *cgp.GlobalParam
 	Auth         *auth.Auth
@@ -28,8 +26,7 @@ type NativeContract struct {
 
 func newNativeContract(client *client.ClientMgr) *NativeContract {
 	native := &NativeContract{}
-	native.Ont = &ont.Ont{Client: client}
-	native.Ong = &ong.Ong{Client: client}
+	native.Usdt = &usdt.Usdt{Client: client}
 	native.OntId = &ontid.OntId{Client: client}
 	native.GlobalParams = &cgp.GlobalParam{Client: client}
 	native.Auth = &auth.Auth{Client: client}
