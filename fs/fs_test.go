@@ -2,7 +2,9 @@ package fs
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/oniio/oniChain-go-sdk/client"
 	"github.com/oniio/oniChain-go-sdk/wallet"
@@ -16,6 +18,7 @@ var rpc_addr = "http://127.0.0.1:20336"
 var txt = "QmevhnWdtmz89BMXuuX5pSY2uZtqKLz7frJsrCojT5kmb6"
 
 func TestMain(m *testing.M) {
+	rand.Seed(time.Now().UnixNano())
 	var err error
 	w, err := wallet.OpenWallet(walletPath)
 	if err != nil {
@@ -25,7 +28,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testFs := &Fs{}
+	testFs = &Fs{}
 	testFs.Client = &client.ClientMgr{}
 	testFs.Client.NewRpcClient().SetAddress(rpc_addr)
 	testFs.DefAcc = acc
@@ -175,4 +178,27 @@ func TestOntFs_FileProve(t *testing.T) {
 		return
 	}
 	fmt.Println("TestOntFs_FileProve Success")
+}
+
+func TestOniFs_AddUserSpace(t *testing.T) {
+	if testFs == nil {
+		t.Fatal("testFs is nil")
+	}
+	ret, err := testFs.AddUserSpace(testFs.DefAcc.Address, 1*1024*1024, 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("add user space ret %v\n", ret)
+}
+
+func TestOntFs_GetUserSpace(t *testing.T) {
+	userspace, err := testFs.GetUserSpace(testFs.DefAcc.Address)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+	fmt.Printf("Used : %d\n", userspace.Used)
+	fmt.Printf("Remain : %d\n", userspace.Remain)
+	fmt.Printf("ExpiredHeight : %d\n", userspace.ExpireHeight)
+	fmt.Printf("Blanace : %d\n", userspace.Balance)
 }

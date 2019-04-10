@@ -711,3 +711,73 @@ func (this *Fs) FileReadSettleSliceDec(fileReadSettleSliceSer []byte) (*fs.FileR
 func (this *Fs) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
 	return fs.GenChallenge(walletAddr, hash, uint32(fileBlockNum), uint32(proveNum))
 }
+
+// AddUserSpace. add user space operation for space owner.
+func (this *Fs) AddUserSpace(walletAddr common.Address, size, blockCount uint64) ([]byte, error) {
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+	params := &fs.UserSpaceParams{
+		WalletAddr: this.DefAcc.Address,
+		Owner:      walletAddr,
+		Type:       uint64(fs.UserSpaceAdd),
+		Size:       size,
+		BlockCount: blockCount,
+	}
+	ret, err := this.InvokeNativeContract(
+		this.DefAcc, fs.FS_MANAGE_USER_SPACE,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+// RevokeUserSpace. revoke user space operation for space owner.
+func (this *Fs) RevokeUserSpace(walletAddr common.Address, size, blockCount uint64) ([]byte, error) {
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+	params := &fs.UserSpaceParams{
+		WalletAddr: this.DefAcc.Address,
+		Owner:      walletAddr,
+		Type:       uint64(fs.UserSpaceRevoke),
+		Size:       size,
+		BlockCount: blockCount,
+	}
+	ret, err := this.InvokeNativeContract(
+		this.DefAcc, fs.FS_MANAGE_USER_SPACE,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+// GetUserSpace. get user space with wallet address
+func (this *Fs) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_USER_SPACE, []interface{}{walletAddr})
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetUserSpace result toByteArray: %s", err.Error())
+	}
+
+	var userspace fs.UserSpace
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		r := bytes.NewReader(retInfo.Info)
+		err = userspace.Deserialize(r)
+		if err != nil {
+			return nil, fmt.Errorf("GetUserSpace error: %s", err.Error())
+		}
+		return &userspace, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}

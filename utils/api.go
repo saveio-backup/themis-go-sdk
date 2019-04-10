@@ -103,10 +103,17 @@ func GetStorage(data []byte) ([]byte, error) {
 func GetSmartContractEvent(data []byte) (*sdkcom.SmartContactEvent, error) {
 	event := &sdkcom.SmartContactEvent{}
 	err := json.Unmarshal(data, &event)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal SmartContactEvent:%s error:%s", data, err)
+	if err == nil {
+		return event, nil
 	}
-	return event, nil
+	events, err := GetSmartContractEvents(data)
+	if err != nil {
+		return nil, err
+	}
+	if len(events) > 0 {
+		return events[0], nil
+	}
+	return nil, nil
 }
 
 func GetSmartContractEventLog(data []byte) (*sdkcom.SmartContractEventLog, error) {

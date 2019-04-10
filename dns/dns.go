@@ -204,7 +204,7 @@ func (this *Dns) TransferHeader(header, toAdder string) (common.Uint256, error) 
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
 	}
-	to, err := common.AddressFromHexString(toAdder)
+	to, err := common.AddressFromBase58(toAdder)
 	req := dns.TranferInfo{
 		Header: []byte(header),
 		From:   this.DefAcc.Address,
@@ -270,10 +270,14 @@ func (this *Dns) QueryHeader(header string, ownerAddr common.Address) (*dns.Head
 	infoReader := bytes.NewReader(data)
 	err = headerInfo.Deserialize(infoReader)
 	if err != nil {
-		return nil, errors.New("HeaderInfo deserialize error")
+		return nil, err
 	}
 	return &headerInfo, nil
 
+}
+
+func (this *Dns) GetCustomUrlHeader() string {
+	return "save://share/"
 }
 
 // UnregisterDNSNode. unregister dns node to quit
@@ -291,15 +295,18 @@ func (this *Dns) UnregisterDNSNode() (common.Uint256, error) {
 }
 
 // DNSNodeReg. register dns node to dns node govern contract
-func (this *Dns) DNSNodeReg(regWallet common.Address, ip, port []byte) (common.Uint256, error) {
-
+func (this *Dns) DNSNodeReg(ip, port []byte, initPos uint64) (common.Uint256, error) {
+	pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+	peerPubKey := hex.EncodeToString(pk)
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
 	}
 	req := dns.DNSNodeInfo{
-		WalletAddr: regWallet,
-		IP:         ip,
-		Port:       port,
+		WalletAddr:  this.DefAcc.Address,
+		IP:          ip,
+		Port:        port,
+		InitDeposit: initPos,
+		PeerPubKey:  peerPubKey,
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc, dns.DNS_NODE_REG, []interface{}{req})
 	if err != nil {
@@ -308,8 +315,13 @@ func (this *Dns) DNSNodeReg(regWallet common.Address, ip, port []byte) (common.U
 	return ret, nil
 }
 
-func (this *Dns) QueryDnsNode(wallet common.Address) (*dns.DNSNodeInfo, error) {
-	req := wallet
+func (this *Dns) GetDnsNodeByAddr(wallet common.Address) (*dns.DNSNodeInfo, error) {
+	var req common.Address
+	if wallet == common.ADDRESS_EMPTY {
+		req = this.DefAcc.Address
+	} else {
+		req = wallet
+	}
 	ret, err := this.PreExecInvokeNativeContract(dns.GET_DNSNODE_BYADDR, []interface{}{req})
 	if err != nil {
 		return nil, err
@@ -327,7 +339,7 @@ func (this *Dns) QueryDnsNode(wallet common.Address) (*dns.DNSNodeInfo, error) {
 	return &dn, nil
 }
 
-func (this *Dns) GetDnsNodes() (map[string]dns.DNSNodeInfo, error) {
+func (this *Dns) GetAllDnsNodes() (map[string]dns.DNSNodeInfo, error) {
 	dn := make(map[string]dns.DNSNodeInfo)
 	ret, err := this.PreExecInvokeNativeContract(dns.GET_ALL_DNSNODES, nil)
 
@@ -436,6 +448,10 @@ func (this *Dns) GetPeerPoolMap() (*dns.PeerPoolMap, error) {
 
 // GetPeerPoolItem. get peer pool item
 func (this *Dns) GetPeerPoolItem(pubKey string) (*dns.PeerPoolItem, error) {
+	if pubKey == "" {
+		pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+		pubKey = hex.EncodeToString(pk)
+	}
 	param := dns.PubKeyParam{
 		PeerPubkey: pubKey,
 	}

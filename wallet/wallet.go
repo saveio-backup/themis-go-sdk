@@ -116,6 +116,67 @@ func OpenWallet(path string) (*Wallet, error) {
 	return wallet, nil
 }
 
+func OpenWithWalletData(data []byte) (*Wallet, error) {
+	walletData := &WalletData{}
+	err := json.Unmarshal(data, walletData)
+	if err != nil {
+		return nil, err
+	}
+	wallet := NewWallet("")
+	wallet.Name = walletData.Name
+	wallet.Version = walletData.Version
+	wallet.Scrypt = walletData.Scrypt
+	wallet.Extra = walletData.Extra
+	for _, accountData := range walletData.Accounts {
+		accountData.Scrypt = wallet.Scrypt
+		if accountData.IsDefault {
+			if wallet.defAcc != nil {
+				return nil, fmt.Errorf("more than one default account")
+			}
+			wallet.defAcc = accountData
+		}
+		wallet.accounts = append(wallet.accounts, accountData)
+		wallet.accAddressMap[accountData.Address] = accountData
+		if accountData.Label != "" {
+			_, ok := wallet.accLabelMap[accountData.Label]
+			if ok {
+				return nil, fmt.Errorf("duplicate account label:%s", accountData.Label)
+			}
+			wallet.accLabelMap[accountData.Label] = accountData
+		}
+	}
+	if wallet.defAcc == nil && len(walletData.Accounts) > 0 {
+		wallet.defAcc = walletData.Accounts[0]
+	}
+
+	for _, identityData := range walletData.Identities {
+		identityData.Scrypt = wallet.Scrypt
+		identity, err := identity.NewIdentityFromIdentityData(identityData)
+		if err != nil {
+			return nil, fmt.Errorf("NewIdentityFromIdentityData error:%s", err)
+		}
+		if identity.IsDefault {
+			if wallet.defIdentity != nil {
+				return nil, fmt.Errorf("more than one default identity")
+			}
+			wallet.defIdentity = identity
+		}
+		wallet.identities = append(wallet.identities, identity)
+		wallet.identityMap[identity.ID] = identity
+		if identity.Label != "" {
+			_, ok := wallet.identityLabelMap[identity.Label]
+			if ok {
+				return nil, fmt.Errorf("duplicate identity label:%s", identity.Label)
+			}
+			wallet.identityLabelMap[identity.Label] = identity
+		}
+	}
+	if wallet.defIdentity == nil && len(wallet.identities) > 0 {
+		wallet.defIdentity = wallet.identities[0]
+	}
+	return wallet, nil
+}
+
 func (this *Wallet) NewAccount(keyType keypair.KeyType, curveCode byte, sigScheme s.SignatureScheme, passwd []byte) (*account.Account, error) {
 	accData, err := cacc.NewAccountData(keyType, curveCode, sigScheme, passwd, this.Scrypt)
 	if err != nil {
