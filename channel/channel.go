@@ -260,6 +260,26 @@ func (this *Channel) SettleChannel(chanID uint64, participant1 common.Address, p
 	return tx[:], nil
 }
 
+func (this *Channel) Unlock(channelID uint64, participant, partner common.Address, merkleTreeLeaves []byte) ([]byte, error) {
+	params := &micropayment.UnlockInfo{
+		ChannelID:          channelID,
+		ParticipantAddress: participant,
+		PartnerAddress:     partner,
+		MerkleTreeLeaves:   merkleTreeLeaves,
+	}
+
+	tx, err := this.InvokeNativeContract(
+		this.DefAcc,
+		micropayment.MP_UNLOCK,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx[:], nil
+}
+
 func (this *Channel) GetChannelInfo(channelID uint64, participant1, participant2 common.Address) (*micropayment.ChannelInfo, error) {
 	params := &micropayment.GetChanInfo{
 		ChannelID:    channelID,
