@@ -287,6 +287,35 @@ func (this *Fs) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, err
 	}
 }
 
+func (this *Fs) AddWhiteLists(fileHashStr string, whitelists []string, blockCount uint64) ([]byte, error) {
+	if len(fileHashStr) == 0 || len(whitelists) == 0 {
+		return nil, errors.New("invalid params")
+	}
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+	currentHeight, err := this.Client.GetCurrentBlockHeight()
+	if err != nil {
+		return nil, err
+	}
+	rules := make([]fs.Rule, 0, len(whitelists))
+	for _, wl := range whitelists {
+		addr, err := common.AddressFromBase58(wl)
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, fs.Rule{
+			Addr:         addr,
+			BaseHeight:   uint64(currentHeight),
+			ExpireHeight: uint64(currentHeight) + uint64(blockCount),
+		})
+	}
+	return this.WhiteListOp(fileHashStr, fs.ADD, fs.WhiteList{
+		Num:  uint64(len(rules)),
+		List: rules,
+	})
+}
+
 func (this *Fs) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
