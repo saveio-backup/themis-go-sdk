@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/oniio/oniChain/core/types"
+	"github.com/saveio/themis/core/types"
 )
 
 type ChainClient interface {

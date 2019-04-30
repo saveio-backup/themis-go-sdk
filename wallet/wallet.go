@@ -9,13 +9,13 @@ import (
 	"os"
 	"sync"
 
-	cacc "github.com/oniio/oniChain-go-sdk/account"
-	"github.com/oniio/oniChain-go-sdk/identity"
-	"github.com/oniio/oniChain/account"
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/core/types"
-	"github.com/oniio/oniChain/crypto/keypair"
-	s "github.com/oniio/oniChain/crypto/signature"
+	cacc "github.com/saveio/themis-go-sdk/account"
+	"github.com/saveio/themis-go-sdk/identity"
+	"github.com/saveio/themis/account"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/core/types"
+	"github.com/saveio/themis/crypto/keypair"
+	s "github.com/saveio/themis/crypto/signature"
 )
 
 var DEFAULT_WALLET_NAME = "MyWallet"

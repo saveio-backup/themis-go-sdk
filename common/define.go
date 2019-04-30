@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/core/payload"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/core/payload"
 )
 
 var (

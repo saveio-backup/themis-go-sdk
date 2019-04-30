@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/oniio/oniChain/account"
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/common/constants"
-	"github.com/oniio/oniChain/core/payload"
-	"github.com/oniio/oniChain/core/types"
-	cutils "github.com/oniio/oniChain/core/utils"
-	"github.com/oniio/oniChain/crypto/keypair"
+	"github.com/saveio/themis/account"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/constants"
+	"github.com/saveio/themis/core/payload"
+	"github.com/saveio/themis/core/types"
+	cutils "github.com/saveio/themis/core/utils"
+	"github.com/saveio/themis/crypto/keypair"
 )
 
 //NewInvokeTransaction return smart contract invoke transaction

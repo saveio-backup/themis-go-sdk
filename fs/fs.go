@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/client"
-	sdkcom "github.com/oniio/oniChain-go-sdk/common"
-	"github.com/oniio/oniChain-go-sdk/utils"
-	"github.com/oniio/oniChain/account"
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/crypto/keypair"
-	"github.com/oniio/oniChain/crypto/pdp"
-	"github.com/oniio/oniChain/crypto/signature"
-	fs "github.com/oniio/oniChain/smartcontract/service/native/onifs"
+	"github.com/saveio/themis-go-sdk/client"
+	sdkcom "github.com/saveio/themis-go-sdk/common"
+	"github.com/saveio/themis-go-sdk/utils"
+	"github.com/saveio/themis/account"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/crypto/keypair"
+	"github.com/saveio/themis/crypto/pdp"
+	"github.com/saveio/themis/crypto/signature"
+	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
 )
 
 var (

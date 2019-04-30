@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/identity"
-	"github.com/oniio/oniChain/crypto/keypair"
+	"github.com/saveio/themis-go-sdk/identity"
+	"github.com/saveio/themis/crypto/keypair"
 )
 
 func TestOntId_RegIDWithPublicKey(t *testing.T) {

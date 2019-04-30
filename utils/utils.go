@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/core/signature"
-	"github.com/oniio/oniChain/core/types"
-	"github.com/oniio/oniChain/crypto/keypair"
-	nvutils "github.com/oniio/oniChain/smartcontract/service/native/utils"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/core/signature"
+	"github.com/saveio/themis/core/types"
+	"github.com/saveio/themis/crypto/keypair"
+	nvutils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
 func TransactionFromHexString(rawTx string) (*types.Transaction, error) {

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/client"
-	"github.com/oniio/oniChain-go-sdk/wallet"
-	fs "github.com/oniio/oniChain/smartcontract/service/native/onifs"
+	"github.com/saveio/themis-go-sdk/client"
+	"github.com/saveio/themis-go-sdk/wallet"
+	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
 )
 
 var testFs *Fs

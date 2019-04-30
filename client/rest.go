@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/utils"
-	"github.com/oniio/oniChain/core/types"
+	"github.com/saveio/themis-go-sdk/utils"
+	"github.com/saveio/themis/core/types"
 )
 
 //RpcClient for oniChain rpc api

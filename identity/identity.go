@@ -10,10 +10,10 @@ import (
 	"math/big"
 
 	base58 "github.com/itchyny/base58-go"
-	"github.com/oniio/oniChain-go-sdk/account"
-	"github.com/oniio/oniChain/core/types"
-	"github.com/oniio/oniChain/crypto/keypair"
-	s "github.com/oniio/oniChain/crypto/signature"
+	"github.com/saveio/themis-go-sdk/account"
+	"github.com/saveio/themis/core/types"
+	"github.com/saveio/themis/crypto/keypair"
+	s "github.com/saveio/themis/crypto/signature"
 	"golang.org/x/crypto/ripemd160"
 )
 

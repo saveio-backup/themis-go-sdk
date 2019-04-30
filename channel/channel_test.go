@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/client"
-	"github.com/oniio/oniChain-go-sdk/wallet"
-	"github.com/oniio/oniChain/common"
+	"github.com/saveio/themis-go-sdk/client"
+	"github.com/saveio/themis-go-sdk/wallet"
+	"github.com/saveio/themis/common"
 	"github.com/stretchr/testify/assert"
 )
 

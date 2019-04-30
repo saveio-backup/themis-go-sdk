@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/wallet"
-	"github.com/oniio/oniChain/account"
+	"github.com/saveio/themis-go-sdk/wallet"
+	"github.com/saveio/themis/account"
 )
 
 var (
@@ -27,6 +27,7 @@ func TestMain(m *testing.M) {
 	testWallet, err = wallet.OpenWallet("./wallet.dat")
 	if err != nil {
 		fmt.Printf("account.Open error:%s\n", err)
+		m.Run()
 		return
 	}
 	testDefAcc, err = testWallet.GetDefaultAccount(testPasswd)
@@ -156,4 +157,12 @@ func TestOniFsInit(t *testing.T) {
 	testChain.Native.Fs.DefAcc = testDefAcc
 	setting, _ := testChain.Native.Fs.GetSetting()
 	fmt.Printf("setting: %v\n", setting)
+}
+
+func TestGetCurrentHeight(t *testing.T) {
+	height, err := testChain.GetCurrentBlockHeight()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("height:%d\n", height)
 }

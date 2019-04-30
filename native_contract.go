@@ -1,16 +1,16 @@
 package chain
 
 import (
-	"github.com/oniio/oniChain-go-sdk/auth"
-	"github.com/oniio/oniChain-go-sdk/channel"
-	"github.com/oniio/oniChain-go-sdk/client"
-	"github.com/oniio/oniChain-go-sdk/dns"
-	"github.com/oniio/oniChain-go-sdk/fs"
-	cgp "github.com/oniio/oniChain-go-sdk/globalparam"
-	"github.com/oniio/oniChain-go-sdk/governance"
-	"github.com/oniio/oniChain-go-sdk/ontid"
-	"github.com/oniio/oniChain-go-sdk/usdt"
-	"github.com/oniio/oniChain/account"
+	"github.com/saveio/themis-go-sdk/auth"
+	"github.com/saveio/themis-go-sdk/channel"
+	"github.com/saveio/themis-go-sdk/client"
+	"github.com/saveio/themis-go-sdk/dns"
+	"github.com/saveio/themis-go-sdk/fs"
+	cgp "github.com/saveio/themis-go-sdk/globalparam"
+	"github.com/saveio/themis-go-sdk/governance"
+	"github.com/saveio/themis-go-sdk/ontid"
+	"github.com/saveio/themis-go-sdk/usdt"
+	"github.com/saveio/themis/account"
 )
 
 type NativeContract struct {

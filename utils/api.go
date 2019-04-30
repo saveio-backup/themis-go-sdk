@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdkcom "github.com/oniio/oniChain-go-sdk/common"
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/core/payload"
-	"github.com/oniio/oniChain/core/types"
+	sdkcom "github.com/saveio/themis-go-sdk/common"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/core/payload"
+	"github.com/saveio/themis/core/types"
 )
 
 func GetVersion(data []byte) (string, error) {

@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oniio/oniChain-go-sdk/client"
-	"github.com/oniio/oniChain-go-sdk/wallet"
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/crypto/keypair"
-	"github.com/oniio/oniChain/smartcontract/service/native/dns"
+	"github.com/saveio/themis-go-sdk/client"
+	"github.com/saveio/themis-go-sdk/wallet"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/crypto/keypair"
+	"github.com/saveio/themis/smartcontract/service/native/dns"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/oniio/oniChain-go-sdk/client"
-	sdkcom "github.com/oniio/oniChain-go-sdk/common"
-	"github.com/oniio/oniChain-go-sdk/utils"
-	"github.com/oniio/oniChain/account"
-	"github.com/oniio/oniChain/common"
-	"github.com/oniio/oniChain/smartcontract/service/native/global_params"
+	"github.com/saveio/themis-go-sdk/client"
+	sdkcom "github.com/saveio/themis-go-sdk/common"
+	"github.com/saveio/themis-go-sdk/utils"
+	"github.com/saveio/themis/account"
+	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/smartcontract/service/native/global_params"
 )
 
 var (

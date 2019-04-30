@@ -3,8 +3,8 @@ package utils
 import (
 	"fmt"
 
-	"github.com/oniio/oniChain/account"
-	s "github.com/oniio/oniChain/crypto/signature"
+	"github.com/saveio/themis/account"
+	s "github.com/saveio/themis/crypto/signature"
 )
 
 func Sign(acc *account.Account, data []byte) ([]byte, error) {
