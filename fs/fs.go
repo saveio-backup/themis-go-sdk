@@ -741,37 +741,14 @@ func (this *Fs) GenChallenge(walletAddr common.Address, hash common.Uint256, fil
 	return fs.GenChallenge(walletAddr, hash, uint32(fileBlockNum), uint32(proveNum))
 }
 
-// AddUserSpace. add user space operation for space owner.
-func (this *Fs) AddUserSpace(walletAddr common.Address, size, blockCount uint64) ([]byte, error) {
+// UpdateUserSpace. user space operation for space owner.
+func (this *Fs) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
 	params := &fs.UserSpaceParams{
 		WalletAddr: this.DefAcc.Address,
 		Owner:      walletAddr,
-		Type:       uint64(fs.UserSpaceAdd),
-		Size:       size,
-		BlockCount: blockCount,
-	}
-	ret, err := this.InvokeNativeContract(
-		this.DefAcc, fs.FS_MANAGE_USER_SPACE,
-		[]interface{}{params},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ret.ToArray(), err
-}
-
-// RevokeUserSpace. revoke user space operation for space owner.
-func (this *Fs) RevokeUserSpace(walletAddr common.Address, size, blockCount uint64) ([]byte, error) {
-	if this.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	params := &fs.UserSpaceParams{
-		WalletAddr: this.DefAcc.Address,
-		Owner:      walletAddr,
-		Type:       uint64(fs.UserSpaceRevoke),
 		Size:       size,
 		BlockCount: blockCount,
 	}
