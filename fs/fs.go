@@ -15,6 +15,7 @@ import (
 	"github.com/saveio/themis/crypto/pdp"
 	"github.com/saveio/themis/crypto/signature"
 	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
+	"github.com/saveio/themis/smartcontract/service/native/usdt"
 )
 
 var (
@@ -783,6 +784,39 @@ func (this *Fs) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 			return nil, fmt.Errorf("GetUserSpace error: %s", err.Error())
 		}
 		return &userspace, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
+func (this *Fs) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+	params := &fs.UserSpaceParams{
+		WalletAddr: this.DefAcc.Address,
+		Owner:      walletAddr,
+		Size:       size,
+		BlockCount: blockCount,
+	}
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_USER_SPACE_COST, []interface{}{params})
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetUserSpace result toByteArray: %s", err.Error())
+	}
+	var state usdt.State
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		r := bytes.NewReader(retInfo.Info)
+		err = state.Deserialize(r)
+		if err != nil {
+			return nil, fmt.Errorf("GetUserSpace error: %s", err.Error())
+		}
+		return &state, err
 	} else {
 		return nil, errors.New(string(retInfo.Info))
 	}
