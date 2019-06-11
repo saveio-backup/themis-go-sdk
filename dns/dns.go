@@ -13,6 +13,7 @@ import (
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/crypto/keypair"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
 )
@@ -389,6 +390,24 @@ func (this *Dns) QuitNode() (common.Uint256, error) {
 		Address:    this.DefAcc.Address,
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc, dns.QUIT_NODE, []interface{}{param})
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return ret, nil
+}
+
+// UpdateNode. update dns node host info.
+func (this *Dns) UpdateNode(ip, port []byte) (common.Uint256, error) {
+	if this.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	param := dns.UpdateNodeParam{
+		WalletAddr: this.DefAcc.Address,
+		IP:         ip,
+		Port:       port,
+	}
+	log.Infof("UpdateNodeParam: %v", param)
+	ret, err := this.InvokeNativeContract(this.DefAcc, dns.UPDATE_DNSNODE, []interface{}{param})
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
