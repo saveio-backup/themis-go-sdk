@@ -654,6 +654,10 @@ func (this *WSClient) getSmartContractEventByBlockAndAddress(qid string, blockHe
 	return this.sendSyncWSRequest(qid, WS_ACTION_GET_SMARTCONTRACT_BY_HEIGHT_ADDRESS, map[string]interface{}{"Height": blockHeight, "Addr": contractAddress})
 }
 
+func (this *WSClient) getSmartContractEventByEventId(qid string, contractAddress string, address string, eventId uint32) ([]byte, error) {
+	return this.sendSyncWSRequest(qid, WS_ACTION_GET_SMARTCONTRACT_BY_EVENT_ID, map[string]interface{}{"ContractAddr": contractAddress, "Addr": address, "EventId": eventId})
+}
+
 func (this *WSClient) getGasPrice(qid string) ([]byte, error) {
 	return this.sendSyncWSRequest(qid, WS_ACTION_GET_GAS_PRICE, map[string]interface{}{})
 }

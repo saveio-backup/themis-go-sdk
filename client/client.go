@@ -241,6 +241,19 @@ func (this *ClientMgr) GetSmartContractEventsByBlockAndAddress(height uint32, co
 
 }
 
+func (this *ClientMgr) GetSmartContractEventByEventId(contractAddress string, address string, eventId uint32) ([]*sdkcom.SmartContactEvent, error) {
+	client := this.getClient()
+	if client == nil {
+		return nil, fmt.Errorf("don't have available client of oniChain")
+	}
+	data, err := client.getSmartContractEventByEventId(this.getNextQid(), contractAddress, address, eventId)
+	if err != nil {
+		return nil, err
+	}
+	return utils.GetSmartContractEvents(data)
+
+}
+
 func (this *ClientMgr) GetMerkleProof(txHash string) (*sdkcom.MerkleProof, error) {
 	client := this.getClient()
 	if client == nil {

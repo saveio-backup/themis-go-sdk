@@ -387,6 +387,68 @@ func (this *Channel) GetChannelIdentifier(participant1WalletAddr, participant2Wa
 	return strconv.ParseUint(valStr, 10, 64)
 }
 
+func (this *Channel) GetFilterArgsForAllEventsFromChannelByEventId(contractAddress common.Address, address common.Address, eventId uint32, fromBlock uint32, toBlock uint32) ([]map[string]interface{}, map[uint32][2]uint32, error) {
+	toBlockUint := uint32(toBlock)
+	currentH, _ := this.Client.GetCurrentBlockHeight()
+	if toBlockUint > currentH {
+		return nil, nil, fmt.Errorf("toBlock bigger than currentBlockHeight:%d", currentH)
+	} else if toBlockUint == 0 {
+		toBlockUint = currentH
+	} else if uint32(fromBlock) > toBlockUint {
+		return nil, nil, errors.New("fromBlock bigger than toBlock")
+	}
+
+	events, err := this.Client.GetSmartContractEventByEventId(contractAddress.ToBase58(), address.ToBase58(), eventId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var eventRe = make([]map[string]interface{}, 0)
+	// map from block height to start and end index of events in the same block
+	var posMap = make(map[uint32][2]uint32, 0)
+	var index uint32
+
+	for _, event := range events {
+		buf, err := json.Marshal(event)
+		if err != nil {
+			return nil, nil, err
+		}
+		result, err := utils.GetSmartContractEvent(buf)
+		if err != nil {
+			return nil, nil, err
+		}
+		if result == nil {
+			continue
+		}
+
+		height, err := this.Client.GetBlockHeightByTxHash(result.TxHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if height < fromBlock || height > toBlock {
+			continue
+		}
+
+		for _, notify := range result.Notify {
+			if _, ok := notify.States.(map[string]interface{}); !ok {
+				continue
+			}
+			eventRe = append(eventRe, notify.States.(map[string]interface{}))
+
+			pos, ok := posMap[height]
+			if !ok {
+				posMap[height] = [2]uint32{index, 0}
+			} else {
+				pos[1] = index
+				posMap[height] = pos
+			}
+			index++
+		}
+	}
+	return eventRe, posMap, nil
+}
+
 func (this *Channel) GetFilterArgsForAllEventsFromChannel(chanID int, fromBlock, toBlock uint32) ([]map[string]interface{}, error) {
 	toBlockUint := uint32(toBlock)
 	currentH, _ := this.Client.GetCurrentBlockHeight()

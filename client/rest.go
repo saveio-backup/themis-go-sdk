@@ -124,6 +124,11 @@ func (this *RestClient) getSmartContractEventByBlockAndAddress(qid string, block
 	return this.sendRestGetRequest(reqPath)
 }
 
+func (this *RestClient) getSmartContractEventByEventId(qid string, contractAddress string, address string, eventId uint32) ([]byte, error) {
+	reqPath := fmt.Sprintf("%s%d", GET_SMTCOCE_EVT_ID+"/"+contractAddress+"/"+address+"/", eventId)
+	return this.sendRestGetRequest(reqPath)
+}
+
 func (this *RestClient) getSmartContract(qid, contractAddress string) ([]byte, error) {
 	reqPath := GET_CONTRACT_STATE + contractAddress
 	reqValues := &url.Values{}

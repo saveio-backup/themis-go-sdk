@@ -22,6 +22,7 @@ type ChainClient interface {
 	getSmartContractEvent(qid, txHash string) ([]byte, error)
 	getSmartContractEventByBlock(qid string, blockHeight uint32) ([]byte, error)
 	getSmartContractEventByBlockAndAddress(qid string, blockHeight uint32, contractAddress string) ([]byte, error)
+	getSmartContractEventByEventId(qid string, contractAddress string, address string, eventId uint32) ([]byte, error)
 	getStorage(qid, contractAddress string, key []byte) ([]byte, error)
 	getMerkleProof(qid, txHash string) ([]byte, error)
 	getMemPoolTxState(qid, txHash string) ([]byte, error)
@@ -31,27 +32,28 @@ type ChainClient interface {
 }
 
 const (
-	RPC_GET_VERSION                 = "getversion"
-	RPC_GET_TRANSACTION             = "getrawtransaction"
-	RPC_SEND_TRANSACTION            = "sendrawtransaction"
-	RPC_GET_BLOCK                   = "getblock"
-	RPC_GET_BLOCK_COUNT             = "getblockcount"
-	RPC_GET_BLOCK_HASH              = "getblockhash"
-	RPC_GET_CURRENT_BLOCK_HASH      = "getbestblockhash"
-	RPC_GET_ONT_BALANCE             = "getbalance"
-	RPC_GET_SMART_CONTRACT_EVENT    = "getsmartcodeevent"
-	RPC_GET_STORAGE                 = "getstorage"
-	RPC_GET_SMART_CONTRACT          = "getcontractstate"
-	RPC_GET_GENERATE_BLOCK_TIME     = "getgenerateblocktime"
-	RPC_GET_MERKLE_PROOF            = "getmerkleproof"
-	RPC_GET_NETWORK_ID              = "getnetworkid"
-	RPC_GET_MEM_POOL_TX_COUNT       = "getmempooltxcount"
-	RPC_GET_MEM_POOL_TX_STATE       = "getmempooltxstate"
-	RPC_GET_BLOCK_TX_HASH_BY_HEIGHT = "getblocktxsbyheight"
-	RPC_GET_BLOCK_HEIGHT_BY_TX_HASH = "getblockheightbytxhash"
-	SEND_EMERGENCY_GOV_REQ          = "sendemergencygovreq"
-	GET_BLOCK_ROOT_WITH_NEW_TX_ROOT = "getblockrootwithnewtxroot"
-	RPC_GET_GAS_PRICE               = "getgasprice"
+	RPC_GET_VERSION                          = "getversion"
+	RPC_GET_TRANSACTION                      = "getrawtransaction"
+	RPC_SEND_TRANSACTION                     = "sendrawtransaction"
+	RPC_GET_BLOCK                            = "getblock"
+	RPC_GET_BLOCK_COUNT                      = "getblockcount"
+	RPC_GET_BLOCK_HASH                       = "getblockhash"
+	RPC_GET_CURRENT_BLOCK_HASH               = "getbestblockhash"
+	RPC_GET_ONT_BALANCE                      = "getbalance"
+	RPC_GET_SMART_CONTRACT_EVENT             = "getsmartcodeevent"
+	RPC_GET_SMART_CONTRACT_EVENT_BY_EVENT_ID = "getsmartcodeeventbyeventid"
+	RPC_GET_STORAGE                          = "getstorage"
+	RPC_GET_SMART_CONTRACT                   = "getcontractstate"
+	RPC_GET_GENERATE_BLOCK_TIME              = "getgenerateblocktime"
+	RPC_GET_MERKLE_PROOF                     = "getmerkleproof"
+	RPC_GET_NETWORK_ID                       = "getnetworkid"
+	RPC_GET_MEM_POOL_TX_COUNT                = "getmempooltxcount"
+	RPC_GET_MEM_POOL_TX_STATE                = "getmempooltxstate"
+	RPC_GET_BLOCK_TX_HASH_BY_HEIGHT          = "getblocktxsbyheight"
+	RPC_GET_BLOCK_HEIGHT_BY_TX_HASH          = "getblockheightbytxhash"
+	SEND_EMERGENCY_GOV_REQ                   = "sendemergencygovreq"
+	GET_BLOCK_ROOT_WITH_NEW_TX_ROOT          = "getblockrootwithnewtxroot"
+	RPC_GET_GAS_PRICE                        = "getgasprice"
 )
 
 //JsonRpc version
@@ -88,6 +90,7 @@ const (
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/"
 	GET_SMTCOCE_EVT_ADDR  = "/api/v1/smartcode/event/height/address/"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/"
+	GET_SMTCOCE_EVT_ID    = "/api/v1/smartcode/event/eventid/"
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/"
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/"
 	GET_GAS_PRICE         = "/api/v1/gasprice"
@@ -147,6 +150,7 @@ const (
 	WS_ACTION_GET_SMARTCONTRACT_BY_HEIGHT         = "getsmartcodeeventbyheight"
 	WS_ACTION_GET_SMARTCONTRACT_BY_HEIGHT_ADDRESS = "getsmartcodeeventbyheightaddr"
 	WS_ACTION_GET_SMARTCONTRACT_BY_HASH           = "getsmartcodeeventbyhash"
+	WS_ACTION_GET_SMARTCONTRACT_BY_EVENT_ID       = "getsmartcodeeventbyeventid"
 	WS_ACTION_GET_BLOCK_HEIGHT_BY_TX_HASH         = "getblockheightbytxhash"
 	WS_ACTION_GET_MERKLE_PROOF                    = "getmerkleproof"
 	WS_ACTION_GET_GENERATE_BLOCK_TIME             = "getgenerateblocktime"
