@@ -55,6 +55,20 @@ func (this *Chain) InvokeNativeContract(
 	return this.SendTransaction(tx)
 }
 
+func (this *Chain) InvokeNativeContractWithCode(
+	gasPrice,
+	gasLimit uint64,
+	signer *account.Account,
+	invokeCode []byte,
+) (common.Uint256, error) {
+	tx := utils.NewInvokeTransaction(gasPrice, gasLimit, invokeCode)
+	err := utils.SignToTransaction(tx, signer)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return this.SendTransaction(tx)
+}
+
 func (this *Chain) PreExecInvokeNativeContract(
 	contractAddress common.Address,
 	version byte,
