@@ -301,11 +301,31 @@ func (this *Channel) GetChannelInfo(channelID uint64, participant1, participant2
 	}
 	channelInfo := &micropayment.ChannelInfo{}
 	source := common.NewZeroCopySource(buf)
+	channelInfo.ChannelID, err = sutils.DecodeVarUint(source)
+	if err != nil {
+		return nil, err
+	}
 	channelInfo.SettleBlockHeight, err = sutils.DecodeVarUint(source)
 	if err != nil {
 		return nil, err
 	}
 	channelInfo.ChannelState, err = sutils.DecodeVarUint(source)
+	if err != nil {
+		return nil, err
+	}
+	channelInfo.Participant1.WalletAddr, err = sutils.DecodeAddress(source)
+	if err != nil {
+		return nil, err
+	}
+	channelInfo.Participant1.IsCloser, err = sutils.DecodeBool(source)
+	if err != nil {
+		return nil, err
+	}
+	channelInfo.Participant2.WalletAddr, err = sutils.DecodeAddress(source)
+	if err != nil {
+		return nil, err
+	}
+	channelInfo.Participant2.IsCloser, err = sutils.DecodeBool(source)
 	if err != nil {
 		return nil, err
 	}
