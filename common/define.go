@@ -142,6 +142,8 @@ type SmartContactEvent struct {
 
 type NotifyEventInfo struct {
 	ContractAddress string
+	EventIdentifier uint32
+	Addresses       []common.Address // addresses involved in the notify
 	States          interface{}
 }
 
