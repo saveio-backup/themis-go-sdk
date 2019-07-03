@@ -407,6 +407,22 @@ func (this *Channel) GetChannelIdentifier(participant1WalletAddr, participant2Wa
 	return strconv.ParseUint(valStr, 10, 64)
 }
 
+func (this *Channel) GetChannelCounter() (uint64, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		micropayment.MP_GET_CHANNELCOUNTER,
+		[]interface{}{},
+	)
+	if err != nil {
+		return 0, err
+	}
+	buf, err := ret.Result.ToByteArray()
+	if err != nil {
+		return 0, err
+	}
+	valStr := fmt.Sprintf("%s", types.BigIntFromBytes(buf))
+	return strconv.ParseUint(valStr, 10, 64)
+}
+
 func (this *Channel) GetFilterArgsForAllEventsFromChannelByEventId(contractAddress common.Address, address common.Address, eventId uint32, fromBlock uint32, toBlock uint32) ([]map[string]interface{}, map[uint32][2]uint32, error) {
 	toBlockUint := uint32(toBlock)
 	currentH, _ := this.Client.GetCurrentBlockHeight()
