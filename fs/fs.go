@@ -125,7 +125,7 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 
 func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 	blockSize uint64, challengeRate uint64, challengeTimes uint64, copyNum uint64,
-	fileDesc []byte, privilege uint64, proveParam []byte) ([]byte, error) {
+	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -143,6 +143,7 @@ func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 		Deposit:        0,
 		FileProveParam: proveParam,
 		ProveBlockNum:  0,
+		StorageType:    storageType,
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		fs.FS_STORE_FILE, []interface{}{fileInfo},
