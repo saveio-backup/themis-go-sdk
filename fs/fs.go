@@ -14,7 +14,7 @@ import (
 	"github.com/saveio/themis/crypto/keypair"
 	"github.com/saveio/themis/crypto/pdp"
 	"github.com/saveio/themis/crypto/signature"
-	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
+	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
 )
 
@@ -124,7 +124,7 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 }
 
 func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
-	blockSize uint64, challengeRate uint64, challengeTimes uint64, copyNum uint64,
+	blockSize uint64, proveInterval uint64, proveTimes uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
@@ -137,8 +137,9 @@ func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 		Privilege:      privilege,
 		FileBlockNum:   blockNum,
 		FileBlockSize:  blockSize,
-		ChallengeRate:  challengeRate,
-		ChallengeTimes: challengeTimes,
+		ProveInterval:  proveInterval,
+		ProveTimes:     proveTimes,
+		ExpiredHeight:  expiredHeight,
 		CopyNum:        copyNum,
 		Deposit:        0,
 		FileProveParam: proveParam,
@@ -475,19 +476,19 @@ func (this *Fs) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, 
 	return this.Client.PollForTxConfirmed(timeout, txHash)
 }
 
-func (this *Fs) OniFsInit(fsGasPrice, gasPerKBPerBlock, gasPerKBForRead, gasForChallenge,
-	maxProveBlockNum, minChallengeRate uint64, minVolume uint64) ([]byte, error) {
+func (this *Fs) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
+	maxProveBlockNum, minProveInterval uint64, minVolume uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		fs.FS_INIT,
 		[]interface{}{&fs.FsSetting{FsGasPrice: fsGasPrice,
-			GasPerKBPerBlock: gasPerKBPerBlock,
+			GasPerGBPerBlock: gasPerGBPerBlock,
 			GasPerKBForRead:  gasPerKBForRead,
 			GasForChallenge:  gasForChallenge,
 			MaxProveBlockNum: maxProveBlockNum,
-			MinChallengeRate: minChallengeRate,
+			MinProveInterval: minProveInterval,
 			MinVolume:        minVolume}},
 	)
 	if err != nil {
@@ -818,6 +819,30 @@ func (this *Fs) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *
 			return nil, fmt.Errorf("GetUserSpace error: %s", err.Error())
 		}
 		return &state, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+func (this *Fs) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GETSTORAGEFEE, []interface{}{opt},
+	)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetUploadStorageFee result toByteArray: %s", err.Error())
+	}
+
+	var storageFee fs.StorageFee
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		reader := bytes.NewReader(retInfo.Info)
+		if err = storageFee.Deserialize(reader); err != nil {
+			return nil, fmt.Errorf("GetUploadStorageFee StorageFee Deserialize: %s", err.Error())
+		}
+		return &storageFee, err
 	} else {
 		return nil, errors.New(string(retInfo.Info))
 	}

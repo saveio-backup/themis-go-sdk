@@ -8,7 +8,7 @@ import (
 
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis-go-sdk/wallet"
-	fs "github.com/saveio/themis/smartcontract/service/native/onifs"
+	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 )
 
 var testFs *Fs
@@ -75,8 +75,8 @@ func TestOntFsClient_GetFileInfo(t *testing.T) {
 	fmt.Println("FileHash:", fileInfo.FileHash)
 	fmt.Println("FileOwner:", fileInfo.FileOwner)
 	fmt.Println("CopyNum:", fileInfo.CopyNum)
-	fmt.Println("ChallengeRate:", fileInfo.ChallengeRate)
-	fmt.Println("ChallengeTimes:", fileInfo.ChallengeTimes)
+	fmt.Println("ProveInterval:", fileInfo.ProveInterval)
+	fmt.Println("ExpiredHeight:", fileInfo.ExpiredHeight)
 	fmt.Println("FileBlockNum:", fileInfo.FileBlockNum)
 	fmt.Println("FIleBlockSize:", fileInfo.FileBlockSize)
 	fmt.Println("Deposit:", fileInfo.Deposit)
@@ -101,7 +101,7 @@ func TestOntFsClient_GetFileProveDetails(t *testing.T) {
 }
 
 func TestOntFs_OntFsInit(t *testing.T) {
-	testFs.OniFsInit(2000, 2, 1, 1,
+	testFs.savefsInit(2000, 2, 1, 1,
 		32, 120, 1024*1024)
 }
 
@@ -180,7 +180,7 @@ func TestOntFs_FileProve(t *testing.T) {
 	fmt.Println("TestOntFs_FileProve Success")
 }
 
-func TestOniFs_AddUserSpace(t *testing.T) {
+func Testsavefs_AddUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")
 	}

@@ -153,7 +153,7 @@ func TestWsTransfer(t *testing.T) {
 	}
 }
 
-func TestOniFsInit(t *testing.T) {
+func TestsavefsInit(t *testing.T) {
 	testChain.Native.Fs.DefAcc = testDefAcc
 	setting, _ := testChain.Native.Fs.GetSetting()
 	fmt.Printf("setting: %v\n", setting)
