@@ -14,17 +14,21 @@ import (
 
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/core/types"
+	"sync"
 )
 
 //RpcClient for oniChain rpc api
 type RestClient struct {
-	addr       string
-	httpClient *http.Client
+	randNum          int
+	restServersAddr  []string
+	restServerStatus *sync.Map
+	httpClient       *http.Client
 }
 
 //NewRpcClient return RpcClient instance
 func NewRestClient() *RestClient {
 	return &RestClient{
+		restServerStatus: new(sync.Map),
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				MaxIdleConnsPerHost:   5,
@@ -38,8 +42,11 @@ func NewRestClient() *RestClient {
 }
 
 //SetAddress set rest server address. Simple http://localhost:20334
-func (this *RestClient) SetAddress(addr string) *RestClient {
-	this.addr = addr
+func (this *RestClient) SetAddress(restAddrs []string) *RestClient {
+	this.restServersAddr = restAddrs
+	for _, addr := range restAddrs {
+		this.restServerStatus.Store(addr, true)
+	}
 	return this
 }
 
@@ -181,17 +188,10 @@ func (this *RestClient) sendRawTransaction(qid string, tx *types.Transaction, is
 	return this.sendRestPostRequest(buffer.Bytes(), reqPath, reqValues)
 }
 
-func (this *RestClient) getAddress() (string, error) {
-	if this.addr == "" {
-		return "", fmt.Errorf("cannot get address, please add adrress first")
-	}
-	return this.addr, nil
-}
-
 func (this *RestClient) getRequestUrl(reqPath string, values ...*url.Values) (string, error) {
-	addr, err := this.getAddress()
-	if err != nil {
-		return "", err
+	addr := this.getNextRestAddress()
+	if addr == "" {
+		return "", fmt.Errorf("Restful server address is nil")
 	}
 	if !strings.HasPrefix(addr, "http") {
 		addr = "http://" + addr
@@ -259,4 +259,30 @@ func (this *RestClient) dealRestResponse(body io.Reader) ([]byte, error) {
 		return nil, fmt.Errorf("sendRestRequest error code:%d desc:%s result:%s", restRsp.Error, restRsp.Desc, restRsp.Result)
 	}
 	return restRsp.Result, nil
+}
+
+func (this *RestClient) getNextRestAddress() string {
+	var restAddr string
+	var firstRestAddr string
+	restServersAddrLen := len(this.restServersAddr)
+	for i := 0; i < restServersAddrLen; i++ {
+		index := this.randNum % restServersAddrLen
+
+		restAddr = this.restServersAddr[index]
+		if 0 == i {
+			firstRestAddr = restAddr
+		}
+
+		this.randNum++
+		ok, exist := this.restServerStatus.Load(restAddr)
+		if exist && ok.(bool) {
+			return restAddr
+		}
+
+		if this.randNum >= restServersAddrLen {
+			this.randNum = 0
+		}
+	}
+	this.randNum++
+	return firstRestAddr
 }

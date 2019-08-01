@@ -11,32 +11,41 @@ import (
 
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/core/types"
+	"sync"
 )
 
 //RpcClient for oniChain rpc api
 type RpcClient struct {
-	addr       string
-	httpClient *http.Client
+	randNum         int
+	rpcServersAddr  []string
+	rpcServerStatus *sync.Map
+	httpClient      *http.Client
 }
 
 //NewRpcClient return RpcClient instance
 func NewRpcClient() *RpcClient {
 	return &RpcClient{
+		rpcServerStatus: new(sync.Map),
 		httpClient: &http.Client{
 			Transport: &http.Transport{
-				MaxIdleConnsPerHost:   5,
-				DisableKeepAlives:     false, //enable keepalive
-				IdleConnTimeout:       time.Second * 300,
-				ResponseHeaderTimeout: time.Second * 300,
+				MaxConnsPerHost:       5,
+				MaxIdleConnsPerHost:   1,
+				DisableKeepAlives:     true, //enable keepalive
+				IdleConnTimeout:       time.Second * 100,
+				ResponseHeaderTimeout: time.Second * 100,
+				ExpectContinueTimeout: 5,
 			},
-			Timeout: time.Second * 300, //timeout for http response
+			Timeout: time.Second * 100, //timeout for http response
 		},
 	}
 }
 
 //SetAddress set rpc server address. Simple http://localhost:20336
-func (this *RpcClient) SetAddress(addr string) *RpcClient {
-	this.addr = addr
+func (this *RpcClient) SetAddress(rpcAddrs []string) *RpcClient {
+	this.rpcServersAddr = rpcAddrs
+	for _, addr := range rpcAddrs {
+		this.rpcServerStatus.Store(addr, true)
+	}
 	return this
 }
 
@@ -177,16 +186,30 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 	if err != nil {
 		return nil, fmt.Errorf("JsonRpcRequest json.Marsha error:%s", err)
 	}
-	resp, err := this.httpClient.Post(this.addr, "application/json", bytes.NewReader(data))
+	rpcAddr := this.getNextRpcAddress()
+	resp, err := this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("http post request:%s error:%s", data, err)
+		this.rpcServerStatus.Store(rpcAddr, false)
+		nextRpcAddr := this.getNextRpcAddress()
+		resp, err = this.httpClient.Post(nextRpcAddr, "application/json", bytes.NewReader(data))
+		if err != nil {
+			this.rpcServerStatus.Store(nextRpcAddr, false)
+			return nil, fmt.Errorf("http post request:%s error:%s", data, err)
+		} else {
+			this.rpcServerStatus.Store(nextRpcAddr, true)
+		}
+	} else {
+		this.rpcServerStatus.Store(rpcAddr, true)
 	}
+
 	defer resp.Body.Close()
+	defer this.httpClient.CloseIdleConnections()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read rpc response body error:%s", err)
 	}
+
 	rpcRsp := &JsonRpcResponse{}
 	err = json.Unmarshal(body, rpcRsp)
 	if err != nil {
@@ -196,4 +219,30 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 		return nil, fmt.Errorf("JsonRpcResponse error code:%d desc:%s result:%s", rpcRsp.Error, rpcRsp.Desc, rpcRsp.Result)
 	}
 	return rpcRsp.Result, nil
+}
+
+func (this *RpcClient) getNextRpcAddress() string {
+	var rpcAddr string
+	var firstRpcAddr string
+	rpcServersAddrLen := len(this.rpcServersAddr)
+	for i := 0; i < rpcServersAddrLen; i++ {
+		index := this.randNum % rpcServersAddrLen
+
+		rpcAddr = this.rpcServersAddr[index]
+		if 0 == i {
+			firstRpcAddr = rpcAddr
+		}
+
+		this.randNum++
+		ok, exist := this.rpcServerStatus.Load(rpcAddr)
+		if exist && ok.(bool) {
+			return rpcAddr
+		}
+
+		if this.randNum >= rpcServersAddrLen {
+			this.randNum = 0
+		}
+	}
+	this.randNum++
+	return firstRpcAddr
 }
