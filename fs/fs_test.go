@@ -30,9 +30,46 @@ func TestMain(m *testing.M) {
 	}
 	testFs = &Fs{}
 	testFs.Client = &client.ClientMgr{}
-	testFs.Client.NewRpcClient().SetAddress(rpc_addr)
+	testFs.Client.NewRpcClient().SetAddress([]string{rpc_addr})
 	testFs.DefAcc = acc
 	m.Run()
+}
+
+func TestCalculateFee(t *testing.T) {
+	// addr, _ := common.AddressFromBase58("ARy6wVzHWsrzmKzSorrTRzf8B5oYGvdUmK")
+	// rule := fs.Rule{
+	// 	Addr:         addr,
+	// 	BaseHeight:   0,
+	// 	ExpireHeight: 0,
+	// }
+	rules := make([]fs.Rule, 0)
+	// rules = append(rules, rule)
+	wh := fs.WhiteList{
+		Num:  0,
+		List: rules,
+	}
+
+	opt := &fs.UploadOption{
+		FileDesc:        []byte(""),
+		FileSize:        uint64(166974),
+		ProveInterval:   uint64(60),
+		ExpiredHeight:   1563560,
+		Privilege:       1,
+		CopyNum:         uint64(2),
+		Encrypt:         false,
+		EncryptPassword: []byte{},
+		RegisterDNS:     true,
+		BindDNS:         true,
+		DnsURL:          []byte{},
+		WhiteList:       wh,
+		Share:           true,
+		StorageType:     uint64(0),
+	}
+	fee, err := testFs.GetUploadStorageFee(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("fee :%v\n", fee)
 }
 
 func TestOntFsClient_GetNodeList(t *testing.T) {
@@ -57,8 +94,8 @@ func TestOntFsClient_GetNodeList(t *testing.T) {
 
 func TestOntFsClient_StoreFile(t *testing.T) {
 	proveParam := []byte("ProveProveProveProveProveProveProveProveProveProveProveProve")
-	ret, err := testFs.StoreFile(txt, 12, 32,
-		32, 32, 32, []byte("1.jpg"), fs.PUBLIC, proveParam)
+	ret, err := testFs.StoreFile(txt, 12,
+		32, 32, 32, 12, []byte("1.jpg"), fs.PUBLIC, proveParam, 1)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -113,7 +150,7 @@ func TestOntFs_GetSetting(t *testing.T) {
 	}
 	fmt.Println("FsGetSetting Success")
 	fmt.Println("FsGasPrice:", fsSet.FsGasPrice,
-		"GasPerKBForStore:", fsSet.GasPerKBPerBlock,
+		"GasPerKBForStore:", fsSet.GasPerGBPerBlock,
 		"GasPerKBForRead:", fsSet.GasPerKBForRead,
 		"GasForChallenge:", fsSet.GasForChallenge,
 		"MaxProveBlockNum:", fsSet.MaxProveBlockNum)
@@ -184,7 +221,7 @@ func Testsavefs_AddUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")
 	}
-	ret, err := testFs.AddUserSpace(testFs.DefAcc.Address, 1*1024*1024, 60)
+	ret, err := testFs.UpdateUserSpace(testFs.DefAcc.Address, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

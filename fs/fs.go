@@ -11,16 +11,18 @@ import (
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/crypto/keypair"
 	"github.com/saveio/themis/crypto/pdp"
 	"github.com/saveio/themis/crypto/signature"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
+	nutils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
 
 var (
-	FS_CONTRACT_ADDRESS, _ = utils.AddressFromHexString("0800000000000000000000000000000000000000")
-	FS_CONTRACT_VERSION    = byte(0)
+	FS_CONTRACT_ADDRESS = nutils.OntFSContractAddress
+	FS_CONTRACT_VERSION = byte(0)
 )
 
 type Fs struct {
@@ -124,7 +126,7 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 }
 
 func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
-	blockSize uint64, proveInterval uint64, proveTimes uint64, expiredHeight uint64, copyNum uint64,
+	blockSize uint64, proveInterval uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
@@ -138,12 +140,14 @@ func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 		FileBlockNum:   blockNum,
 		FileBlockSize:  blockSize,
 		ProveInterval:  proveInterval,
-		ProveTimes:     proveTimes,
+		ProveTimes:     0,
 		ExpiredHeight:  expiredHeight,
 		CopyNum:        copyNum,
 		Deposit:        0,
 		FileProveParam: proveParam,
 		ProveBlockNum:  0,
+		BlockHeight:    0,
+		ValidFlag:      true,
 		StorageType:    storageType,
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
@@ -290,32 +294,16 @@ func (this *Fs) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, err
 	}
 }
 
-func (this *Fs) AddWhiteLists(fileHashStr string, whitelists []string, blockCount uint64) ([]byte, error) {
+func (this *Fs) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error) {
 	if len(fileHashStr) == 0 || len(whitelists) == 0 {
 		return nil, errors.New("invalid params")
 	}
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	currentHeight, err := this.Client.GetCurrentBlockHeight()
-	if err != nil {
-		return nil, err
-	}
-	rules := make([]fs.Rule, 0, len(whitelists))
-	for _, wl := range whitelists {
-		addr, err := common.AddressFromBase58(wl)
-		if err != nil {
-			return nil, err
-		}
-		rules = append(rules, fs.Rule{
-			Addr:         addr,
-			BaseHeight:   uint64(currentHeight),
-			ExpireHeight: uint64(currentHeight) + uint64(blockCount),
-		})
-	}
 	return this.WhiteListOp(fileHashStr, fs.ADD, fs.WhiteList{
-		Num:  uint64(len(rules)),
-		List: rules,
+		Num:  uint64(len(whitelists)),
+		List: whitelists,
 	})
 }
 
@@ -824,8 +812,13 @@ func (this *Fs) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *
 	}
 }
 func (this *Fs) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
+	log.Debugf("opt :%v", opt.StorageType)
+	buf := new(bytes.Buffer)
+	if err := opt.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("UploadOption serialize error: %s", err.Error())
+	}
 	ret, err := this.PreExecInvokeNativeContract(
-		fs.FS_GETSTORAGEFEE, []interface{}{opt},
+		fs.FS_GETSTORAGEFEE, []interface{}{buf.Bytes()},
 	)
 	if err != nil {
 		return nil, err
