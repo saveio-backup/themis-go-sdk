@@ -8,10 +8,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+	"sync"
 
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/core/types"
-	"sync"
+	"github.com/saveio/themis/common/log"
 )
 
 //RpcClient for oniChain rpc api
@@ -194,6 +195,7 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 		resp, err = this.httpClient.Post(nextRpcAddr, "application/json", bytes.NewReader(data))
 		if err != nil {
 			this.rpcServerStatus.Store(nextRpcAddr, false)
+			log.Errorf("[sendRpcRequest] http post request method :%s error:%s", method, err)
 			return nil, fmt.Errorf("http post request:%s error:%s", data, err)
 		} else {
 			this.rpcServerStatus.Store(nextRpcAddr, true)

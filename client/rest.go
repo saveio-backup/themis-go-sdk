@@ -11,10 +11,11 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/core/types"
-	"sync"
+	"github.com/saveio/themis/common/log"
 )
 
 //RpcClient for oniChain rpc api
@@ -239,6 +240,7 @@ func (this *RestClient) sendRestPostRequest(data []byte, reqPath string, values 
 	}
 	resp, err := this.httpClient.Post(reqUrl, "application/json", bytes.NewReader(reqData))
 	if err != nil {
+		log.Errorf("[sendRestPostRequest] http post request reqUrl: %s error: %s", reqUrl, err)
 		return nil, fmt.Errorf("send http post request error:%s", err)
 	}
 	defer resp.Body.Close()
