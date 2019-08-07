@@ -16,9 +16,12 @@ import (
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/core/types"
 	"github.com/saveio/themis/common/log"
+	"math/rand"
 )
 
-//RpcClient for oniChain rpc api
+const MonitorBadRestServersInterval = 30
+
+//RestClient for oniChain rest api
 type RestClient struct {
 	randNum          int
 	restServersAddr  []string
@@ -28,7 +31,7 @@ type RestClient struct {
 
 //NewRpcClient return RpcClient instance
 func NewRestClient() *RestClient {
-	return &RestClient{
+	restClient := &RestClient{
 		restServerStatus: new(sync.Map),
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -40,7 +43,50 @@ func NewRestClient() *RestClient {
 			Timeout: time.Second * 300, //timeout for http response
 		},
 	}
+	go restClient.MonitorBadRestServers()
+	return restClient
 }
+
+
+func (this *RestClient) MonitorBadRestServers () {
+	var err error
+	for {
+		time.Sleep(MonitorBadRestServersInterval * time.Second)
+		this.restServerStatus.Range(func(key, value interface{}) bool {
+			restServerAddr := key.(string)
+			serverStatus := value.(bool)
+			if !serverStatus {
+				_, err = this.getVersionBySpecifiedRestServer(restServerAddr)
+				if err == nil {
+					log.Infof("[MonitorBadRestServers] restServerAddr: %s service resume", restServerAddr)
+					this.setServerStatus(restServerAddr, true)
+				} else {
+					log.Errorf("[MonitorBadRestServers] restServerAddr: %s service is not valid", restServerAddr)
+				}
+			}
+			return true
+		})
+	}
+}
+
+func (this *RestClient) getServerStatus(serverAddr string) (bool, error) {
+	if serverStatus, exist := this.restServerStatus.Load(serverAddr); exist {
+		status := serverStatus.(bool)
+		return status, nil
+	} else {
+		return false, fmt.Errorf("serverAddr is not exis in restServerStatus")
+	}
+}
+
+func (this *RestClient) setServerStatus(serverAddr string, status bool) {
+	this.restServerStatus.Store(serverAddr, status)
+}
+
+func (this *RestClient) getVersionBySpecifiedRestServer(addr string) ([]byte, error) {
+	reqPath := GET_VERSION
+	return this.sendRestGetRequestToAddr(addr, reqPath)
+}
+
 
 //SetAddress set rest server address. Simple http://localhost:20334
 func (this *RestClient) SetAddress(restAddrs []string) *RestClient {
@@ -179,7 +225,7 @@ func (this *RestClient) sendRawTransaction(qid string, tx *types.Transaction, is
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("Serialize error:%s", err.Error())
 	}
 	var reqValues *url.Values
 	if isPreExec {
@@ -189,17 +235,16 @@ func (this *RestClient) sendRawTransaction(qid string, tx *types.Transaction, is
 	return this.sendRestPostRequest(buffer.Bytes(), reqPath, reqValues)
 }
 
-func (this *RestClient) getRequestUrl(reqPath string, values ...*url.Values) (string, error) {
-	addr := this.getNextRestAddress()
-	if addr == "" {
-		return "", fmt.Errorf("Restful server address is nil")
+
+
+
+func (this *RestClient) getRequestUrl(restAddr string, reqPath string, values ...*url.Values) (string, error) {
+	if !strings.HasPrefix(restAddr, "http") {
+		restAddr = "http://" + restAddr
 	}
-	if !strings.HasPrefix(addr, "http") {
-		addr = "http://" + addr
-	}
-	reqUrl, err := new(url.URL).Parse(addr)
+	reqUrl, err := new(url.URL).Parse(restAddr)
 	if err != nil {
-		return "", fmt.Errorf("Parse address:%s error:%s", addr, err)
+		return "", fmt.Errorf("Parse address:%s error:%s", restAddr, err.Error())
 	}
 	reqUrl.Path = reqPath
 	if len(values) > 0 {
@@ -212,23 +257,47 @@ func (this *RestClient) getRequestUrl(reqPath string, values ...*url.Values) (st
 }
 
 func (this *RestClient) sendRestGetRequest(reqPath string, values ...*url.Values) ([]byte, error) {
-	reqUrl, err := this.getRequestUrl(reqPath, values...)
+	restAddr := this.getNextRestAddress()
+	if restAddr == "" {
+		return nil, fmt.Errorf("Restful server address is nil")
+	}
+	reqUrl, err := this.getRequestUrl(restAddr, reqPath, values...)
 	if err != nil {
 		return nil, err
 	}
 	resp, err := this.httpClient.Get(reqUrl)
 	if err != nil {
-		return nil, fmt.Errorf("send http get request error:%s", err)
+		this.setServerStatus(restAddr, false)
+		log.Errorf("[sendRestGetRequest] http post request reqPath :%s error:%s", reqPath, err)
+		nextRestAddr := this.getNextRestAddress()
+		if nextRestAddr == "" {
+			return nil, fmt.Errorf("Restful server address is nil")
+		}
+		newReqUrl, err := this.getRequestUrl(nextRestAddr, reqPath, values...)
+		if err != nil {
+			return nil, err
+		}
+		resp, err = this.httpClient.Get(newReqUrl)
+		if err != nil {
+			this.setServerStatus(nextRestAddr, false)
+			log.Errorf("[sendRestGetRequest] http post request reqPath :%s error:%s", reqPath, err)
+			return nil, fmt.Errorf("[sendRestGetRequest] http get request reqPath :%s error:%s", reqPath, err)
+		}
 	}
 	defer resp.Body.Close()
 	return this.dealRestResponse(resp.Body)
 }
 
 func (this *RestClient) sendRestPostRequest(data []byte, reqPath string, values ...*url.Values) ([]byte, error) {
-	reqUrl, err := this.getRequestUrl(reqPath, values...)
+	restAddr := this.getNextRestAddress()
+	if restAddr == "" {
+		return nil, fmt.Errorf("Restful server address is nil")
+	}
+	reqUrl, err := this.getRequestUrl(restAddr, reqPath, values...)
 	if err != nil {
 		return nil, err
 	}
+
 	restReq := &RestfulReq{
 		Action:  ACTION_SEND_RAW_TRANSACTION,
 		Version: REST_VERSION,
@@ -238,10 +307,39 @@ func (this *RestClient) sendRestPostRequest(data []byte, reqPath string, values 
 	if err != nil {
 		return nil, fmt.Errorf("json.Marshal error:%s", err)
 	}
+
 	resp, err := this.httpClient.Post(reqUrl, "application/json", bytes.NewReader(reqData))
 	if err != nil {
-		log.Errorf("[sendRestPostRequest] http post request reqUrl: %s error: %s", reqUrl, err)
-		return nil, fmt.Errorf("send http post request error:%s", err)
+		this.setServerStatus(restAddr, false)
+		log.Errorf("[sendRestPostRequest] http post request reqPath :%s error:%s", reqPath, err)
+		nextRestAddr := this.getNextRestAddress()
+		if nextRestAddr == "" {
+			return nil, fmt.Errorf("Restful server address is nil")
+		}
+		newReqUrl, err := this.getRequestUrl(nextRestAddr, reqPath, values...)
+		if err != nil {
+			return nil, err
+		}
+		resp, err = this.httpClient.Get(newReqUrl)
+		if err != nil {
+			this.setServerStatus(nextRestAddr, false)
+			log.Errorf("[sendRestPostRequest] http post request reqPath :%s error:%s", reqPath, err)
+			return nil, fmt.Errorf("[sendRestPostRequest] http post request reqPath :%s error:%s", reqPath, err)
+		}
+	}
+	defer resp.Body.Close()
+	return this.dealRestResponse(resp.Body)
+}
+
+func (this *RestClient) sendRestGetRequestToAddr(addr string, reqPath string, values ...*url.Values) ([]byte, error) {
+	reqUrl, err := this.getRequestUrl(addr, reqPath, values...)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := this.httpClient.Get(reqUrl)
+	if err != nil {
+		log.Errorf("[sendRestGetRequestToAddr] http post request reqUrl :%s error:%s", reqUrl, err.Error())
+		return nil, fmt.Errorf("send http get request error:%s", err)
 	}
 	defer resp.Body.Close()
 	return this.dealRestResponse(resp.Body)
@@ -265,26 +363,25 @@ func (this *RestClient) dealRestResponse(body io.Reader) ([]byte, error) {
 
 func (this *RestClient) getNextRestAddress() string {
 	var restAddr string
-	var firstRestAddr string
 	restServersAddrLen := len(this.restServersAddr)
 	for i := 0; i < restServersAddrLen; i++ {
 		index := this.randNum % restServersAddrLen
-
 		restAddr = this.restServersAddr[index]
-		if 0 == i {
-			firstRestAddr = restAddr
-		}
 
 		this.randNum++
 		ok, exist := this.restServerStatus.Load(restAddr)
 		if exist && ok.(bool) {
+			log.Info("[getNextRestAddress] Return: ", restAddr)
 			return restAddr
 		}
 
-		if this.randNum >= restServersAddrLen {
+		if this.randNum >= 1000000000 {
 			this.randNum = 0
 		}
 	}
-	this.randNum++
-	return firstRestAddr
+	index := rand.Int() % restServersAddrLen
+	restAddr = this.restServersAddr[index]
+
+	log.Info("[getNextRestAddress] Return RandRestAddr: ", restAddr)
+	return restAddr
 }
