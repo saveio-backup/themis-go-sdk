@@ -371,7 +371,6 @@ func (this *RestClient) getNextRestAddress() string {
 		this.randNum++
 		ok, exist := this.restServerStatus.Load(restAddr)
 		if exist && ok.(bool) {
-			log.Info("[getNextRestAddress] Return: ", restAddr)
 			return restAddr
 		}
 
@@ -381,7 +380,6 @@ func (this *RestClient) getNextRestAddress() string {
 	}
 	index := rand.Int() % restServersAddrLen
 	restAddr = this.restServersAddr[index]
-
-	log.Info("[getNextRestAddress] Return RandRestAddr: ", restAddr)
+	
 	return restAddr
 }

@@ -286,7 +286,6 @@ func (this *RpcClient) getNextRpcAddress() string {
 		this.randNum++
 		status, err := this.getServerStatus(rpcAddr)
 		if err == nil && status {
-			log.Info("[getNextRpcAddress] Return: ", rpcAddr)
 			return rpcAddr
 		}
 
@@ -296,7 +295,5 @@ func (this *RpcClient) getNextRpcAddress() string {
 	}
 	index := rand.Int() % rpcServersAddrLen
 	rpcAddr = this.rpcServersAddr[index]
-
-	log.Info("[getNextRpcAddress] Return RandRpcAddr: ", rpcAddr)
 	return rpcAddr
 }
