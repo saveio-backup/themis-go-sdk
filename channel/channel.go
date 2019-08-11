@@ -423,7 +423,8 @@ func (this *Channel) GetChannelCounter() (uint64, error) {
 	return strconv.ParseUint(valStr, 10, 64)
 }
 
-func (this *Channel) GetFilterArgsForAllEventsFromChannelByEventId(contractAddress common.Address, address common.Address, eventId uint32, fromBlock uint32, toBlock uint32) ([]map[string]interface{}, map[uint32][2]uint32, error) {
+func (this *Channel) GetFilterArgsForAllEventsFromChannelByEventId(contractAddress common.Address, address common.Address,
+	eventId uint32, fromBlock uint32, toBlock uint32) ([]map[string]interface{}, map[uint32][2]uint32, error) {
 	toBlockUint := uint32(toBlock)
 	currentH, _ := this.Client.GetCurrentBlockHeight()
 	if toBlockUint > currentH {

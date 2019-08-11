@@ -380,6 +380,6 @@ func (this *RestClient) getNextRestAddress() string {
 	}
 	index := rand.Int() % restServersAddrLen
 	restAddr = this.restServersAddr[index]
-	
+
 	return restAddr
 }

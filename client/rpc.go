@@ -223,6 +223,7 @@ func (this *RpcClient) sendRawTransaction(qid string, tx *types.Transaction, isP
 //sendRpcRequest send Rpc request to oniChain
 func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) ([]byte, error) {
 	rpcAddr := this.getNextRpcAddress()
+	log.Info("[sendRpcRequest] getNextRpcAddress: ", rpcAddr)
 	resp, err := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
 	if err != nil {
 		this.setServerStatus(rpcAddr, false)
@@ -251,11 +252,27 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 		return nil, fmt.Errorf("JsonRpcRequest json.Marsha error:%s", err)
 	}
 
-	resp, err := this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
-	if err != nil {
-		log.Errorf("[sendRpcRequestToAddr] http post request method :%s error:%s", method, err)
-		return nil, fmt.Errorf("http post request:%s error:%s", data, err)
+	var resp *http.Response
+	respChan := make(chan *http.Response, 1)
+
+	go func() {
+		var interResp *http.Response
+		interResp, err = this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
+		respChan <- interResp
+	}()
+
+	select {
+	case resp = <- respChan:
+		log.Info("[sendRpcRequestToAddr] get resp")
+	case <- time.After(5 * time.Second):
+		return nil, err
 	}
+
+	//resp, err := this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
+	//if err != nil {
+	//	log.Errorf("[sendRpcRequestToAddr] http post request method :%s error:%s", method, err)
+	//	return nil, fmt.Errorf("http post request:%s error:%s", data, err)
+	//}
 
 	defer resp.Body.Close()
 	defer this.httpClient.CloseIdleConnections()
