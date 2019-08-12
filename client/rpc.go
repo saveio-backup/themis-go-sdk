@@ -222,21 +222,25 @@ func (this *RpcClient) sendRawTransaction(qid string, tx *types.Transaction, isP
 //sendRpcRequest send Rpc request to oniChain
 func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) ([]byte, error) {
 	rpcAddr := this.getNextRpcAddress()
-	log.Info("[sendRpcRequest] getNextRpcAddress: ", rpcAddr)
+	//log.Debugf("[sendRpcRequest] getNextRpcAddress: %s, method: %s", rpcAddr, method)
 	resp, err, timeout := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
 	if err != nil {
 		if timeout {
 			this.setServerStatus(rpcAddr, false)
 		}
-		log.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
 		nextRpcAddr := this.getNextRpcAddress()
+		log.Warnf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s, getNextRpcAddress %s Retry",
+			rpcAddr, method, err, nextRpcAddr)
+
 		resp, err, timeout = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
 		if err != nil {
 			if timeout {
 				this.setServerStatus(nextRpcAddr, false)
 			}
-			log.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
-			return nil, fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
+			err2 := fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr,
+				method, err.Error())
+			log.Error(err2.Error())
+			return nil, err2
 		}
 	}
 	return resp, err
@@ -288,7 +292,6 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 		return rpcRsp.Result, nil, false
 	case <- time.After(5 * time.Second):
 		err = fmt.Errorf("[sendRpcRequestToAddr] RpcAddr(%s) timeout", rpcAddr)
-		log.Warn(err.Error())
 		return nil, err, true
 	}
 }
