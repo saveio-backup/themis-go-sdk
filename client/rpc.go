@@ -33,8 +33,8 @@ func NewRpcClient() *RpcClient {
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				MaxConnsPerHost:       5,
-				MaxIdleConnsPerHost:   1,
-				DisableKeepAlives:     true, //enable keepalive
+				MaxIdleConnsPerHost:   35,
+				DisableKeepAlives:     false, //enable keepalive
 				IdleConnTimeout:       time.Second * 100,
 				ResponseHeaderTimeout: time.Second * 100,
 				ExpectContinueTimeout: 5,
@@ -273,7 +273,7 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 			return nil, err, false
 		}
 		defer resp.Body.Close()
-		defer this.httpClient.CloseIdleConnections()
+		//defer this.httpClient.CloseIdleConnections()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
