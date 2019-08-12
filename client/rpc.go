@@ -47,19 +47,18 @@ func NewRpcClient() *RpcClient {
 }
 
 func (this *RpcClient) MonitorBadRpcServers () {
-	var err error
 	for {
 		time.Sleep(MonitorBadRpcServersInterval * time.Second)
 		this.rpcServerStatus.Range(func(key, value interface{}) bool {
 			rpcServerAddr := key.(string)
 			serverStatus := value.(bool)
 			if !serverStatus {
-				_, err = this.getVersionBySpecifiedRpcServer(rpcServerAddr)
-				if err == nil {
+				_, _, timeout := this.getVersionBySpecifiedRpcServer(rpcServerAddr)
+				if timeout {
+					log.Errorf("[MonitorBadRpcServers] rpcServerAddr: %s service is not valid", rpcServerAddr)
+				} else {
 					log.Infof("[MonitorBadRpcServers] rpcServerAddr: %s service resume", rpcServerAddr)
 					this.setServerStatus(rpcServerAddr, true)
-				} else {
-					log.Errorf("[MonitorBadRpcServers] rpcServerAddr: %s service is not valid", rpcServerAddr)
 				}
 			}
 			return true
@@ -96,7 +95,7 @@ func (this *RpcClient) SetHttpClient(httpClient *http.Client) *RpcClient {
 }
 
 //GetVersion return the version of oniChain
-func (this *RpcClient) getVersionBySpecifiedRpcServer(rpcServerAddr string) ([]byte, error) {
+func (this *RpcClient) getVersionBySpecifiedRpcServer(rpcServerAddr string) ([]byte, error, bool) {
 	return this.sendRpcRequestToAddr(rpcServerAddr, "0", RPC_GET_VERSION, []interface{}{})
 }
 
@@ -225,13 +224,17 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 	rpcAddr := this.getNextRpcAddress()
 	log.Info("[sendRpcRequest] getNextRpcAddress: ", rpcAddr)
 	resp, err, timeout := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
-	if err != nil && timeout {
-		this.setServerStatus(rpcAddr, false)
+	if err != nil {
+		if timeout {
+			this.setServerStatus(rpcAddr, false)
+		}
 		log.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
 		nextRpcAddr := this.getNextRpcAddress()
 		resp, err, timeout = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
-		if err != nil && timeout {
-			this.setServerStatus(nextRpcAddr, false)
+		if err != nil {
+			if timeout {
+				this.setServerStatus(nextRpcAddr, false)
+			}
 			log.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
 			return nil, fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
 		}
