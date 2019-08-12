@@ -224,13 +224,13 @@ func (this *RpcClient) sendRawTransaction(qid string, tx *types.Transaction, isP
 func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) ([]byte, error) {
 	rpcAddr := this.getNextRpcAddress()
 	log.Info("[sendRpcRequest] getNextRpcAddress: ", rpcAddr)
-	resp, err := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
-	if err != nil {
+	resp, err, timeout := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
+	if err != nil && timeout {
 		this.setServerStatus(rpcAddr, false)
 		log.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
 		nextRpcAddr := this.getNextRpcAddress()
-		resp, err = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
-		if err != nil {
+		resp, err, timeout = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
+		if err != nil && timeout {
 			this.setServerStatus(nextRpcAddr, false)
 			log.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
 			return nil, fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr, method, err)
@@ -240,7 +240,7 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 }
 
 //sendRpcRequest send Rpc request to oniChain
-func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, params []interface{}) ([]byte, error) {
+func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, params []interface{}) ([]byte, error, bool) {
 	rpcReq := &JsonRpcRequest{
 		Version: JSON_RPC_VERSION,
 		Id:      qid,
@@ -249,7 +249,7 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 	}
 	data, err := json.Marshal(rpcReq)
 	if err != nil {
-		return nil, fmt.Errorf("JsonRpcRequest json.Marsha error:%s", err)
+		return nil, fmt.Errorf("JsonRpcRequest json.Marsha error:%s", err), false
 	}
 
 	done := make(chan bool)
@@ -263,29 +263,30 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 	case <- done:
 		defer close(done)
 		if err != nil {
-			return nil, err
+			return nil, err, false
 		}
 		defer resp.Body.Close()
 		defer this.httpClient.CloseIdleConnections()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("read rpc response body error:%s", err)
+			return nil, fmt.Errorf("read rpc response body error:%s", err.Error()), false
 		}
 
 		rpcRsp := &JsonRpcResponse{}
 		err = json.Unmarshal(body, rpcRsp)
 		if err != nil {
-			return nil, fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err)
+			return nil, fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err.Error()), false
 		}
 		if rpcRsp.Error != 0 {
-			return nil, fmt.Errorf("JsonRpcResponse error code:%d desc:%s result:%s", rpcRsp.Error, rpcRsp.Desc, rpcRsp.Result)
+			return nil, fmt.Errorf("JsonRpcResponse error code:%d desc:%s result:%s", rpcRsp.Error, rpcRsp.Desc,
+				rpcRsp.Result), false
 		}
-		return rpcRsp.Result, nil
+		return rpcRsp.Result, nil, false
 	case <- time.After(5 * time.Second):
 		err = fmt.Errorf("[sendRpcRequestToAddr] RpcAddr(%s) timeout", rpcAddr)
 		log.Warn(err.Error())
-		return nil, err
+		return nil, err, true
 	}
 }
 
