@@ -252,45 +252,41 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 		return nil, fmt.Errorf("JsonRpcRequest json.Marsha error:%s", err)
 	}
 
+	done := make(chan bool)
 	var resp *http.Response
-	respChan := make(chan *http.Response, 1)
-
 	go func() {
-		var interResp *http.Response
-		interResp, err = this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
-		respChan <- interResp
+		resp, err = this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
+		done <- true
 	}()
 
 	select {
-	case resp = <- respChan:
-		log.Info("[sendRpcRequestToAddr] get resp")
+	case <- done:
+		defer close(done)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		defer this.httpClient.CloseIdleConnections()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("read rpc response body error:%s", err)
+		}
+
+		rpcRsp := &JsonRpcResponse{}
+		err = json.Unmarshal(body, rpcRsp)
+		if err != nil {
+			return nil, fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err)
+		}
+		if rpcRsp.Error != 0 {
+			return nil, fmt.Errorf("JsonRpcResponse error code:%d desc:%s result:%s", rpcRsp.Error, rpcRsp.Desc, rpcRsp.Result)
+		}
+		return rpcRsp.Result, nil
 	case <- time.After(5 * time.Second):
+		err = fmt.Errorf("[sendRpcRequestToAddr] RpcAddr(%s) timeout", rpcAddr)
+		log.Warn(err.Error())
 		return nil, err
 	}
-
-	//resp, err := this.httpClient.Post(rpcAddr, "application/json", bytes.NewReader(data))
-	//if err != nil {
-	//	log.Errorf("[sendRpcRequestToAddr] http post request method :%s error:%s", method, err)
-	//	return nil, fmt.Errorf("http post request:%s error:%s", data, err)
-	//}
-
-	defer resp.Body.Close()
-	defer this.httpClient.CloseIdleConnections()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read rpc response body error:%s", err)
-	}
-
-	rpcRsp := &JsonRpcResponse{}
-	err = json.Unmarshal(body, rpcRsp)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err)
-	}
-	if rpcRsp.Error != 0 {
-		return nil, fmt.Errorf("JsonRpcResponse error code:%d desc:%s result:%s", rpcRsp.Error, rpcRsp.Desc, rpcRsp.Result)
-	}
-	return rpcRsp.Result, nil
 }
 
 func (this *RpcClient) getNextRpcAddress() string {
