@@ -332,6 +332,25 @@ func (this *Channel) GetChannelInfo(channelID uint64, participant1, participant2
 	return channelInfo, nil
 }
 
+func (this *Channel) GetAllOpenChannels () (*micropayment.AllChannels, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		micropayment.MP_GET_ALL_OPEN_CHANNELS,
+		[]interface{}{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+	allOpenChannels := &micropayment.AllChannels{}
+	reader := bytes.NewReader(buf)
+	err = allOpenChannels.Deserialize(reader)
+	return allOpenChannels, err
+}
+
 func (this *Channel) GetChannelParticipantInfo(channelID uint64, participant1, participant2 common.Address) (*micropayment.Participant, error) {
 	params := &micropayment.GetChanInfo{
 		ChannelID:    channelID,
