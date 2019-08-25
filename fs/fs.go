@@ -127,7 +127,7 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 
 func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 	blockSize uint64, proveInterval uint64, expiredHeight uint64, copyNum uint64,
-	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64) ([]byte, error) {
+	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -149,6 +149,7 @@ func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 		BlockHeight:    0,
 		ValidFlag:      true,
 		StorageType:    storageType,
+		RealFileSize:   realFileSize,
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		fs.FS_STORE_FILE, []interface{}{fileInfo},
@@ -242,9 +243,9 @@ func (this *Fs) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]
 	return ret.ToArray(), err
 }
 
-func (this *Fs) GetFileList() (*fs.FileList, error) {
+func (this *Fs) GetFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := this.PreExecInvokeNativeContract(
-		fs.FS_GET_FILE_LIST, []interface{}{this.DefAcc.Address},
+		fs.FS_GET_FILE_LIST, []interface{}{addr},
 	)
 	if err != nil {
 		return nil, err
@@ -427,6 +428,35 @@ func (this *Fs) DeleteFile(fileHashStr string) ([]byte, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		fs.FS_DELETE_FILE, []interface{}{fileHash},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+func (this *Fs) DeleteFiles(fileHashStrs []string) ([]byte, error) {
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+
+	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
+	for _, fileHashStr := range fileHashStrs {
+		fileHashes = append(fileHashes, fs.FileHash{
+			Hash: []byte(fileHashStr),
+		})
+	}
+	fileList := fs.FileList{
+		FileNum: uint64(len(fileHashStrs)),
+		List:    fileHashes,
+	}
+	fmt.Printf("file list: %v\n", fileList)
+	buf := new(bytes.Buffer)
+	if err := fileList.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
+	}
+	ret, err := this.InvokeNativeContract(this.DefAcc,
+		fs.FS_DELETE_FILES, []interface{}{buf.Bytes()},
 	)
 	if err != nil {
 		return nil, err
