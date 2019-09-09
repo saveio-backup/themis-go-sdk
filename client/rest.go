@@ -47,7 +47,6 @@ func NewRestClient() *RestClient {
 	return restClient
 }
 
-
 func (this *RestClient) MonitorBadRestServers () {
 	var err error
 	for {

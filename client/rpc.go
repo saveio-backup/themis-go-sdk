@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"strings"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,18 +10,22 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"math/rand"
 
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
-	"math/rand"
 )
 
 const MonitorBadRpcServersInterval = 30
+const RoundRobin = 0
+const MasterSlave = 1
 
-//RpcClient for oniChain rpc api
+//RpcClient for themis rpc api
 type RpcClient struct {
+	callMode        int
 	randNum         int
+	masterIndex     int
 	rpcServersAddr  []string
 	rpcServerStatus *sync.Map
 	httpClient      *http.Client
@@ -29,17 +34,18 @@ type RpcClient struct {
 //NewRpcClient return RpcClient instance
 func NewRpcClient() *RpcClient {
 	rpcClient := &RpcClient{
+		callMode:  MasterSlave,
 		rpcServerStatus: new(sync.Map),
 		httpClient: &http.Client{
 			Transport: &http.Transport{
-				MaxConnsPerHost:       5,
-				MaxIdleConnsPerHost:   35,
+				MaxConnsPerHost:       2,
+				MaxIdleConnsPerHost:   12,
 				DisableKeepAlives:     false, //enable keepalive
-				IdleConnTimeout:       time.Second * 100,
+				IdleConnTimeout:       time.Second * 300,
 				ResponseHeaderTimeout: time.Second * 100,
 				ExpectContinueTimeout: 5,
 			},
-			Timeout: time.Second * 100, //timeout for http response
+			Timeout: time.Second * 50, //timeout for http response
 		},
 	}
 	go rpcClient.MonitorBadRpcServers()
@@ -85,7 +91,25 @@ func (this *RpcClient) SetAddress(rpcAddrs []string) *RpcClient {
 	for _, addr := range rpcAddrs {
 		this.rpcServerStatus.Store(addr, true)
 	}
+	this.masterIndex = rand.Int() % len(this.rpcServersAddr)
 	return this
+}
+
+func (this *RpcClient) SetCallMode(callMode int) error {
+	if 0 == len(this.rpcServersAddr) {
+		return fmt.Errorf("[SetCallMode] error: RpcServerAddress is not set")
+	}
+	switch callMode {
+	case MasterSlave:
+		log.Info("[SetCallMode] Call mode is: MasterSlave")
+	case RoundRobin:
+		log.Info("[SetCallMode] Call mode is: RoundRobin")
+	default:
+		log.Error("[SetCallMode] Unknown callMode")
+		return fmt.Errorf("[SetCallMode] Unknown callMode")
+	}
+	this.callMode = callMode
+	return nil
 }
 
 //SetHttpClient set http client to RpcClient. In most cases SetHttpClient is not necessary
@@ -94,12 +118,12 @@ func (this *RpcClient) SetHttpClient(httpClient *http.Client) *RpcClient {
 	return this
 }
 
-//GetVersion return the version of oniChain
+//GetVersion return the version of themis
 func (this *RpcClient) getVersionBySpecifiedRpcServer(rpcServerAddr string) ([]byte, error, bool) {
 	return this.sendRpcRequestToAddr(rpcServerAddr, "0", RPC_GET_VERSION, []interface{}{})
 }
 
-//GetVersion return the version of oniChain
+//GetVersion return the version of themis
 func (this *RpcClient) getVersion(qid string) ([]byte, error) {
 	return this.sendRpcRequest(qid, RPC_GET_VERSION, []interface{}{})
 }
@@ -222,22 +246,27 @@ func (this *RpcClient) sendRawTransaction(qid string, tx *types.Transaction, isP
 //sendRpcRequest send Rpc request to oniChain
 func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) ([]byte, error) {
 	rpcAddr := this.getNextRpcAddress()
-	//log.Debugf("[sendRpcRequest] getNextRpcAddress: %s, method: %s", rpcAddr, method)
-	resp, err, timeout := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
+	if rpcAddr == "" {
+		return nil, fmt.Errorf("[sendRpcRequest] no usable rpc server")
+	}
+	resp, err, badServer := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
 	if err != nil {
-		if timeout {
+		if badServer {
 			this.setServerStatus(rpcAddr, false)
 		}
 		nextRpcAddr := this.getNextRpcAddress()
+		if nextRpcAddr == "" {
+			return nil, fmt.Errorf("[sendRpcRequest] no usable rpc server")
+		}
 		log.Warnf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s, getNextRpcAddress %s Retry",
 			rpcAddr, method, err, nextRpcAddr)
 
-		resp, err, timeout = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
+		resp, err, badServer = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
 		if err != nil {
-			if timeout {
+			if badServer {
 				this.setServerStatus(nextRpcAddr, false)
 			}
-			err2 := fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", rpcAddr,
+			err2 := fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", nextRpcAddr,
 				method, err.Error())
 			log.Error(err2.Error())
 			return nil, err2
@@ -270,10 +299,14 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 	case <- done:
 		defer close(done)
 		if err != nil {
-			return nil, err, false
+			errInfo :=  err.Error()
+			if strings.Contains(errInfo, "connect: connection refused") {
+				return nil, err, true
+			} else {
+				return nil, err, false
+			}
 		}
 		defer resp.Body.Close()
-		//defer this.httpClient.CloseIdleConnections()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -298,22 +331,45 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 
 func (this *RpcClient) getNextRpcAddress() string {
 	var rpcAddr string
-	rpcServersAddrLen := len(this.rpcServersAddr)
-	for i := 0; i < rpcServersAddrLen; i++ {
-		index := this.randNum % rpcServersAddrLen
+	rpcSrvAddrsLen := len(this.rpcServersAddr)
+	if this.callMode == MasterSlave {
+		masterIndex := this.masterIndex
+		for ;; {
+			rpcAddr = this.rpcServersAddr[masterIndex]
+			status, err := this.getServerStatus(rpcAddr)
+			if err == nil && status {
+				this.masterIndex = masterIndex
+				return rpcAddr
+			} else {
+				masterIndex= (masterIndex+ 1) % rpcSrvAddrsLen
+				if masterIndex == this.masterIndex {
+					log.Errorf("[getNextRpcAddress] no usable server address")
+					return ""
+				}
+				log.Warnf("[getNextRpcAddress] %s is not valid, try %s", this.rpcServersAddr[this.masterIndex],
+					this.rpcServersAddr[masterIndex])
+			}
+		}
+	} else if this.callMode == RoundRobin {
+		for i := 0; i < rpcSrvAddrsLen; i++ {
+			index := this.randNum % rpcSrvAddrsLen
+			rpcAddr = this.rpcServersAddr[index]
+
+			this.randNum++
+			status, err := this.getServerStatus(rpcAddr)
+			if err == nil && status {
+				log.Infof("switch to %s", rpcAddr)
+				return rpcAddr
+			}
+
+			if this.randNum >= 999999999 {
+				this.randNum = 0
+			}
+		}
+		index := rand.Int() % rpcSrvAddrsLen
 		rpcAddr = this.rpcServersAddr[index]
+	} else {
 
-		this.randNum++
-		status, err := this.getServerStatus(rpcAddr)
-		if err == nil && status {
-			return rpcAddr
-		}
-
-		if this.randNum >= 1000000000 {
-			this.randNum = 0
-		}
 	}
-	index := rand.Int() % rpcServersAddrLen
-	rpcAddr = this.rpcServersAddr[index]
 	return rpcAddr
 }
