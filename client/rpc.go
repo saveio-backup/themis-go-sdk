@@ -253,23 +253,23 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 	if err != nil {
 		if badServer {
 			this.setServerStatus(rpcAddr, false)
-		}
-		nextRpcAddr := this.getNextRpcAddress()
-		if nextRpcAddr == "" {
-			return nil, fmt.Errorf("[sendRpcRequest] no usable rpc server")
-		}
-		log.Warnf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s, getNextRpcAddress %s Retry",
-			rpcAddr, method, err, nextRpcAddr)
-
-		resp, err, badServer = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
-		if err != nil {
-			if badServer {
-				this.setServerStatus(nextRpcAddr, false)
+			nextRpcAddr := this.getNextRpcAddress()
+			if nextRpcAddr == "" {
+				return nil, fmt.Errorf("[sendRpcRequest] no usable rpc server")
 			}
-			err2 := fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", nextRpcAddr,
-				method, err.Error())
-			log.Error(err2.Error())
-			return nil, err2
+			log.Warnf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s, getNextRpcAddress %s Retry",
+				rpcAddr, method, err, nextRpcAddr)
+
+			resp, err, badServer = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
+			if err != nil {
+				if badServer {
+					this.setServerStatus(nextRpcAddr, false)
+				}
+				err2 := fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", nextRpcAddr,
+					method, err.Error())
+				log.Error(err2.Error())
+				return nil, err2
+			}
 		}
 	}
 	return resp, err
