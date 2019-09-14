@@ -277,10 +277,6 @@ func (this *Dns) QueryHeader(header string, ownerAddr common.Address) (*dns.Head
 
 }
 
-func (this *Dns) GetCustomUrlHeader() string {
-	return "save://share/"
-}
-
 // UnregisterDNSNode. unregister dns node to quit
 func (this *Dns) UnregisterDNSNode() (common.Uint256, error) {
 	pk := keypair.SerializePublicKey(this.DefAcc.PublicKey)
