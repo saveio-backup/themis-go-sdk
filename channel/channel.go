@@ -69,9 +69,12 @@ func (this *Channel) RegisterPaymentEndPoint(protocol, ip, port []byte, regAccou
 	return tx[:], nil
 }
 
-func (this *Channel) OpenChannel(wallet1Addr, wallet2Addr common.Address, blockHeight uint64) ([]byte, error) {
+func (this *Channel) OpenChannel(wallet1Addr common.Address, wallet1PubKey []byte, wallet2Addr common.Address,
+	blockHeight uint64) ([]byte, error) {
+
 	params := &micropayment.OpenChannelInfo{
 		Participant1WalletAddr: wallet1Addr,
+		Participant1PubKey: wallet1PubKey,
 		Participant2WalletAddr: wallet2Addr,
 		SettleBlockHeight:      blockHeight,
 	}
@@ -103,6 +106,32 @@ func (this *Channel) SetTotalDeposit(channelId uint64, participantWalletAddr com
 	}
 	return tx[:], nil
 }
+
+func (this *Channel) GetNodePubKey(walletAddr common.Address) ([]byte, error) {
+	params := &micropayment.NodePubKey{
+		Participant: walletAddr,
+		PublicKey:   []byte{},
+	}
+	ret, err := this.PreExecInvokeNativeContract(
+		micropayment.MP_GET_NODE_PUBKEY,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+	nodePubKey := &micropayment.NodePubKey{}
+	source := common.NewZeroCopySource(buf)
+	if err := nodePubKey.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("[GetNodePubKey] NodePubKey deserialization error!")
+	}
+	return nodePubKey.PublicKey, nil
+}
+
 func (this *Channel) SetTotalWithdraw(channelID uint64, participant, partner common.Address, totalWithdraw uint64, participantSig, participantPubKey, partnerSig, partnerPubKey []byte) ([]byte, error) {
 	params := &micropayment.WithDraw{
 		ChannelID:         channelID,
