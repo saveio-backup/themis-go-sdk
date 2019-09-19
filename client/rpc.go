@@ -43,7 +43,7 @@ func NewRpcClient() *RpcClient {
 				DisableKeepAlives:     false, //enable keepalive
 				IdleConnTimeout:       time.Second * 300,
 				ResponseHeaderTimeout: time.Second * 100,
-				ExpectContinueTimeout: 5,
+				ExpectContinueTimeout: 20,
 			},
 			Timeout: time.Second * 50, //timeout for http response
 		},
@@ -323,7 +323,7 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 				rpcRsp.Result), false
 		}
 		return rpcRsp.Result, nil, false
-	case <- time.After(5 * time.Second):
+	case <- time.After(20 * time.Second):
 		err = fmt.Errorf("[sendRpcRequestToAddr] RpcAddr(%s) timeout", rpcAddr)
 		return nil, err, true
 	}
@@ -344,7 +344,7 @@ func (this *RpcClient) getNextRpcAddress() string {
 				masterIndex= (masterIndex+ 1) % rpcSrvAddrsLen
 				if masterIndex == this.masterIndex {
 					log.Errorf("[getNextRpcAddress] no usable server address")
-					return ""
+					return rpcAddr
 				}
 				log.Warnf("[getNextRpcAddress] %s is not valid, try %s", this.rpcServersAddr[this.masterIndex],
 					this.rpcServersAddr[masterIndex])
