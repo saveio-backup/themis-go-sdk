@@ -8,6 +8,7 @@ import (
 
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis-go-sdk/wallet"
+	"github.com/saveio/themis/common"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 )
 
@@ -90,17 +91,6 @@ func TestOntFsClient_GetNodeList(t *testing.T) {
 		fmt.Println("WalletAddr: ", nodeInfo.WalletAddr)
 		fmt.Println("ServiceTime:", nodeInfo.ServiceTime)
 	}
-}
-
-func TestOntFsClient_StoreFile(t *testing.T) {
-	proveParam := []byte("ProveProveProveProveProveProveProveProveProveProveProveProve")
-	ret, err := testFs.StoreFile(txt, 12,
-		32, 32, 32, 12, []byte("1.jpg"), fs.PUBLIC, proveParam, 1)
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	fmt.Println(ret)
 }
 
 func TestOntFsClient_GetFileInfo(t *testing.T) {
@@ -238,4 +228,26 @@ func TestOntFs_GetUserSpace(t *testing.T) {
 	fmt.Printf("Remain : %d\n", userspace.Remain)
 	fmt.Printf("ExpiredHeight : %d\n", userspace.ExpireHeight)
 	fmt.Printf("Blanace : %d\n", userspace.Balance)
+}
+
+func TestGetNodeListByAddrs(t *testing.T) {
+	addr, err := common.AddressFromBase58("ALQ6RWJENsELE7ATuzHz4zgHrq573xJsnM")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addrs := make([]common.Address, 0)
+	addrs = append(addrs, addr)
+	info, err := testFs.GetNodeListByAddrs(addrs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.NodeNum != uint64(len(addrs)) {
+		t.Fatalf("info.NodeNum %d != len(addrs) %d", info.NodeNum, len(addrs))
+	}
+	for _, info := range info.NodeInfo {
+		if info.WalletAddr.ToBase58() != addr.ToBase58() {
+			t.Fatalf("wallet not equal %s %s", info.WalletAddr.ToBase58(), addr.ToBase58())
+		}
+	}
+	fmt.Printf("%v\n", info)
 }

@@ -103,6 +103,38 @@ func (this *Fs) GetNodeList() (*fs.FsNodesInfo, error) {
 	}
 }
 
+func (this *Fs) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
+	nodeList := &fs.NodeList{
+		AddrNum:  uint64(len(addrs)),
+		AddrList: addrs,
+	}
+	buf := new(bytes.Buffer)
+	if err := nodeList.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("nodeList serialize error: %s", err.Error())
+	}
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_NODE_LIST_BY_ADDRS, []interface{}{buf.Bytes()},
+	)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetNodeList result toByteArray: %s", err.Error())
+	}
+	var nodesInfo fs.FsNodesInfo
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		reader := bytes.NewReader(retInfo.Info)
+		if err = nodesInfo.Deserialize(reader); err != nil {
+			return nil, fmt.Errorf("GetNodeList json Unmarshal: %s", err.Error())
+		}
+		return &nodesInfo, nil
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
 func (this *Fs) ProveParamSer(g []byte, g0 []byte, pubKey []byte, fileId []byte) ([]byte, error) {
 	var proveParam fs.ProveParam
 	proveParam.G = g
@@ -127,10 +159,20 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 
 func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 	blockSize uint64, proveInterval uint64, expiredHeight uint64, copyNum uint64,
-	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64) ([]byte, error) {
+	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64, primaryNodes, candidateNodes []common.Address) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
+
+	primary := fs.NodeList{
+		AddrNum:  uint64(len(primaryNodes)),
+		AddrList: primaryNodes,
+	}
+	candidates := fs.NodeList{
+		AddrNum:  uint64(len(candidateNodes)),
+		AddrList: candidateNodes,
+	}
+
 	fileHash := []byte(fileHashStr)
 	fileInfo := &fs.FileInfo{
 		FileHash:       fileHash,
@@ -150,9 +192,15 @@ func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 		ValidFlag:      true,
 		StorageType:    storageType,
 		RealFileSize:   realFileSize,
+		PrimaryNodes:   primary,
+		CandidateNodes: candidates,
+	}
+	buf := new(bytes.Buffer)
+	if err := fileInfo.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("fileInfo serialize error: %s", err.Error())
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
-		fs.FS_STORE_FILE, []interface{}{fileInfo},
+		fs.FS_STORE_FILE, []interface{}{buf.Bytes()},
 	)
 	if err != nil {
 		return nil, err
@@ -206,6 +254,43 @@ func (this *Fs) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	}
 }
 
+func (this *Fs) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
+	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
+	for _, fileHashStr := range fileHashStrs {
+		fileHashes = append(fileHashes, fs.FileHash{
+			Hash: []byte(fileHashStr),
+		})
+	}
+	fileList := fs.FileList{
+		FileNum: uint64(len(fileHashStrs)),
+		List:    fileHashes,
+	}
+	buf := new(bytes.Buffer)
+	if err := fileList.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
+	}
+	ret, err := this.PreExecInvokeNativeContract(fs.FS_GET_FILE_INFOS, []interface{}{buf.Bytes()})
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetFileInfo result toByteArray: %s", err.Error())
+	}
+	fileInfos := &fs.FileInfoList{}
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		fsFileInfoReader := bytes.NewReader(retInfo.Info)
+		err = fileInfos.Deserialize(fsFileInfoReader)
+		if err != nil {
+			return nil, fmt.Errorf("GetFileInfo error: %s", err.Error())
+		}
+		return fileInfos, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
 func (this *Fs) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
@@ -246,6 +331,58 @@ func (this *Fs) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]
 func (this *Fs) GetFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := this.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_LIST, []interface{}{addr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetFileList result toByteArray: %s", err.Error())
+	}
+
+	var fileList fs.FileList
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		fsFileListReader := bytes.NewReader(retInfo.Info)
+		err = fileList.Deserialize(fsFileListReader)
+		if err != nil {
+			return nil, fmt.Errorf("GetFileList error: %s", err.Error())
+		}
+		return &fileList, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
+func (this *Fs) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetFileList result toByteArray: %s", err.Error())
+	}
+
+	var fileList fs.FileList
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		fsFileListReader := bytes.NewReader(retInfo.Info)
+		err = fileList.Deserialize(fsFileListReader)
+		if err != nil {
+			return nil, fmt.Errorf("GetFileList error: %s", err.Error())
+		}
+		return &fileList, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
+func (this *Fs) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
 	)
 	if err != nil {
 		return nil, err

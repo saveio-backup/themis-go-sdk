@@ -10,6 +10,7 @@ import (
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 )
 
@@ -402,6 +403,7 @@ func (this *ClientMgr) PollForTxConfirmed(timeout time.Duration, txHash []byte) 
 	if secs <= 0 {
 		secs = 1
 	}
+	log.Debugf("txHashStr: %s", txHashStr)
 	for i := 0; i < secs; i++ {
 		time.Sleep(interval)
 		ret, err := this.GetBlockHeightByTxHash(txHashStr)
