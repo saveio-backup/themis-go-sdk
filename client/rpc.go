@@ -2,15 +2,15 @@ package client
 
 import (
 	"bytes"
-	"strings"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
-	"math/rand"
 
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/common/log"
@@ -34,7 +34,7 @@ type RpcClient struct {
 //NewRpcClient return RpcClient instance
 func NewRpcClient() *RpcClient {
 	rpcClient := &RpcClient{
-		callMode:  MasterSlave,
+		callMode:        MasterSlave,
 		rpcServerStatus: new(sync.Map),
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -52,7 +52,7 @@ func NewRpcClient() *RpcClient {
 	return rpcClient
 }
 
-func (this *RpcClient) MonitorBadRpcServers () {
+func (this *RpcClient) MonitorBadRpcServers() {
 	for {
 		time.Sleep(MonitorBadRpcServersInterval * time.Second)
 		this.rpcServerStatus.Range(func(key, value interface{}) bool {
@@ -194,6 +194,10 @@ func (this *RpcClient) getSmartContractEventByEventId(qid string, contractAddres
 	return this.sendRpcRequest(qid, RPC_GET_SMART_CONTRACT_EVENT_BY_EVENT_ID, []interface{}{contractAddress, address, eventId})
 }
 
+func (this *RpcClient) getSmartContractEventByEventIdAndHeights(qid string, contractAddress string, address string, eventId, startHeight, endHeight uint32) ([]byte, error) {
+	return this.sendRpcRequest(qid, RPC_GET_SMART_CONTRACT_EVENT_BY_EVENT_ID_HEIGHTS, []interface{}{contractAddress, eventId, startHeight, endHeight, address})
+}
+
 //GetRawTransaction return transaction by transaction hash
 func (this *RpcClient) getRawTransaction(qid, txHash string) ([]byte, error) {
 	return this.sendRpcRequest(qid, RPC_GET_TRANSACTION, []interface{}{txHash})
@@ -296,10 +300,10 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 	}()
 
 	select {
-	case <- done:
+	case <-done:
 		defer close(done)
 		if err != nil {
-			errInfo :=  err.Error()
+			errInfo := err.Error()
 			if strings.Contains(errInfo, "connect: connection refused") {
 				return nil, err, true
 			} else {
@@ -323,7 +327,7 @@ func (this *RpcClient) sendRpcRequestToAddr(rpcAddr string, qid, method string, 
 				rpcRsp.Result), false
 		}
 		return rpcRsp.Result, nil, false
-	case <- time.After(20 * time.Second):
+	case <-time.After(20 * time.Second):
 		err = fmt.Errorf("[sendRpcRequestToAddr] RpcAddr(%s) timeout", rpcAddr)
 		return nil, err, true
 	}
@@ -334,14 +338,14 @@ func (this *RpcClient) getNextRpcAddress() string {
 	rpcSrvAddrsLen := len(this.rpcServersAddr)
 	if this.callMode == MasterSlave {
 		masterIndex := this.masterIndex
-		for ;; {
+		for {
 			rpcAddr = this.rpcServersAddr[masterIndex]
 			status, err := this.getServerStatus(rpcAddr)
 			if err == nil && status {
 				this.masterIndex = masterIndex
 				return rpcAddr
 			} else {
-				masterIndex= (masterIndex+ 1) % rpcSrvAddrsLen
+				masterIndex = (masterIndex + 1) % rpcSrvAddrsLen
 				if masterIndex == this.masterIndex {
 					log.Errorf("[getNextRpcAddress] no usable server address")
 					return rpcAddr

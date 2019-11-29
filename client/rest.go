@@ -10,13 +10,14 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 	"sync"
+	"time"
+
+	"math/rand"
 
 	"github.com/saveio/themis-go-sdk/utils"
-	"github.com/saveio/themis/core/types"
 	"github.com/saveio/themis/common/log"
-	"math/rand"
+	"github.com/saveio/themis/core/types"
 )
 
 const MonitorBadRestServersInterval = 30
@@ -47,7 +48,7 @@ func NewRestClient() *RestClient {
 	return restClient
 }
 
-func (this *RestClient) MonitorBadRestServers () {
+func (this *RestClient) MonitorBadRestServers() {
 	var err error
 	for {
 		time.Sleep(MonitorBadRestServersInterval * time.Second)
@@ -85,7 +86,6 @@ func (this *RestClient) getVersionBySpecifiedRestServer(addr string) ([]byte, er
 	reqPath := GET_VERSION
 	return this.sendRestGetRequestToAddr(addr, reqPath)
 }
-
 
 //SetAddress set rest server address. Simple http://localhost:20334
 func (this *RestClient) SetAddress(restAddrs []string) *RestClient {
@@ -182,6 +182,14 @@ func (this *RestClient) getSmartContractEventByEventId(qid string, contractAddre
 	return this.sendRestGetRequest(reqPath)
 }
 
+func (this *RestClient) getSmartContractEventByEventIdAndHeights(qid string, contractAddress string, address string, eventId, startHeight, endHeight uint32) ([]byte, error) {
+	reqPath := fmt.Sprintf("%s/%s/%d/%d/%d", GET_SMTCOCE_EVT_ID_HEIGHTS, contractAddress, eventId, startHeight, endHeight)
+	if len(address) > 0 {
+		reqPath = reqPath + "/" + address
+	}
+	return this.sendRestGetRequest(reqPath)
+}
+
 func (this *RestClient) getSmartContract(qid, contractAddress string) ([]byte, error) {
 	reqPath := GET_CONTRACT_STATE + contractAddress
 	reqValues := &url.Values{}
@@ -233,9 +241,6 @@ func (this *RestClient) sendRawTransaction(qid string, tx *types.Transaction, is
 	}
 	return this.sendRestPostRequest(buffer.Bytes(), reqPath, reqValues)
 }
-
-
-
 
 func (this *RestClient) getRequestUrl(restAddr string, reqPath string, values ...*url.Values) (string, error) {
 	if !strings.HasPrefix(restAddr, "http") {

@@ -17,7 +17,7 @@ import (
 
 var walletPath = "./wallet.dat"
 var pwd = []byte("pwd")
-var rpc_addr = "http://127.0.0.1:20336"
+var rpc_addr = []string{"http://10.0.1.201:20336"}
 var testDns = &Dns{}
 var txTimeout = 60
 var dnsIP = "tcp://127.0.0.1"
@@ -40,6 +40,7 @@ func init() {
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
 }
+
 func TestRegister(t *testing.T) {
 	var err error
 	w, err := wallet.OpenWallet(walletPath)
@@ -321,8 +322,7 @@ func TestDns_DNSNodeReg(t *testing.T) {
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
 	fmt.Println("=======register dns node===========")
-	walletAddr, _ := common.AddressFromBase58(PARTICIPANT1_WALLETADDR)
-	ret1, err := testDns.DNSNodeReg(walletAddr, []byte("10.1.1.21"), []byte("8080"))
+	ret1, err := testDns.DNSNodeReg([]byte("10.1.1.21"), []byte("8080"), 10)
 	assert.Nil(t, err)
 	fmt.Printf("Random Dnsnodereg txHash: %v\n", ret1.ToHexString())
 	assert.Nil(t, err)
@@ -353,7 +353,7 @@ func TestDns_QueryDnsNode(t *testing.T) {
 	testDns.DefAcc = acc
 	fmt.Println("=======querry dns node===========")
 	walletAddr, _ := common.AddressFromBase58(PARTICIPANT2_WALLETADDR)
-	ret1, err := testDns.QueryDnsNode(walletAddr)
+	ret1, err := testDns.GetDnsNodeByAddr(walletAddr)
 	assert.Nil(t, err)
 	fmt.Println("Wait For Generate Block......")
 	//testDns.Client.WaitForGenerateBlock(30*time.Second, 1)
@@ -376,7 +376,7 @@ func TestDns_GetDnsNodes(t *testing.T) {
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
 	fmt.Println("=======get dns nodes===========")
-	ret, err := testDns.GetDnsNodes()
+	ret, err := testDns.GetAllDnsNodes()
 	assert.Nil(t, err)
 	for k, v := range ret {
 		fmt.Printf("k:%s\n", k)
@@ -408,8 +408,6 @@ func TestGetPeerPoolItem(t *testing.T) {
 	fmt.Printf("PeerPubkey: %v\n", item.PeerPubkey)
 	fmt.Printf("WalletAddress: %v\n", item.WalletAddress)
 	fmt.Printf("Status: %v\n", item.Status)
-	fmt.Printf("InitPos: %v\n", item.InitPos)
-	fmt.Printf("TotalPos: %v\n", item.TotalPos)
 }
 
 func TestGetPeerPoolMap(t *testing.T) {
@@ -422,8 +420,6 @@ func TestGetPeerPoolMap(t *testing.T) {
 		fmt.Printf("PeerPubkey: %v\n", item.PeerPubkey)
 		fmt.Printf("WalletAddress: %v\n", item.WalletAddress)
 		fmt.Printf("Status: %v\n", item.Status)
-		fmt.Printf("InitPos: %v\n", item.InitPos)
-		fmt.Printf("TotalPos: %v\n\n", item.TotalPos)
 	}
 }
 
@@ -437,7 +433,7 @@ func TestAddInitPos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node, err := testDns.QueryDnsNode(testDns.DefAcc.Address)
+	node, err := testDns.GetDnsNodeByAddr(testDns.DefAcc.Address)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -458,7 +454,7 @@ func TestReduceInitPos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node, err := testDns.QueryDnsNode(testDns.DefAcc.Address)
+	node, err := testDns.GetDnsNodeByAddr(testDns.DefAcc.Address)
 	if err != nil {
 		t.Fatal(err)
 	}
