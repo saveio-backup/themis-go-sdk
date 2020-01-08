@@ -13,6 +13,7 @@ import (
 	"github.com/saveio/themis-go-sdk/utils"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
+	"github.com/saveio/themis/crypto/keypair"
 	"github.com/saveio/themis/smartcontract/service/native/micropayment"
 	sutils "github.com/saveio/themis/smartcontract/service/native/utils"
 	"github.com/saveio/themis/vm/neovm/types"
@@ -74,7 +75,7 @@ func (this *Channel) OpenChannel(wallet1Addr common.Address, wallet1PubKey []byt
 
 	params := &micropayment.OpenChannelInfo{
 		Participant1WalletAddr: wallet1Addr,
-		Participant1PubKey: wallet1PubKey,
+		Participant1PubKey:     wallet1PubKey,
 		Participant2WalletAddr: wallet2Addr,
 		SettleBlockHeight:      blockHeight,
 	}
@@ -361,7 +362,7 @@ func (this *Channel) GetChannelInfo(channelID uint64, participant1, participant2
 	return channelInfo, nil
 }
 
-func (this *Channel) GetAllOpenChannels () (*micropayment.AllChannels, error) {
+func (this *Channel) GetAllOpenChannels() (*micropayment.AllChannels, error) {
 	ret, err := this.PreExecInvokeNativeContract(
 		micropayment.MP_GET_ALL_OPEN_CHANNELS,
 		[]interface{}{},
@@ -584,4 +585,34 @@ func (this *Channel) GetAllFilterArgsForAllEventsFromChannel(chanID int, fromBlo
 		return nil, err
 	}
 	return this.GetFilterArgsForAllEventsFromChannel(chanID, fromBlock, height)
+}
+
+func (this *Channel) PreOpenChannel(walletAddr common.Address, blockHeight uint64) (uint64, error) {
+	wallet1PubKey := keypair.SerializePublicKey(this.DefAcc.PublicKey)
+
+	params := &micropayment.OpenChannelInfo{
+		Participant1WalletAddr: this.DefAcc.Address,
+		Participant1PubKey:     wallet1PubKey,
+		Participant2WalletAddr: walletAddr,
+		SettleBlockHeight:      blockHeight,
+	}
+	tx, err := this.PreExecInvokeNativeContract(micropayment.MP_OPEN_CHANNEL, []interface{}{params})
+	if err != nil {
+		return 0, err
+	}
+	return tx.Gas, nil
+}
+
+func (this *Channel) PreSetTotalDeposit(channelId uint64, walletAddr common.Address, deposit uint64) (uint64, error) {
+	params := &micropayment.SetTotalDepositInfo{
+		ChannelID:             channelId,
+		ParticipantWalletAddr: this.DefAcc.Address,
+		PartnerWalletAddr:     walletAddr,
+		SetTotalDeposit:       deposit,
+	}
+	tx, err := this.PreExecInvokeNativeContract(micropayment.MP_SET_TOTALDEPOSIT, []interface{}{params})
+	if err != nil {
+		return 0, err
+	}
+	return tx.Gas, nil
 }
