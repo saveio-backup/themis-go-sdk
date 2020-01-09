@@ -40,6 +40,7 @@ const (
 	RPC_GET_BLOCK_COUNT                              = "getblockcount"
 	RPC_GET_BLOCK_HASH                               = "getblockhash"
 	RPC_GET_CURRENT_BLOCK_HASH                       = "getbestblockhash"
+	RPC_GET_SYSTEM_STATUS_SCORE                      = "getsysstatusscore"
 	RPC_GET_ONT_BALANCE                              = "getbalance"
 	RPC_GET_SMART_CONTRACT_EVENT                     = "getsmartcodeevent"
 	RPC_GET_SMART_CONTRACT_EVENT_BY_EVENT_ID         = "getsmartcodeeventbyeventid"
@@ -101,6 +102,7 @@ const (
 	GET_MEMPOOL_TXCOUNT        = "/api/v1/mempool/txcount"
 	GET_MEMPOOL_TXSTATE        = "/api/v1/mempool/txstate/"
 	GET_VERSION                = "/api/v1/version"
+	GET_SYS_STATUS_SCORE       = "/api/v1/getsysstatusscore"
 	GET_NETWORK_ID             = "/api/v1/networkid"
 	POST_RAW_TX                = "/api/v1/transaction"
 )

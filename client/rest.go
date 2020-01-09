@@ -102,6 +102,12 @@ func (this *RestClient) SetHttpClient(httpClient *http.Client) *RestClient {
 	return this
 }
 
+//GetSysStatusScore return the status score of themis
+func (this *RestClient) getSysStatusScore(rpcServerAddr string) ([]byte, error) {
+	reqPath := GET_SYS_STATUS_SCORE
+	return this.sendRestGetRequest(reqPath)
+}
+
 func (this *RestClient) getVersion(qid string) ([]byte, error) {
 	reqPath := GET_VERSION
 	return this.sendRestGetRequest(reqPath)

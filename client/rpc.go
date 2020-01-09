@@ -20,6 +20,7 @@ import (
 const MonitorBadRpcServersInterval = 30
 const RoundRobin = 0
 const MasterSlave = 1
+const ServerScore = 2
 
 //RpcClient for themis rpc api
 type RpcClient struct {
@@ -54,42 +55,43 @@ func NewRpcClient() *RpcClient {
 
 func (this *RpcClient) MonitorBadRpcServers() {
 	for {
-		time.Sleep(MonitorBadRpcServersInterval * time.Second)
 		this.rpcServerStatus.Range(func(key, value interface{}) bool {
 			rpcServerAddr := key.(string)
-			serverStatus := value.(bool)
-			if !serverStatus {
-				_, _, timeout := this.getVersionBySpecifiedRpcServer(rpcServerAddr)
-				if timeout {
-					log.Errorf("[MonitorBadRpcServers] rpcServerAddr: %s service is not valid", rpcServerAddr)
-				} else {
-					log.Infof("[MonitorBadRpcServers] rpcServerAddr: %s service resume", rpcServerAddr)
-					this.setServerStatus(rpcServerAddr, true)
-				}
+			score, err, timeout := this.getSysStatusScore(rpcServerAddr)
+			if timeout {
+				log.Errorf("[MonitorBadRpcServers] rpcServerAddr: %s service is not valid", rpcServerAddr)
+				this.setServerScore(rpcServerAddr, 0)
+			} else if err != nil {
+				log.Errorf("[MonitorBadRpcServers] rpcServerAddr: %s getScore error: %s", rpcServerAddr, err.Error())
+				this.setServerScore(rpcServerAddr, 0)
+			} else {
+				//log.Infof("[MonitorBadRpcServers] rpcServerAddr: %s score %d", rpcServerAddr, score)
+				this.setServerScore(rpcServerAddr, score)
 			}
 			return true
 		})
+		time.Sleep(MonitorBadRpcServersInterval * time.Second)
 	}
 }
 
-func (this *RpcClient) getServerStatus(serverAddr string) (bool, error) {
+func (this *RpcClient) getServerScore(serverAddr string) (uint32, error) {
 	if serverStatus, exist := this.rpcServerStatus.Load(serverAddr); exist {
-		status := serverStatus.(bool)
+		status := serverStatus.(uint32)
 		return status, nil
 	} else {
-		return false, fmt.Errorf("serverAddr is not exis in rpcServerStatus")
+		return 0, fmt.Errorf("serverAddr is not exis in rpcServerStatus")
 	}
 }
 
-func (this *RpcClient) setServerStatus(serverAddr string, status bool) {
-	this.rpcServerStatus.Store(serverAddr, status)
+func (this *RpcClient) setServerScore(serverAddr string, score uint32) {
+	this.rpcServerStatus.Store(serverAddr, score)
 }
 
 //SetAddress set rpc server address. Simple http://localhost:20336
 func (this *RpcClient) SetAddress(rpcAddrs []string) *RpcClient {
 	this.rpcServersAddr = rpcAddrs
 	for _, addr := range rpcAddrs {
-		this.rpcServerStatus.Store(addr, true)
+		this.rpcServerStatus.Store(addr, uint32(1))
 	}
 	this.masterIndex = rand.Int() % len(this.rpcServersAddr)
 	return this
@@ -104,6 +106,8 @@ func (this *RpcClient) SetCallMode(callMode int) error {
 		log.Info("[SetCallMode] Call mode is: MasterSlave")
 	case RoundRobin:
 		log.Info("[SetCallMode] Call mode is: RoundRobin")
+	case ServerScore:
+		log.Info("[SetCallMode] Call mode is: ServerCore")
 	default:
 		log.Error("[SetCallMode] Unknown callMode")
 		return fmt.Errorf("[SetCallMode] Unknown callMode")
@@ -116,6 +120,22 @@ func (this *RpcClient) SetCallMode(callMode int) error {
 func (this *RpcClient) SetHttpClient(httpClient *http.Client) *RpcClient {
 	this.httpClient = httpClient
 	return this
+}
+
+//GetSysStatusScore return the status score of themis
+func (this *RpcClient) getSysStatusScore(rpcServerAddr string) (uint32, error, bool) {
+	data, err, b := this.sendRpcRequestToAddr(rpcServerAddr, "0", RPC_GET_SYSTEM_STATUS_SCORE, []interface{}{})
+	if err != nil {
+		return 0, err, b
+	}
+	if b {
+		return 0, fmt.Errorf("server refused or timeout"), b
+	}
+	count, err := utils.GetUint32(data)
+	if err != nil {
+		return 0, err, false
+	}
+	return count, nil, false
 }
 
 //GetVersion return the version of themis
@@ -256,7 +276,7 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 	resp, err, badServer := this.sendRpcRequestToAddr(rpcAddr, qid, method, params)
 	if err != nil {
 		if badServer {
-			this.setServerStatus(rpcAddr, false)
+			this.setServerScore(rpcAddr, 0)
 			nextRpcAddr := this.getNextRpcAddress()
 			if nextRpcAddr == "" {
 				return nil, fmt.Errorf("[sendRpcRequest] no usable rpc server")
@@ -267,7 +287,7 @@ func (this *RpcClient) sendRpcRequest(qid, method string, params []interface{}) 
 			resp, err, badServer = this.sendRpcRequestToAddr(nextRpcAddr, qid, method, params)
 			if err != nil {
 				if badServer {
-					this.setServerStatus(nextRpcAddr, false)
+					this.setServerScore(nextRpcAddr, 0)
 				}
 				err2 := fmt.Errorf("[sendRpcRequest] http post request rpcAddr: %s method: %s error: %s", nextRpcAddr,
 					method, err.Error())
@@ -340,9 +360,10 @@ func (this *RpcClient) getNextRpcAddress() string {
 		masterIndex := this.masterIndex
 		for {
 			rpcAddr = this.rpcServersAddr[masterIndex]
-			status, err := this.getServerStatus(rpcAddr)
-			if err == nil && status {
+			score, err := this.getServerScore(rpcAddr)
+			if err == nil && score != 0 {
 				this.masterIndex = masterIndex
+				//fmt.Printf("Server: %s, score: %d\n", rpcAddr, score)
 				return rpcAddr
 			} else {
 				masterIndex = (masterIndex + 1) % rpcSrvAddrsLen
@@ -360,9 +381,9 @@ func (this *RpcClient) getNextRpcAddress() string {
 			rpcAddr = this.rpcServersAddr[index]
 
 			this.randNum++
-			status, err := this.getServerStatus(rpcAddr)
-			if err == nil && status {
-				log.Infof("switch to %s", rpcAddr)
+			score, err := this.getServerScore(rpcAddr)
+			if err == nil && score != 0 {
+				//fmt.Printf("Server: %s, score: %d\n", rpcAddr, score)
 				return rpcAddr
 			}
 
@@ -372,8 +393,21 @@ func (this *RpcClient) getNextRpcAddress() string {
 		}
 		index := rand.Int() % rpcSrvAddrsLen
 		rpcAddr = this.rpcServersAddr[index]
-	} else {
+	} else if this.callMode == ServerScore {
+		var bestSrv string
+		var maxScore uint32
 
+		for i := 0; i < rpcSrvAddrsLen; i++ {
+			tmpAddr := this.rpcServersAddr[i]
+			score, err := this.getServerScore(tmpAddr)
+			//fmt.Printf("Server: %s, score: %d\n", tmpAddr, score)
+			if err == nil && score > maxScore {
+				maxScore = score
+				bestSrv = tmpAddr
+			}
+		}
+		//fmt.Printf("best server addr: %s\n", bestSrv)
+		rpcAddr = bestSrv
 	}
 	return rpcAddr
 }
