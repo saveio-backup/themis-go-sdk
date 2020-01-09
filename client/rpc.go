@@ -35,7 +35,7 @@ type RpcClient struct {
 //NewRpcClient return RpcClient instance
 func NewRpcClient() *RpcClient {
 	rpcClient := &RpcClient{
-		callMode:        MasterSlave,
+		callMode:        ServerScore,
 		rpcServerStatus: new(sync.Map),
 		httpClient: &http.Client{
 			Transport: &http.Transport{
