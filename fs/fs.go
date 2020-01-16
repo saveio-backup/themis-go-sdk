@@ -45,8 +45,35 @@ func (this *Fs) InvokeNativeContract(signer *account.Account, method string, par
 	return this.Client.SendTransaction(tx)
 }
 
+func (this *Fs) InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error) {
+	if signer == nil {
+		return common.UINT256_EMPTY, errors.New("signer is nil")
+	}
+	tx, err := utils.NewNativeInvokeTransaction(sdkcom.GAS_PRICE, gasLimit, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	err = utils.SignToTransaction(tx, signer)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return this.Client.SendTransaction(tx)
+}
+
 func (this *Fs) PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error) {
 	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
+	if err != nil {
+		return nil, err
+	}
+	return this.Client.PreExecTransaction(tx)
+}
+
+func (this *Fs) PreExecInvokeNativeContractWithSigner(signer *account.Account, method string, params []interface{}) (*sdkcom.PreExecResult, error) {
+	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
+	if err != nil {
+		return nil, err
+	}
+	err = utils.SignToTransaction(tx, signer)
 	if err != nil {
 		return nil, err
 	}
@@ -572,9 +599,13 @@ func (this *Fs) DeleteFile(fileHashStr string) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (this *Fs) DeleteFiles(fileHashStrs []string) ([]byte, error) {
+func (this *Fs) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
+	}
+
+	if gasLimit == 0 {
+		gasLimit = sdkcom.GAS_LIMIT
 	}
 
 	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
@@ -592,8 +623,8 @@ func (this *Fs) DeleteFiles(fileHashStrs []string) ([]byte, error) {
 	if err := fileList.Serialize(buf); err != nil {
 		return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
 	}
-	ret, err := this.InvokeNativeContract(this.DefAcc,
-		fs.FS_DELETE_FILES, []interface{}{buf.Bytes()},
+	ret, err := this.InvokeNativeContractWithGasLimitUserDefine(this.DefAcc,
+		gasLimit, fs.FS_DELETE_FILES, []interface{}{buf.Bytes()},
 	)
 	if err != nil {
 		return nil, err
@@ -1006,4 +1037,28 @@ func (this *Fs) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error
 	} else {
 		return nil, errors.New(string(retInfo.Info))
 	}
+}
+
+func (this *Fs) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
+	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
+	for _, fileHashStr := range fileHashStrs {
+		fileHashes = append(fileHashes, fs.FileHash{
+			Hash: []byte(fileHashStr),
+		})
+	}
+	fileList := fs.FileList{
+		FileNum: uint64(len(fileHashStrs)),
+		List:    fileHashes,
+	}
+	buf := new(bytes.Buffer)
+	if err := fileList.Serialize(buf); err != nil {
+		return 0, fmt.Errorf("fileList serialize error: %s", err.Error())
+	}
+	ret, err := this.PreExecInvokeNativeContractWithSigner(this.DefAcc,
+		fs.FS_DELETE_FILES, []interface{}{buf.Bytes()},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return ret.Gas, err
 }
