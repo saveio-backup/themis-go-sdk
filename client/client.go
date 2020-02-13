@@ -427,6 +427,29 @@ func (this *ClientMgr) PollForTxConfirmed(timeout time.Duration, txHash []byte) 
 	return false, fmt.Errorf("timeout after %d (s)", secs)
 }
 
+// PollForTxConfirmedHeight Poll tx for confirmation. This is a thread-block method
+func (this *ClientMgr) PollForTxConfirmedHeight(timeout time.Duration, txHash []byte) (uint32, error) {
+	if len(txHash) == 0 {
+		return 0, fmt.Errorf("txHash is empty")
+	}
+	txHashStr := hex.EncodeToString(common.ToArrayReverse(txHash))
+	interval := time.Duration(sdkcom.POLL_TX_INTERVAL) * time.Second
+	secs := int(timeout / interval)
+	if secs <= 0 {
+		secs = 1
+	}
+	log.Debugf("txHashStr: %s", txHashStr)
+	for i := 0; i < secs; i++ {
+		time.Sleep(interval)
+		ret, err := this.GetBlockHeightByTxHash(txHashStr)
+		if err != nil || ret == 0 {
+			continue
+		}
+		return ret, nil
+	}
+	return 0, fmt.Errorf("timeout after %d (s)", secs)
+}
+
 func (this *ClientMgr) getClient() ChainClient {
 	if this.defClient != nil {
 		return this.defClient

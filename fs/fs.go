@@ -184,9 +184,10 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 	return &proveParamSt, nil
 }
 
-func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
+func (this *Fs) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveInterval uint64, expiredHeight uint64, copyNum uint64,
-	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64, primaryNodes, candidateNodes []common.Address) ([]byte, error) {
+	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
+	primaryNodes, candidateNodes []common.Address) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -203,6 +204,7 @@ func (this *Fs) StoreFile(fileHashStr string, blockNum uint64,
 	fileHash := []byte(fileHashStr)
 	fileInfo := &fs.FileInfo{
 		FileHash:       fileHash,
+		BlocksRoot:     []byte(blocksRoot),
 		FileOwner:      this.DefAcc.Address,
 		FileDesc:       fileDesc,
 		Privilege:      privilege,
