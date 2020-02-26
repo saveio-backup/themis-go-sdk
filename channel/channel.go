@@ -52,24 +52,6 @@ func (this *Channel) PreExecInvokeNativeContract(method string, params []interfa
 	return this.Client.PreExecTransaction(tx)
 }
 
-func (this *Channel) RegisterPaymentEndPoint(protocol, ip, port []byte, regAccount common.Address) ([]byte, error) {
-	params := &micropayment.NodeInfo{
-		WalletAddr: regAccount,
-		Protocol:   protocol,
-		IP:         ip,
-		Port:       port,
-	}
-	tx, err := this.InvokeNativeContract(
-		this.DefAcc,
-		micropayment.MP_ENDPOINT_REGISTRY,
-		[]interface{}{params},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return tx[:], nil
-}
-
 func (this *Channel) OpenChannel(wallet1Addr common.Address, wallet1PubKey []byte, wallet2Addr common.Address,
 	blockHeight uint64) ([]byte, error) {
 
@@ -407,33 +389,6 @@ func (this *Channel) GetChannelParticipantInfo(channelID uint64, participant1, p
 		return nil, err
 	}
 	return participant, nil
-}
-
-// GetEndpointByAddress get endpoint by user wallet address
-func (this *Channel) GetEndpointByAddress(nodeAddress common.Address) (*micropayment.NodeInfo, error) {
-	ret, err := this.PreExecInvokeNativeContract(
-		micropayment.MP_FIND_ENDPOINT,
-		[]interface{}{nodeAddress},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	buf, err := ret.Result.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-	//haven`t register
-	if len(buf) == 0 {
-		return nil, nil
-	}
-	nodeInfo := &micropayment.NodeInfo{}
-	err = nodeInfo.Deserialize(bytes.NewBuffer(buf))
-	if err != nil {
-		return nil, err
-	}
-
-	return nodeInfo, nil
 }
 
 func (this *Channel) GetChannelIdentifier(participant1WalletAddr, participant2WalletAddr common.Address) (uint64, error) {
