@@ -118,7 +118,7 @@ func (this *Dns) RegisterHeader(header, desc string, ttl uint64) (common.Uint256
 }
 
 // Binding. bind url with name, desc, ttl
-func (this *Dns) Binding(url string, name, desc string, ttl uint64) (common.Uint256, error) {
+func (this *Dns) Binding(urlType uint64, url string, name, desc string, ttl uint64) (common.Uint256, error) {
 	if this.DefAcc == nil {
 		return common.UINT256_EMPTY, errors.New("account is nil")
 	}
@@ -127,6 +127,7 @@ func (this *Dns) Binding(url string, name, desc string, ttl uint64) (common.Uint
 		return common.UINT256_EMPTY, errors.New("QueryUrl input url format valid")
 	}
 	req := dns.RequestName{
+		Type:      urlType,
 		Header:    []byte(strs[0]),
 		URL:       []byte(strs[1]),
 		Name:      []byte(name),
