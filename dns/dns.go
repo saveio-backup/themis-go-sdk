@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 
 	"encoding/json"
@@ -58,6 +59,30 @@ func (this *Dns) InitDNS() (common.Uint256, error) {
 		return common.UINT256_EMPTY, err
 	}
 	return ret, nil
+}
+
+func (this *Dns) GetPluginList() (*dns.NameInfoList, error) {
+	ret, err := this.PreExecInvokeNativeContract(dns.GET_PLUGIN_LIST, nil)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetPluginList result toByteArray error: %v", err.Error())
+	}
+
+	dnList := &dns.NameInfoList{}
+	retInfo := dns.DecRet(data)
+	if retInfo.Ret {
+		reader := bytes.NewReader(retInfo.Info)
+		err = dnList.Deserialize(reader)
+		if err != nil {
+			return nil, fmt.Errorf("GetPluginList dns.NameInfoList deserialize error: %v", err)
+		}
+		return dnList, nil
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
 }
 
 // RegisterUrl. register url
