@@ -406,6 +406,9 @@ func (this *RpcClient) getNextRpcAddress() string {
 				bestSrv = tmpAddr
 			}
 		}
+		if len(bestSrv) == 0 && len(this.rpcServersAddr) > 0{
+			bestSrv = this.rpcServersAddr[0]
+		}
 		//fmt.Printf("best server addr: %s\n", bestSrv)
 		rpcAddr = bestSrv
 	}
