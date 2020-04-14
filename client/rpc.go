@@ -97,6 +97,10 @@ func (this *RpcClient) SetAddress(rpcAddrs []string) *RpcClient {
 	return this
 }
 
+func (this *RpcClient) GetAddress() []string {
+	return this.rpcServersAddr
+}
+
 func (this *RpcClient) SetCallMode(callMode int) error {
 	if 0 == len(this.rpcServersAddr) {
 		return fmt.Errorf("[SetCallMode] error: RpcServerAddress is not set")
@@ -406,7 +410,7 @@ func (this *RpcClient) getNextRpcAddress() string {
 				bestSrv = tmpAddr
 			}
 		}
-		if len(bestSrv) == 0 && len(this.rpcServersAddr) > 0{
+		if len(bestSrv) == 0 && len(this.rpcServersAddr) > 0 {
 			bestSrv = this.rpcServersAddr[0]
 		}
 		//fmt.Printf("best server addr: %s\n", bestSrv)
