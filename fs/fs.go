@@ -13,9 +13,9 @@ import (
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/crypto/keypair"
-	"github.com/saveio/themis/crypto/pdp"
 	"github.com/saveio/themis/crypto/signature"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
+	"github.com/saveio/themis/smartcontract/service/native/savefs/pdp"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
 	nutils "github.com/saveio/themis/smartcontract/service/native/utils"
 )
@@ -162,12 +162,10 @@ func (this *Fs) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, err
 	}
 }
 
-func (this *Fs) ProveParamSer(g []byte, g0 []byte, pubKey []byte, fileId []byte) ([]byte, error) {
+func (this *Fs) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
 	var proveParam fs.ProveParam
-	proveParam.G = g
-	proveParam.G0 = g0
-	proveParam.PubKey = pubKey
-	proveParam.FileId = fileId
+	proveParam.RootHash = rootHash
+	proveParam.FileID = fileId
 	bf := new(bytes.Buffer)
 	if err := proveParam.Serialize(bf); err != nil {
 		return nil, fmt.Errorf("ProveParam Serialize error: %s", err.Error())
@@ -769,23 +767,22 @@ func (this *Fs) NodeWithDrawProfit() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (this *Fs) FileProve(fileHashStr string, multiRes []byte, addResStr string, blockHeight uint64) ([]byte, error) {
+func (this *Fs) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
 	fileHash := []byte(fileHashStr)
-	addRes := []byte(addResStr)
 	ret, err := this.InvokeNativeContract(
 		this.DefAcc, fs.FS_FILE_PROVE,
 		[]interface{}{&fs.FileProve{FileHash: fileHash,
-			MultiRes:    multiRes,
-			AddRes:      addRes,
+			ProveData:   proveData,
 			BlockHeight: blockHeight,
 			NodeWallet:  this.DefAcc.Address,
 			Profit:      0,
 			LuckyNum:    0,
 			BakHeight:   0,
-			BakNum:      0}},
+			BakNum:      0,
+			SectorID:    sectorId}},
 	)
 	if err != nil {
 		return nil, err
@@ -793,25 +790,24 @@ func (this *Fs) FileProve(fileHashStr string, multiRes []byte, addResStr string,
 	return ret.ToArray(), err
 }
 
-func (this *Fs) FileBackProve(fileHashStr string, multiRes []byte, addResStr string, blockHeight,
-	luckyNum, bakHeight, bakNum uint64, brokenWallet common.Address) ([]byte, error) {
+func (this *Fs) FileBackProve(fileHashStr string, proveData []byte, blockHeight,
+	luckyNum, bakHeight, bakNum uint64, brokenWallet common.Address, sectorId uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
 	fileHash := []byte(fileHashStr)
-	addRes := []byte(addResStr)
 	ret, err := this.InvokeNativeContract(
 		this.DefAcc, fs.FS_FILE_PROVE,
 		[]interface{}{&fs.FileProve{FileHash: fileHash,
-			MultiRes:     multiRes,
-			AddRes:       addRes,
+			ProveData:    proveData,
 			BlockHeight:  blockHeight,
 			NodeWallet:   this.DefAcc.Address,
 			Profit:       0,
 			LuckyNum:     luckyNum,
 			BakHeight:    bakHeight,
 			BakNum:       bakNum,
-			BrokenWallet: brokenWallet}},
+			BrokenWallet: brokenWallet,
+			SectorID:     sectorId}},
 	)
 	if err != nil {
 		return nil, err
@@ -1063,4 +1059,141 @@ func (this *Fs) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) 
 		return 0, err
 	}
 	return ret.Gas, err
+}
+
+func (this *Fs) CreateSector(sectorId uint64, proveLevel uint64, size uint64) ([]byte, error) {
+	ret, err := this.InvokeNativeContract(this.DefAcc,
+		fs.FS_CREATE_SECTOR, []interface{}{
+			&fs.SectorInfo{
+				NodeAddr:   this.DefAcc.Address,
+				SectorID:   sectorId,
+				ProveLevel: proveLevel,
+				Size:       size,
+			}},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+func (this *Fs) DeleteSector(sectorId uint64) ([]byte, error) {
+	ret, err := this.InvokeNativeContract(this.DefAcc,
+		fs.FS_DELETE_SECTOR_INFO, []interface{}{
+			&fs.SectorRef{
+				NodeAddr: this.DefAcc.Address,
+				SectorID: sectorId,
+			}},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+func (this *Fs) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
+	/*
+		sectorRef := &fs.SectorRef{
+			NodeAddr: this.DefAcc.Address,
+			SectorID: sectorId,
+		}
+		buf := new(bytes.Buffer)
+		if err := sectorRef.Serialize(buf); err != nil {
+			return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
+		}
+
+	*/
+
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_SECTOR_INFO, []interface{}{
+			&fs.SectorRef{
+				NodeAddr: this.DefAcc.Address,
+				SectorID: sectorId,
+			}},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetSectorInfo result toByteArray: %s", err.Error())
+	}
+
+	var sectorInfo fs.SectorInfo
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		sectorInfoReader := bytes.NewReader(retInfo.Info)
+		err = sectorInfo.Deserialize(sectorInfoReader)
+		if err != nil {
+			return nil, fmt.Errorf("GetSectorInfo error: %s", err.Error())
+		}
+		return &sectorInfo, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
+func (this *Fs) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error) {
+	ret, err := this.InvokeNativeContract(this.DefAcc,
+		fs.FS_DELETE_FILE_IN_SECTOR, []interface{}{
+			&fs.SectorFileRef{
+				NodeAddr: this.DefAcc.Address,
+				SectorID: sectorId,
+				FileHash: ([]byte)(fileHashStr),
+			}},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+func (this *Fs) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_SECTORS_FOR_NODE, []interface{}{addr[:]},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetSectorInfo result toByteArray: %s", err.Error())
+	}
+
+	var sectorInfos fs.SectorInfos
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		sectorInfosReader := bytes.NewReader(retInfo.Info)
+		err = sectorInfos.Deserialize(sectorInfosReader)
+		if err != nil {
+			return nil, fmt.Errorf("GetSectorInfo error: %s", err.Error())
+		}
+		return &sectorInfos, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
+func (this *Fs) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
+	sectorProve := &fs.SectorProve{
+		NodeAddr:        this.DefAcc.Address,
+		SectorID:        sectorId,
+		ChallengeHeight: challengeHeight,
+		ProveData:       proveData,
+	}
+
+	buf := new(bytes.Buffer)
+	if err := sectorProve.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("SectorProve serialize error: %s", err.Error())
+	}
+
+	ret, err := this.InvokeNativeContract(this.DefAcc,
+		fs.FS_SECTOR_PROVE, []interface{}{buf.Bytes()},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
 }
