@@ -1092,18 +1092,6 @@ func (this *Fs) DeleteSector(sectorId uint64) ([]byte, error) {
 }
 
 func (this *Fs) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
-	/*
-		sectorRef := &fs.SectorRef{
-			NodeAddr: this.DefAcc.Address,
-			SectorID: sectorId,
-		}
-		buf := new(bytes.Buffer)
-		if err := sectorRef.Serialize(buf); err != nil {
-			return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
-		}
-
-	*/
-
 	ret, err := this.PreExecInvokeNativeContract(
 		fs.FS_GET_SECTOR_INFO, []interface{}{
 			&fs.SectorRef{
@@ -1177,20 +1165,14 @@ func (this *Fs) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, err
 }
 
 func (this *Fs) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
-	sectorProve := &fs.SectorProve{
-		NodeAddr:        this.DefAcc.Address,
-		SectorID:        sectorId,
-		ChallengeHeight: challengeHeight,
-		ProveData:       proveData,
-	}
-
-	buf := new(bytes.Buffer)
-	if err := sectorProve.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("SectorProve serialize error: %s", err.Error())
-	}
-
 	ret, err := this.InvokeNativeContract(this.DefAcc,
-		fs.FS_SECTOR_PROVE, []interface{}{buf.Bytes()},
+		fs.FS_SECTOR_PROVE, []interface{}{
+			&fs.SectorProve{
+				NodeAddr:        this.DefAcc.Address,
+				SectorID:        sectorId,
+				ChallengeHeight: challengeHeight,
+				ProveData:       proveData,
+			}},
 	)
 	if err != nil {
 		return nil, err
