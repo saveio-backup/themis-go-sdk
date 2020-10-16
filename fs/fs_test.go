@@ -129,7 +129,7 @@ func TestOntFsClient_GetFileProveDetails(t *testing.T) {
 
 func TestOntFs_OntFsInit(t *testing.T) {
 	testFs.savefsInit(2000, 2, 1, 1,
-		32, 120, 1024*1024)
+		32, fs.PROVE_LEVEL_HIGH, 1024*1024)
 }
 
 func TestOntFs_GetSetting(t *testing.T) {

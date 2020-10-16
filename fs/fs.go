@@ -183,7 +183,7 @@ func (this *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 }
 
 func (this *Fs) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
-	blockSize uint64, proveInterval uint64, expiredHeight uint64, copyNum uint64,
+	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
 	primaryNodes, candidateNodes []common.Address) ([]byte, error) {
 	if this.DefAcc == nil {
@@ -208,7 +208,7 @@ func (this *Fs) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		Privilege:      privilege,
 		FileBlockNum:   blockNum,
 		FileBlockSize:  blockSize,
-		ProveInterval:  proveInterval,
+		ProveLevel:     proveLevel,
 		ProveTimes:     0,
 		ExpiredHeight:  expiredHeight,
 		CopyNum:        copyNum,
@@ -663,19 +663,19 @@ func (this *Fs) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, 
 }
 
 func (this *Fs) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
-	maxProveBlockNum, minProveInterval uint64, minVolume uint64) ([]byte, error) {
+	maxProveBlockNum, defProveLevel uint64, minVolume uint64) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		fs.FS_INIT,
 		[]interface{}{&fs.FsSetting{FsGasPrice: fsGasPrice,
-			GasPerGBPerBlock: gasPerGBPerBlock,
-			GasPerKBForRead:  gasPerKBForRead,
-			GasForChallenge:  gasForChallenge,
-			MaxProveBlockNum: maxProveBlockNum,
-			MinProveInterval: minProveInterval,
-			MinVolume:        minVolume}},
+			GasPerGBPerBlock:  gasPerGBPerBlock,
+			GasPerKBForRead:   gasPerKBForRead,
+			GasForChallenge:   gasForChallenge,
+			MaxProveBlockNum:  maxProveBlockNum,
+			DefaultProveLevel: defProveLevel,
+			MinVolume:         minVolume}},
 	)
 	if err != nil {
 		return nil, err
