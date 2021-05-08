@@ -571,3 +571,21 @@ func (this *Channel) PreSetTotalDeposit(channelId uint64, walletAddr common.Addr
 	}
 	return tx.Gas, nil
 }
+
+func (this *Channel) FastTransfer(paymentId uint64, from common.Address, to common.Address, amount uint64) ([]byte, error) {
+	params := &micropayment.TransferInfo{
+		PaymentId: paymentId,
+		From:      from,
+		To:        to,
+		Amount:    amount,
+	}
+	tx, err := this.InvokeNativeContract(
+		this.DefAcc,
+		micropayment.MP_FAST_TRANSFER,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tx[:], nil
+}
