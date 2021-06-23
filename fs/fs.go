@@ -12,8 +12,6 @@ import (
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
-	"github.com/saveio/themis/crypto/keypair"
-	"github.com/saveio/themis/crypto/signature"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/savefs/pdp"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
@@ -520,71 +518,6 @@ func (this *Fs) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 	}
 }
 
-func (this *Fs) FileReadPledge(fileHashStr string, readPlans fs.ReadPlan) ([]byte, error) {
-	if this.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	fileHash := []byte(fileHashStr)
-	buf := new(bytes.Buffer)
-	if err := readPlans.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("FsReadFilePledge serialize error: %s", err.Error())
-	}
-	fileReadPledge := &fs.FileReadPledge{
-		FileHash:     fileHash,
-		FromAddr:     this.DefAcc.Address,
-		BlockHeight:  0,
-		ExpireHeight: 0,
-		RestMoney:    0,
-		ReadRecord:   buf.Bytes(),
-	}
-	ret, err := this.InvokeNativeContract(this.DefAcc,
-		fs.FS_READ_FILE_PLEDGE, []interface{}{fileReadPledge},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ret.ToArray(), err
-}
-
-func (this *Fs) CancelFileRead(fileHashStr string) ([]byte, error) {
-	if this.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	fileHash := []byte(fileHashStr)
-	getReadPledge := &fs.GetReadPledge{
-		FileHash: fileHash,
-		FromAddr: this.DefAcc.Address,
-	}
-	ret, err := this.InvokeNativeContract(this.DefAcc,
-		fs.FS_CANCLE_FILE_READ, []interface{}{getReadPledge},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ret.ToArray(), err
-}
-
-func (this *Fs) GenFileReadSettleSlice(fileHash []byte, payTo common.Address, sliceId uint64) (*fs.FileReadSettleSlice, error) {
-	settleSlice := fs.FileReadSettleSlice{
-		FileHash: fileHash,
-		PayFrom:  this.DefAcc.Address,
-		PayTo:    payTo,
-		SliceId:  sliceId,
-	}
-	bf := new(bytes.Buffer)
-	err := settleSlice.Serialize(bf)
-	if err != nil {
-		return nil, fmt.Errorf("FileReadSettleSlice serialize error: %s", err.Error())
-	}
-	signData, err := utils.Sign(this.DefAcc, bf.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("FileReadSettleSlice Sign error: %s", err.Error())
-	}
-	settleSlice.Sig = signData
-	settleSlice.PubKey = keypair.SerializePublicKey(this.DefAcc.PublicKey)
-	return &settleSlice, nil
-}
-
 func (this *Fs) DeleteFile(fileHashStr string) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
@@ -630,32 +563,6 @@ func (this *Fs) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, err
 		return nil, err
 	}
 	return ret.ToArray(), err
-}
-
-func (this *Fs) FileReadSettleSliceEnc(fileHash []byte, payFrom common.Address,
-	payTo common.Address, sliceId uint64, sig []byte, pubKey []byte) ([]byte, error) {
-	fileReadSettleSlice := fs.FileReadSettleSlice{
-		FileHash: fileHash,
-		PayFrom:  payFrom,
-		PayTo:    payTo,
-		SliceId:  sliceId,
-		Sig:      sig,
-		PubKey:   pubKey,
-	}
-	bf := new(bytes.Buffer)
-	if err := fileReadSettleSlice.Serialize(bf); err != nil {
-		return nil, fmt.Errorf("FileReadSettleSlice Serialize error: %s", err.Error())
-	}
-	return bf.Bytes(), nil
-}
-
-func (this *Fs) FileReadRecordDec(readRecord []byte) (*fs.ReadPlan, error) {
-	var tmpReadPlan fs.ReadPlan
-	reader := bytes.NewReader(readRecord)
-	if err := tmpReadPlan.Deserialize(reader); err != nil {
-		return nil, err
-	}
-	return &tmpReadPlan, nil
 }
 
 func (this *Fs) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
@@ -813,115 +720,6 @@ func (this *Fs) FileBackProve(fileHashStr string, proveData []byte, blockHeight,
 		return nil, err
 	}
 	return ret.ToArray(), err
-}
-
-func (this *Fs) GetFileReadPledge(fileHashStr string, readFromAddr common.Address) (*fs.FileReadPledge, *fs.ReadPlan, error) {
-	fileHash := []byte(fileHashStr)
-	getReadPledge := &fs.GetReadPledge{
-		FileHash: fileHash,
-		FromAddr: readFromAddr,
-	}
-	ret, err := this.PreExecInvokeNativeContract(
-		fs.FS_GET_FILE_READ_PLEDGE, []interface{}{getReadPledge},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	data, err := ret.Result.ToByteArray()
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetNodeList result toByteArray: %s", err.Error())
-	}
-	var frp fs.FileReadPledge
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		reader := bytes.NewReader(retInfo.Info)
-		if err = frp.Deserialize(reader); err != nil {
-			return nil, nil, err
-		}
-
-		var tmpReadPlan fs.ReadPlan
-		reader = bytes.NewReader(frp.ReadRecord)
-		if err := tmpReadPlan.Deserialize(reader); err != nil {
-			return &frp, nil, err
-		}
-		return &frp, &tmpReadPlan, nil
-	} else {
-		return nil, nil, errors.New(string(retInfo.Info))
-	}
-}
-
-func (this *Fs) GetExpiredProveList() (*fs.BakTasks, error) {
-	ret, err := this.PreExecInvokeNativeContract(
-		fs.FS_GET_EXPIRED_PROVE_LIST, []interface{}{},
-	)
-	if err != nil {
-		return nil, err
-	}
-	data, err := ret.Result.ToByteArray()
-	if err != nil {
-		return nil, fmt.Errorf("GetNodeList result toByteArray: %s", err.Error())
-	}
-
-	var bakTasks fs.BakTasks
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		reader := bytes.NewReader(retInfo.Info)
-		if err = bakTasks.Deserialize(reader); err != nil {
-			return nil, fmt.Errorf("FsGetExpiredProveList BakTasks Deserialize: %s", err.Error())
-		}
-		return &bakTasks, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
-	}
-}
-
-func (this *Fs) FileReadProfitSettle(fileReadSettleSlice fs.FileReadSettleSlice) ([]byte, error) {
-	if this.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	ret, err := this.InvokeNativeContract(
-		this.DefAcc, fs.FS_FILE_READ_PROFIT_SETTLE,
-		[]interface{}{&fileReadSettleSlice},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ret.ToArray(), err
-}
-
-func (this *Fs) VerifyFileReadSettleSlice(settleSlice fs.FileReadSettleSlice) (bool, error) {
-	tmpSettleSlice := fs.FileReadSettleSlice{
-		FileHash: settleSlice.FileHash,
-		PayFrom:  settleSlice.PayFrom,
-		PayTo:    settleSlice.PayTo,
-		SliceId:  settleSlice.SliceId,
-	}
-	bf := new(bytes.Buffer)
-	err := tmpSettleSlice.Serialize(bf)
-	if err != nil {
-		return false, fmt.Errorf("FileReadSettleSlice serialize error: %s", err.Error())
-	}
-
-	signValue, err := signature.Deserialize(settleSlice.Sig)
-	if err != nil {
-		return false, fmt.Errorf("FileReadSettleSlice signature deserialize error: %s", err.Error())
-	}
-	pubKey, err := keypair.DeserializePublicKey(settleSlice.PubKey)
-	if err != nil {
-		return false, fmt.Errorf("FileReadSettleSlice deserialize PublicKey( error: %s", err.Error())
-	}
-	result := signature.Verify(pubKey, bf.Bytes(), signValue)
-	return result, nil
-}
-
-func (this *Fs) FileReadSettleSliceDec(fileReadSettleSliceSer []byte) (*fs.FileReadSettleSlice, error) {
-	reader := bytes.NewReader(fileReadSettleSliceSer)
-	var fileReadSettleSlice fs.FileReadSettleSlice
-	if err := fileReadSettleSlice.Deserialize(reader); err != nil {
-		return nil, fmt.Errorf("FileReadSettleSlice Deserialize error: %s", err.Error())
-	}
-	return &fileReadSettleSlice, nil
 }
 
 func (this *Fs) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
