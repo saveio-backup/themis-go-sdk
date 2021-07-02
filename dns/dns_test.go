@@ -192,7 +192,6 @@ func TestBinding(t *testing.T) {
 	fmt.Printf("BlockHeight: %v\n", nameInfo.BlockHeight)
 	fmt.Printf("TTL: %v\n", nameInfo.TTL)
 	fmt.Println("bing ftp://www.onchain.com to 127.0.0.1")
-	testDns.Binding("ftp://www.onchain.com", "127.0.0.1", "should return true", 123456789)
 	fmt.Println("Wait For Generate Block......")
 	testDns.Client.WaitForGenerateBlock(30*time.Second, 1)
 	nameInfo, err = testDns.QueryUrl("ftp://www.onchain.com", testDns.DefAcc.Address)

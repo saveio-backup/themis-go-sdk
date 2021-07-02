@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/saveio/themis-go-sdk/utils"
+	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 )
@@ -258,12 +259,9 @@ func (this *RpcClient) getGasPrice(qid string) ([]byte, error) {
 }
 
 func (this *RpcClient) sendRawTransaction(qid string, tx *types.Transaction, isPreExec bool) ([]byte, error) {
-	var buffer bytes.Buffer
-	err := tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	sink := &common.ZeroCopySink{}
+	tx.Serialization(sink)
+	txData := hex.EncodeToString(sink.Bytes())
 	params := []interface{}{txData}
 	if isPreExec {
 		params = append(params, 1)

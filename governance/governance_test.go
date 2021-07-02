@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	}
 	testGov = &Governance{}
 	testGov.Client = &client.ClientMgr{}
-	testGov.Client.NewRpcClient().SetAddress(rpc_addr)
+	testGov.Client.NewRpcClient().SetAddress([]string{rpc_addr})
 	testGov.DefAcc = acc
 	m.Run()
 }
@@ -56,7 +56,7 @@ func TestGov_UnRegisterCandidate(t *testing.T) {
 
 func TestGov_Withdraw(t *testing.T) {
 	peerPubkeyList := []string{peerPubKey}
-	withdrawList := []uint64{100}
+	withdrawList := []uint32{100}
 	tx, err := testGov.Withdraw(peerPubkeyList, withdrawList)
 	if err != nil {
 		t.Errorf(err.Error())

@@ -26,8 +26,6 @@ func newNeoVMContract(chain *Chain) *NeoVMContract {
 
 func (this *NeoVMContract) NewDeployNeoVMCodeTransaction(gasPrice, gasLimit uint64, contract *sdkcom.SmartContract) *types.MutableTransaction {
 	deployPayload := &payload.DeployCode{
-		Code:        contract.Code,
-		NeedStorage: contract.NeedStorage,
 		Name:        contract.Name,
 		Version:     contract.Version,
 		Author:      contract.Author,
@@ -63,9 +61,9 @@ func (this *NeoVMContract) DeployNeoVMSmartContract(
 	if err != nil {
 		return common.UINT256_EMPTY, fmt.Errorf("code hex decode error:%s", err)
 	}
+	// FIXME: setup invokeCode
+	fmt.Println(invokeCode)
 	tx := this.NewDeployNeoVMCodeTransaction(gasPrice, gasLimit, &sdkcom.SmartContract{
-		Code:        invokeCode,
-		NeedStorage: needStorage,
 		Name:        name,
 		Version:     version,
 		Author:      author,

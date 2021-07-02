@@ -3,7 +3,6 @@ package channel
 import (
 	"encoding/hex"
 	"fmt"
-	"net"
 	"strconv"
 	"testing"
 	"time"
@@ -32,37 +31,8 @@ func init() {
 	}
 	testChannel := &Channel{}
 	testChannel.Client = &client.ClientMgr{}
-	testChannel.Client.NewRpcClient().SetAddress(rpc_addr)
+	testChannel.Client.NewRpcClient().SetAddress([]string{rpc_addr})
 	testChannel.DefAcc = acc
-}
-func TestRegisterPaymentEndPoint(t *testing.T) {
-	ip := net.ParseIP("127.0.0.1")
-	port := []byte("8089")
-	tx, err := testChannel.RegisterPaymentEndPoint(ip, port, testChannel.DefAcc.Address)
-	assert.Nil(t, err)
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
-}
-
-func TestFindEndpointByAddress(t *testing.T) {
-	addr, _ := common.AddressFromBase58("APjuJnmakqdidJxf8mBwGThEUbAFiTU7uj")
-	nodeInfo, err := testChannel.GetEndpointByAddress(addr)
-	assert.Nil(t, err)
-	fmt.Printf("addr:%s endpoint:  %s:%s\n", nodeInfo.WalletAddr.ToBase58(), net.IP(nodeInfo.IP), nodeInfo.Port)
-}
-
-func TestOpenChannel(t *testing.T) {
-	wallet2Addr, err := common.AddressFromBase58(PARTICIPANT2_WALLETADDR)
-	h, err := testChannel.Client.GetCurrentBlockHeight()
-	assert.Nil(t, err)
-	height, err := strconv.ParseUint(string(h), 10, 64)
-	fmt.Printf("height: %d\n", height)
-	assert.Nil(t, err)
-	tx, err := testChannel.OpenChannel(testChannel.DefAcc.Address, wallet2Addr, height)
-	assert.Nil(t, err)
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
-	confirmed, err := testChannel.Client.PollForTxConfirmed(time.Duration(60)*time.Second, tx)
-	assert.Nil(t, err)
-	assert.True(t, confirmed)
 }
 
 func TestSetTotalDeposit(t *testing.T) {

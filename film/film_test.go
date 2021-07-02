@@ -72,20 +72,7 @@ func TestRegisterFilmUrl(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Printf("hash: %v\n", regHash)
-	time.Sleep(time.Duration(3) * time.Second)
-	bindHash, err := testDns.Binding(url, link, link, 600)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("hash: %v\n", bindHash)
-}
 
-func TestStoreFilmFile(t *testing.T) {
-	hash, err := testFs.StoreFile("QmUJif4gNXLH5YFgGVUMv86u4K57ET1pED1TLSUaHtUq3p", 82, 256*1024, 300, 100000, 2, []byte("2019-08-23_15.00.32_LOG.log"), 1, nil, 1, 20595)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("hash: %v\n", hash)
 }
 
 func TestPublishFilm(t *testing.T) {

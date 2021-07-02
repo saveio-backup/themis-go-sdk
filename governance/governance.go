@@ -52,7 +52,7 @@ func (this *Governance) RegisterCandidate(peerPubkey string, initPos uint64) ([]
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		gov.REGISTER_CANDIDATE,
-		[]interface{}{&gov.RegisterCandidateParam{PeerPubkey: peerPubkey, Address: this.DefAcc.Address, InitPos: initPos}},
+		[]interface{}{&gov.RegisterCandidateParam{PeerPubkey: peerPubkey, Address: this.DefAcc.Address, InitPos: uint32(initPos)}},
 	)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (this *Governance) UnRegisterCandidate(peerPubkey string) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (this *Governance) Withdraw(peerPubkeyList []string, withdrawList []uint64) ([]byte, error) {
+func (this *Governance) Withdraw(peerPubkeyList []string, withdrawList []uint32) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -126,7 +126,7 @@ func (this *Governance) WithdrawFee(peerPubkey string) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (this *Governance) AddInitPos(peerPubkey string, pos uint64) ([]byte, error) {
+func (this *Governance) AddInitPos(peerPubkey string, pos uint32) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -140,7 +140,7 @@ func (this *Governance) AddInitPos(peerPubkey string, pos uint64) ([]byte, error
 	return ret.ToArray(), err
 }
 
-func (this *Governance) ReduceInitPos(peerPubkey string, pos uint64) ([]byte, error) {
+func (this *Governance) ReduceInitPos(peerPubkey string, pos uint32) ([]byte, error) {
 	if this.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}

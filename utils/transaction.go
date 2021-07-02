@@ -22,7 +22,7 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 	tx := &types.MutableTransaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
-		TxType:   types.Invoke,
+		TxType:   types.InvokeNeo,
 		Nonce:    rand.Uint32(),
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),
@@ -136,10 +136,8 @@ func GetTxData(tx *types.MutableTransaction) (string, error) {
 		return "", fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = txData.Serialization(&sink)
-	if err != nil {
-		return "", fmt.Errorf("tx serialization error:%s", err)
-	}
+	txData.Serialization(&sink)
+
 	rawtx := hex.EncodeToString(sink.Bytes())
 	return rawtx, nil
 }

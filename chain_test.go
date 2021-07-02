@@ -21,7 +21,7 @@ var (
 
 func TestMain(m *testing.M) {
 	testChain = NewChain()
-	testChain.NewRpcClient().SetAddress("http://localhost:20336")
+	testChain.NewRpcClient().SetAddress([]string{"http://localhost:20336"})
 
 	var err error
 	testWallet, err = wallet.OpenWallet("./wallet.dat")

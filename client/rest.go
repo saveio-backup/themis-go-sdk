@@ -16,6 +16,7 @@ import (
 	"math/rand"
 
 	"github.com/saveio/themis-go-sdk/utils"
+	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 )
@@ -235,17 +236,14 @@ func (this *RestClient) getGasPrice(qid string) ([]byte, error) {
 
 func (this *RestClient) sendRawTransaction(qid string, tx *types.Transaction, isPreExec bool) ([]byte, error) {
 	reqPath := POST_RAW_TX
-	var buffer bytes.Buffer
-	err := tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err.Error())
-	}
+	sink := &common.ZeroCopySink{}
+	tx.Serialization(sink)
 	var reqValues *url.Values
 	if isPreExec {
 		reqValues = &url.Values{}
 		reqValues.Add("preExec", "1")
 	}
-	return this.sendRestPostRequest(buffer.Bytes(), reqPath, reqValues)
+	return this.sendRestPostRequest(sink.Bytes(), reqPath, reqValues)
 }
 
 func (this *RestClient) getRequestUrl(restAddr string, reqPath string, values ...*url.Values) (string, error) {

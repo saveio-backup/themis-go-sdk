@@ -198,15 +198,6 @@ func TestOntFs_NodeWithDrawProfit(t *testing.T) {
 	fmt.Println("NodeWithDrawProfit Success")
 }
 
-func TestOntFs_FileProve(t *testing.T) {
-	_, err := testFs.FileProve(txt, nil, "", 1)
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-	fmt.Println("TestOntFs_FileProve Success")
-}
-
 func Testsavefs_AddUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")

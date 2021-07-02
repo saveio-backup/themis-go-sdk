@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis-go-sdk/utils"
+	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/core/types"
 )
 
@@ -585,12 +585,9 @@ func (this *WSClient) getRawTransaction(qid, txHash string) ([]byte, error) {
 }
 
 func (this *WSClient) sendRawTransaction(qid string, tx *types.Transaction, isPreExec bool) ([]byte, error) {
-	var buffer bytes.Buffer
-	err := tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	sink := &common.ZeroCopySink{}
+	tx.Serialization(sink)
+	txData := hex.EncodeToString(sink.Bytes())
 	params := map[string]interface{}{"Data": txData}
 	if isPreExec {
 		params["PreExec"] = "1"
@@ -671,12 +668,9 @@ func (this *WSClient) GetActionCh() chan *WSAction {
 }
 
 func (this *WSClient) sendAsyncRawTransaction(qid string, tx *types.Transaction, isPreExec bool) (*WSRequest, error) {
-	var buffer bytes.Buffer
-	err := tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	sink := &common.ZeroCopySink{}
+	tx.Serialization(sink)
+	txData := hex.EncodeToString(sink.Bytes())
 	params := map[string]interface{}{"Data": txData}
 	if isPreExec {
 		params["PreExec"] = "1"

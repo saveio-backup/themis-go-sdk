@@ -1,7 +1,6 @@
 package global_param
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/saveio/themis-go-sdk/client"
@@ -59,7 +58,8 @@ func (this *GlobalParam) GetGlobalParams(params []string) (map[string]string, er
 		return nil, err
 	}
 	queryParams := new(global_params.Params)
-	err = queryParams.Deserialize(bytes.NewBuffer(results))
+	source := common.NewZeroCopySource(results)
+	err = queryParams.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
