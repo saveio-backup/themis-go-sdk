@@ -805,6 +805,22 @@ func (this *Fs) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *
 		return nil, errors.New(string(retInfo.Info))
 	}
 }
+
+func (this *Fs) DeleteUserSpace() ([]byte, error) {
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+
+	ret, err := this.InvokeNativeContract(
+		this.DefAcc, fs.FS_DELETE_USER_SPACE,
+		[]interface{}{this.DefAcc.Address},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
 func (this *Fs) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
 	log.Debugf("opt :%v", opt.StorageType)
 	buf := new(bytes.Buffer)
@@ -970,6 +986,60 @@ func (this *Fs) SectorProve(sectorId uint64, challengeHeight uint64, proveData [
 				SectorID:        sectorId,
 				ChallengeHeight: challengeHeight,
 				ProveData:       proveData,
+			}},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+func (this *Fs) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
+	ret, err := this.PreExecInvokeNativeContract(
+		fs.FS_GET_USER_UNSETTLED_FILES, []interface{}{addr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	data, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("GetUnSettledFiles result toByteArray: %s", err.Error())
+	}
+
+	var fileList fs.FileList
+	retInfo := fs.DecRet(data)
+	if retInfo.Ret {
+		fsFileListReader := bytes.NewReader(retInfo.Info)
+		err = fileList.Deserialize(fsFileListReader)
+		if err != nil {
+			return nil, fmt.Errorf("GetUnSettledFiles error: %s", err.Error())
+		}
+		return &fileList, err
+	} else {
+		return nil, errors.New(string(retInfo.Info))
+	}
+}
+
+func (this *Fs) DeleteUnSettledFiles() ([]byte, error) {
+	if this.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+
+	ret, err := this.InvokeNativeContract(
+		this.DefAcc, fs.FS_DELETE_UNSETTLED_FILES, []interface{}{this.DefAcc.Address},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+
+func (this *Fs) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
+	ret, err := this.InvokeNativeContract(this.DefAcc,
+		fs.FS_CHECK_NODE_SECTOR_PROVED_INTIME, []interface{}{
+			&fs.SectorRef{
+				NodeAddr: addr,
+				SectorID: sectorId,
 			}},
 	)
 	if err != nil {
