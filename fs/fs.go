@@ -875,7 +875,7 @@ func (this *Fs) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) 
 	return ret.Gas, err
 }
 
-func (this *Fs) CreateSector(sectorId uint64, proveLevel uint64, size uint64) ([]byte, error) {
+func (this *Fs) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		fs.FS_CREATE_SECTOR, []interface{}{
 			&fs.SectorInfo{
@@ -883,6 +883,7 @@ func (this *Fs) CreateSector(sectorId uint64, proveLevel uint64, size uint64) ([
 				SectorID:   sectorId,
 				ProveLevel: proveLevel,
 				Size:       size,
+				IsPlots:    isPlots,
 			}},
 	)
 	if err != nil {
