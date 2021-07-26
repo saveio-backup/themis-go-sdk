@@ -686,35 +686,7 @@ func (this *Fs) FileProve(fileHashStr string, proveData []byte, blockHeight uint
 			BlockHeight: blockHeight,
 			NodeWallet:  this.DefAcc.Address,
 			Profit:      0,
-			LuckyNum:    0,
-			BakHeight:   0,
-			BakNum:      0,
 			SectorID:    sectorId}},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ret.ToArray(), err
-}
-
-func (this *Fs) FileBackProve(fileHashStr string, proveData []byte, blockHeight,
-	luckyNum, bakHeight, bakNum uint64, brokenWallet common.Address, sectorId uint64) ([]byte, error) {
-	if this.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	fileHash := []byte(fileHashStr)
-	ret, err := this.InvokeNativeContract(
-		this.DefAcc, fs.FS_FILE_PROVE,
-		[]interface{}{&fs.FileProve{FileHash: fileHash,
-			ProveData:    proveData,
-			BlockHeight:  blockHeight,
-			NodeWallet:   this.DefAcc.Address,
-			Profit:       0,
-			LuckyNum:     luckyNum,
-			BakHeight:    bakHeight,
-			BakNum:       bakNum,
-			BrokenWallet: brokenWallet,
-			SectorID:     sectorId}},
 	)
 	if err != nil {
 		return nil, err
