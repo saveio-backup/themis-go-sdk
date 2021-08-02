@@ -52,7 +52,7 @@ func (this *Governance) RegisterCandidate(peerPubkey string, initPos uint64) ([]
 	}
 	ret, err := this.InvokeNativeContract(this.DefAcc,
 		gov.REGISTER_CANDIDATE,
-		[]interface{}{&gov.RegisterCandidateParam{PeerPubkey: peerPubkey, Address: this.DefAcc.Address, InitPos: uint32(initPos)}},
+		[]interface{}{&gov.RegisterCandidateParam{PeerPubkey: peerPubkey, Address: this.DefAcc.Address, InitPos: initPos}},
 	)
 	if err != nil {
 		return nil, err
