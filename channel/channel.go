@@ -115,6 +115,22 @@ func (this *Channel) GetNodePubKey(walletAddr common.Address) ([]byte, error) {
 	return nodePubKey.PublicKey, nil
 }
 
+func (this *Channel) SetNodePubKey(walletAddr common.Address, pubkey []byte) ([]byte, error) {
+	params := &micropayment.NodePubKey{
+		Participant: walletAddr,
+		PublicKey:   pubkey,
+	}
+	tx, err := this.InvokeNativeContract(
+		this.DefAcc,
+		micropayment.MP_SET_NODE_PUBKEY,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tx[:], nil
+}
+
 func (this *Channel) SetTotalWithdraw(channelID uint64, participant, partner common.Address, totalWithdraw uint64, participantSig, participantPubKey, partnerSig, partnerPubKey []byte) ([]byte, error) {
 	params := &micropayment.WithDraw{
 		ChannelID:         channelID,

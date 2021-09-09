@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var walletPath = "./wallet.dat"
+var walletPath = "/Users/smallyu/work/gogs/scan-deploy/node1/wallet.dat"
 var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
 var PARTICIPANT2_WALLETADDR = "AWcxaqe5chY3gSyUcBgdEgQrm7Ntr15qrZ" // Channel participant2 address base58 format
@@ -35,12 +35,29 @@ func init() {
 	testChannel.DefAcc = acc
 }
 
+func Init() *Channel {
+	var err error
+	w, err := wallet.OpenWallet(walletPath)
+	if err != nil {
+		fmt.Printf("Account.Open error:%s\n", err)
+	}
+	acc, err := w.GetDefaultAccount(pwd)
+	if err != nil {
+		fmt.Printf("GetDefaultAccount error:%s\n", err)
+	}
+	testChannel := &Channel{}
+	testChannel.Client = &client.ClientMgr{}
+	testChannel.Client.NewRpcClient().SetAddress([]string{rpc_addr})
+	testChannel.DefAcc = acc
+	return testChannel
+}
+
 func TestSetTotalDeposit(t *testing.T) {
 
 	wallet2Addr, err := common.AddressFromBase58(PARTICIPANT2_WALLETADDR)
 	h, err := testChannel.Client.GetCurrentBlockHeight()
 	assert.Nil(t, err)
-	height, err := strconv.ParseUint(string(h), 10, 64)
+	height, err := strconv.ParseUint(fmt.Sprint(h), 10, 64)
 	fmt.Printf("height: %d\n", height)
 	assert.Nil(t, err)
 	tx, err := testChannel.SetTotalDeposit(104, testChannel.DefAcc.Address, wallet2Addr, 25)
@@ -106,7 +123,7 @@ func TestGetSecretRevealBlockHeight(t *testing.T) {
 
 func TestGetCurrentHeight(t *testing.T) {
 	h, _ := testChannel.Client.GetCurrentBlockHeight()
-	height, _ := strconv.ParseUint(string(h), 10, 64)
+	height, _ := strconv.ParseUint(fmt.Sprint(h), 10, 64)
 	fmt.Printf("h:%d\n", height)
 }
 
@@ -114,4 +131,33 @@ func TestFilter(t *testing.T) {
 	// client := NewRpcClient("http://127.0.0.1:20336")
 	// ret, _ := client.GetFilterArgsForAllEventsFromChannel(0, 7373, 7375)
 	// fmt.Printf("ret:%v\n", ret)
+}
+
+func TestChannel_GetNodePubKey(t *testing.T) {
+	channel := Init()
+	var addr string
+	addr = "ANQKbEjoGFu7Qg9wF4y5i748umAWmrRhnB"
+	base58, err := common.AddressFromBase58(addr)
+	if err != nil {
+		t.Error(err)
+	}
+	key, err := channel.GetNodePubKey(base58)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("get key:", key)
+}
+
+func TestChannel_SetNodePubKey(t *testing.T) {
+	channel := Init()
+	toHex := common.PubKeyToHex(channel.DefAcc.PublicKey)
+	bytes, err := common.HexToBytes(toHex)
+	if err != nil {
+		t.Error(err)
+	}
+	tx, err := channel.SetNodePubKey(channel.DefAcc.Address, bytes)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("tx:", tx)
 }
