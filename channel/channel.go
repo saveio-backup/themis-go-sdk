@@ -131,6 +131,43 @@ func (this *Channel) SetNodePubKey(walletAddr common.Address, pubkey []byte) ([]
 	return tx[:], nil
 }
 
+func (this *Channel) GetFeeInfo(walletAddr common.Address, channelId uint64) (*micropayment.FeeInfo, error) {
+	params := &micropayment.FeeInfo{
+		WalletAddr: walletAddr,
+		ChannelID: channelId,
+	}
+	ret, err := this.PreExecInvokeNativeContract(
+		micropayment.MP_GET_FEEINFO,
+		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := ret.Result.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+	feeInfo := &micropayment.FeeInfo{}
+	source := common.NewZeroCopySource(buf)
+	if err := feeInfo.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("[GetFeeInfo] FeeInfo deserialization error")
+	}
+	return feeInfo, nil
+}
+
+func (this *Channel) SetFeeInfo(feeInfo micropayment.FeeInfo) ([]byte, error) {
+	tx, err := this.InvokeNativeContract(
+		this.DefAcc,
+		micropayment.MP_SET_FEEINFO,
+		[]interface{}{feeInfo},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return tx[:], nil
+}
+
 func (this *Channel) SetTotalWithdraw(channelID uint64, participant, partner common.Address, totalWithdraw uint64, participantSig, participantPubKey, partnerSig, partnerPubKey []byte) ([]byte, error) {
 	params := &micropayment.WithDraw{
 		ChannelID:         channelID,

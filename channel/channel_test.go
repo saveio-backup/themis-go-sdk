@@ -3,6 +3,8 @@ package channel
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/saveio/themis/crypto/signature"
+	"github.com/saveio/themis/smartcontract/service/native/micropayment"
 	"strconv"
 	"testing"
 	"time"
@@ -156,6 +158,50 @@ func TestChannel_SetNodePubKey(t *testing.T) {
 		t.Error(err)
 	}
 	tx, err := channel.SetNodePubKey(channel.DefAcc.Address, bytes)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("tx:", tx)
+}
+
+func TestChannel_GetFeeInfo(t *testing.T) {
+	channel := Init()
+	var addr string
+	addr = "ANQKbEjoGFu7Qg9wF4y5i748umAWmrRhnB"
+	base58, err := common.AddressFromBase58(addr)
+	if err != nil {
+		t.Error(err)
+	}
+	channelId := uint64(1)
+	key, err := channel.GetFeeInfo(base58, channelId)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("get key:", key)
+}
+
+func TestChannel_SetFeeInfo(t *testing.T) {
+	channel := Init()
+	addr := "ANQKbEjoGFu7Qg9wF4y5i748umAWmrRhnB"
+	walletAddr, err := common.AddressFromBase58(addr)
+	channelId := uint64(1)
+	msgHash := micropayment.FeeInfoMessageBundleHash(walletAddr, channelId)
+	sign, err := signature.Sign(channel.DefAcc.SigScheme, channel.DefAcc.PrivateKey, msgHash[:], nil)
+	serialize, err := signature.Serialize(sign)
+	pkHex := common.PubKeyToHex(channel.DefAcc.PubKey())
+	bytes, err := common.HexToBytes(pkHex)
+	feeInfo := micropayment.FeeInfo{
+		WalletAddr: walletAddr,
+		ChannelID: channelId,
+		Flat: 15,
+		PublicKey: bytes,
+		Signature: serialize,
+	}
+	verify := signature.Verify(channel.DefAcc.PublicKey, msgHash[:], sign)
+	if !verify {
+		t.Error(err)
+	}
+	tx, err := channel.SetFeeInfo(feeInfo)
 	if err != nil {
 		t.Error(err)
 	}
