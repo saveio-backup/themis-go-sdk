@@ -13,6 +13,7 @@ import (
 )
 
 var testFs *Fs
+var walletAddr = "AHjjdbVLhfTyiNFEq2X8mFnnirZY1yK8Rq"
 var walletPath = "./wallet.dat"
 var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
@@ -147,7 +148,7 @@ func TestOntFs_GetSetting(t *testing.T) {
 }
 
 func TestOntFs_NodeRegister(t *testing.T) {
-	_, err := testFs.NodeRegister(1000, 10000, "https://127.0.0.1:5002")
+	_, err := testFs.NodeRegister(107374182400, 10000, "https://127.0.0.1:5002")
 	if err != nil {
 		t.Errorf(err.Error())
 		return

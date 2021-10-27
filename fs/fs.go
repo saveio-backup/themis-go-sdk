@@ -24,8 +24,9 @@ var (
 )
 
 type Fs struct {
-	Client *client.ClientMgr
-	DefAcc *account.Account
+	Client            *client.ClientMgr
+	DefAcc            *account.Account
+	PollForTxDuration time.Duration
 }
 
 func (this *Fs) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
@@ -604,6 +605,14 @@ func (this *Fs) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string)
 	if err != nil {
 		return nil, err
 	}
+
+	if this.PollForTxDuration != 0 {
+		confirmed, _ := this.PollForTxConfirmed(this.PollForTxDuration, ret.ToArray())
+		if !confirmed {
+			return nil, fmt.Errorf("tx %x not confirmed", ret.ToArray())
+		}
+
+	}
 	return ret.ToArray(), err
 }
 
@@ -692,6 +701,13 @@ func (this *Fs) FileProve(fileHashStr string, proveData []byte, blockHeight uint
 	)
 	if err != nil {
 		return nil, err
+	}
+	if this.PollForTxDuration != 0 {
+		confirmed, _ := this.PollForTxConfirmed(this.PollForTxDuration, ret.ToArray())
+		if !confirmed {
+			return nil, fmt.Errorf("tx %x not confirmed", ret.ToArray())
+		}
+
 	}
 	return ret.ToArray(), err
 }
