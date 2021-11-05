@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/saveio/themis/crypto/signature"
 	"github.com/saveio/themis/smartcontract/service/native/micropayment"
+	"github.com/saveio/themis/smartcontract/service/native/utils"
 	"strconv"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var walletPath = "/Users/smallyu/work/gogs/scan-deploy/node1/wallet.dat"
+var walletPath = "/Users/smallyu/work/gogs/scan-deploy/node2/wallet.dat"
 var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
 var PARTICIPANT2_WALLETADDR = "AWcxaqe5chY3gSyUcBgdEgQrm7Ntr15qrZ" // Channel participant2 address base58 format
@@ -167,13 +168,12 @@ func TestChannel_SetNodePubKey(t *testing.T) {
 func TestChannel_GetFeeInfo(t *testing.T) {
 	channel := Init()
 	var addr string
-	addr = "ANQKbEjoGFu7Qg9wF4y5i748umAWmrRhnB"
+	addr = "AUwpxrg3Bc8StyDn5tB1eWdHtv5rSmTFzR"
 	base58, err := common.AddressFromBase58(addr)
 	if err != nil {
 		t.Error(err)
 	}
-	channelId := uint64(1)
-	key, err := channel.GetFeeInfo(base58, channelId)
+	key, err := channel.GetFeeInfo(base58, utils.UsdtContractAddress)
 	if err != nil {
 		t.Error(err)
 	}
@@ -182,18 +182,17 @@ func TestChannel_GetFeeInfo(t *testing.T) {
 
 func TestChannel_SetFeeInfo(t *testing.T) {
 	channel := Init()
-	addr := "ANQKbEjoGFu7Qg9wF4y5i748umAWmrRhnB"
+	addr := "AUwpxrg3Bc8StyDn5tB1eWdHtv5rSmTFzR"
 	walletAddr, err := common.AddressFromBase58(addr)
-	channelId := uint64(1)
-	msgHash := micropayment.FeeInfoMessageBundleHash(walletAddr, channelId)
+	msgHash := micropayment.FeeInfoMessageBundleHash(walletAddr, utils.UsdtContractAddress)
 	sign, err := signature.Sign(channel.DefAcc.SigScheme, channel.DefAcc.PrivateKey, msgHash[:], nil)
 	serialize, err := signature.Serialize(sign)
 	pkHex := common.PubKeyToHex(channel.DefAcc.PubKey())
 	bytes, err := common.HexToBytes(pkHex)
 	feeInfo := micropayment.FeeInfo{
 		WalletAddr: walletAddr,
-		ChannelID: channelId,
-		Flat: 15,
+		TokenAddr: utils.UsdtContractAddress,
+		Flat: 20,
 		PublicKey: bytes,
 		Signature: serialize,
 	}
