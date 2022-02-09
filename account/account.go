@@ -67,10 +67,14 @@ func (this *AccountData) GetAccount(passwd []byte) (*account.Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("signature scheme error:%s", err)
 	}
+
+	ethAddr := keypair.GetEthAddressFromPrivateKey(privateKey)
+
 	return &account.Account{
 		PrivateKey: privateKey,
 		PublicKey:  publicKey,
 		Address:    addr,
+		EthAddress: ethAddr,
 		SigScheme:  scheme,
 	}, nil
 }

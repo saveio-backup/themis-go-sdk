@@ -134,7 +134,7 @@ func (this *Channel) SetNodePubKey(walletAddr common.Address, pubkey []byte) ([]
 func (this *Channel) GetFeeInfo(walletAddr common.Address, tokenAddr common.Address) (*micropayment.FeeInfo, error) {
 	params := &micropayment.FeeInfo{
 		WalletAddr: walletAddr,
-		TokenAddr: tokenAddr,
+		TokenAddr:  tokenAddr,
 	}
 	ret, err := this.PreExecInvokeNativeContract(
 		micropayment.MP_GET_FEEINFO,
