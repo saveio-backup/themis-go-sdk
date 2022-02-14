@@ -35,7 +35,12 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 	native.GlobalParams = &cgp.GlobalParam{Client: client}
 	native.Auth = &auth.Auth{Client: client}
 	native.Dns = &dns.Dns{Client: client}
-	native.Fs = &fs.Fs{Client: client, PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION}
+	native.Fs = &fs.Fs{}
+	native.Fs.NewChainClient(&fs.ThemisClient{
+		Client:            client,
+		DefAcc:            nil,
+		PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
+	})
 	native.Channel = &channel.Channel{Client: client}
 	native.Governance = &governance.Governance{Client: client}
 	return native
@@ -43,7 +48,7 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 
 func (this *NativeContract) SetDefaultAccount(acc *account.Account) {
 	this.Channel.DefAcc = acc
-	this.Fs.DefAcc = acc
+	this.Fs.ChainClient.SetDefaultAccount(acc)
 	this.Dns.DefAcc = acc
 	this.Governance.DefAcc = acc
 }
