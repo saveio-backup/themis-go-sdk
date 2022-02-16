@@ -16,17 +16,25 @@ import (
 	"time"
 )
 
-type EthereumClient struct {
+type Themis struct {
 	Client            *client.ClientMgr
 	DefAcc            *account.Account
 	PollForTxDuration time.Duration
 }
 
-func (t *EthereumClient) SetDefaultAccount(acc *account.Account) {
+func (t *Themis) SetDefaultAccount(acc *account.Account) {
 	t.DefAcc = acc
 }
 
-func (t *EthereumClient) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
+func (t *Themis) GetDefaultAccount() *account.Account {
+	return t.DefAcc
+}
+
+func (t *Themis) GetClient() *client.ClientMgr {
+	return t.Client;
+}
+
+func (t *Themis) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
@@ -41,7 +49,7 @@ func (t *EthereumClient) InvokeNativeContract(signer *account.Account, method st
 	return t.Client.SendTransaction(tx)
 }
 
-func (t *EthereumClient) InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error) {
+func (t *Themis) InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error) {
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
@@ -56,7 +64,7 @@ func (t *EthereumClient) InvokeNativeContractWithGasLimitUserDefine(signer *acco
 	return t.Client.SendTransaction(tx)
 }
 
-func (t *EthereumClient) PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error) {
+func (t *Themis) PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error) {
 	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return nil, err
@@ -64,7 +72,7 @@ func (t *EthereumClient) PreExecInvokeNativeContract(method string, params []int
 	return t.Client.PreExecTransaction(tx)
 }
 
-func (t *EthereumClient) PreExecInvokeNativeContractWithSigner(signer *account.Account, method string, params []interface{}) (*sdkcom.PreExecResult, error) {
+func (t *Themis) PreExecInvokeNativeContractWithSigner(signer *account.Account, method string, params []interface{}) (*sdkcom.PreExecResult, error) {
 	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return nil, err
@@ -76,7 +84,7 @@ func (t *EthereumClient) PreExecInvokeNativeContractWithSigner(signer *account.A
 	return t.Client.PreExecTransaction(tx)
 }
 
-func (t *EthereumClient) GetSetting() (*fs.FsSetting, error) {
+func (t *Themis) GetSetting() (*fs.FsSetting, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GETSETTING, []interface{}{},
 	)
@@ -102,7 +110,7 @@ func (t *EthereumClient) GetSetting() (*fs.FsSetting, error) {
 	}
 }
 
-func (t *EthereumClient) GetNodeList() (*fs.FsNodesInfo, error) {
+func (t *Themis) GetNodeList() (*fs.FsNodesInfo, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_NODE_LIST, []interface{}{},
 	)
@@ -126,7 +134,7 @@ func (t *EthereumClient) GetNodeList() (*fs.FsNodesInfo, error) {
 	}
 }
 
-func (t *EthereumClient) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
+func (t *Themis) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
 	nodeList := &fs.NodeList{
 		AddrNum:  uint64(len(addrs)),
 		AddrList: addrs,
@@ -158,7 +166,7 @@ func (t *EthereumClient) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodes
 	}
 }
 
-func (t *EthereumClient) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
+func (t *Themis) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
 	var proveParam fs.ProveParam
 	proveParam.RootHash = rootHash
 	proveParam.FileID = fileId
@@ -169,7 +177,7 @@ func (t *EthereumClient) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]by
 	return bf.Bytes(), nil
 }
 
-func (t *EthereumClient) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
+func (t *Themis) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 	var proveParamSt fs.ProveParam
 	reader := bytes.NewReader(proveParam)
 	if err := proveParamSt.Deserialize(reader); err != nil {
@@ -178,7 +186,7 @@ func (t *EthereumClient) ProveParamDes(proveParam []byte) (*fs.ProveParam, error
 	return &proveParamSt, nil
 }
 
-func (t *EthereumClient) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
+func (t *Themis) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
 	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error) {
@@ -233,7 +241,7 @@ func (t *EthereumClient) StoreFile(fileHashStr, blocksRoot string, blockNum uint
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
+func (t *Themis) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -252,7 +260,7 @@ func (t *EthereumClient) FileRenew(fileHashStr string, renewTimes uint64) ([]byt
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
+func (t *Themis) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_INFO, []interface{}{fileHash},
@@ -279,7 +287,7 @@ func (t *EthereumClient) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	}
 }
 
-func (t *EthereumClient) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
+func (t *Themis) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
 	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
 	for _, fileHashStr := range fileHashStrs {
 		fileHashes = append(fileHashes, fs.FileHash{
@@ -316,7 +324,7 @@ func (t *EthereumClient) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, 
 	}
 }
 
-func (t *EthereumClient) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) {
+func (t *Themis) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -335,7 +343,7 @@ func (t *EthereumClient) ChangeFileOwner(fileHashStr string, newOwner common.Add
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) {
+func (t *Themis) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -353,7 +361,7 @@ func (t *EthereumClient) ChangeFilePrivilege(fileHashStr string, newPrivilege ui
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetFileList(addr common.Address) (*fs.FileList, error) {
+func (t *Themis) GetFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_LIST, []interface{}{addr},
 	)
@@ -379,7 +387,7 @@ func (t *EthereumClient) GetFileList(addr common.Address) (*fs.FileList, error) 
 	}
 }
 
-func (t *EthereumClient) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
+func (t *Themis) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
 	)
@@ -405,7 +413,7 @@ func (t *EthereumClient) GetUnprovePrimaryFileList(addr common.Address) (*fs.Fil
 	}
 }
 
-func (t *EthereumClient) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
+func (t *Themis) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
 	)
@@ -431,7 +439,7 @@ func (t *EthereumClient) GetUnProveCandidateFileList(addr common.Address) (*fs.F
 	}
 }
 
-func (t *EthereumClient) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error) {
+func (t *Themis) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_PROVE_DETAILS, []interface{}{fileHash},
@@ -457,7 +465,7 @@ func (t *EthereumClient) GetFileProveDetails(fileHashStr string) (*fs.FsProveDet
 	}
 }
 
-func (t *EthereumClient) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error) {
+func (t *Themis) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error) {
 	if len(fileHashStr) == 0 || len(whitelists) == 0 {
 		return nil, errors.New("invalid params")
 	}
@@ -470,7 +478,7 @@ func (t *EthereumClient) AddWhiteLists(fileHashStr string, whitelists []fs.Rule)
 	})
 }
 
-func (t *EthereumClient) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
+func (t *Themis) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -492,7 +500,7 @@ func (t *EthereumClient) WhiteListOp(fileHashStr string, op uint64, whiteList fs
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
+func (t *Themis) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_WHITE_LIST, []interface{}{fileHash},
@@ -518,7 +526,7 @@ func (t *EthereumClient) GetWhiteList(fileHashStr string) (*fs.WhiteList, error)
 	}
 }
 
-func (t *EthereumClient) DeleteFile(fileHashStr string) ([]byte, error) {
+func (t *Themis) DeleteFile(fileHashStr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -532,7 +540,7 @@ func (t *EthereumClient) DeleteFile(fileHashStr string) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
+func (t *Themis) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -565,11 +573,11 @@ func (t *EthereumClient) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
+func (t *Themis) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
 	return t.Client.PollForTxConfirmed(timeout, txHash)
 }
 
-func (t *EthereumClient) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
+func (t *Themis) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
 	maxProveBlockNum, defProveLevel uint64, minVolume uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
@@ -590,7 +598,7 @@ func (t *EthereumClient) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRea
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
+func (t *Themis) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -613,7 +621,7 @@ func (t *EthereumClient) NodeRegister(volume uint64, serviceTime uint64, nodeAdd
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
+func (t *Themis) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_NODE_QUERY, []interface{}{nodeWallet},
 	)
@@ -639,7 +647,7 @@ func (t *EthereumClient) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, e
 	}
 }
 
-func (t *EthereumClient) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
+func (t *Themis) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -654,7 +662,7 @@ func (t *EthereumClient) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr 
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) NodeCancel() ([]byte, error) {
+func (t *Themis) NodeCancel() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -668,7 +676,7 @@ func (t *EthereumClient) NodeCancel() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) NodeWithDrawProfit() ([]byte, error) {
+func (t *Themis) NodeWithDrawProfit() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -682,7 +690,7 @@ func (t *EthereumClient) NodeWithDrawProfit() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
+func (t *Themis) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -709,12 +717,12 @@ func (t *EthereumClient) FileProve(fileHashStr string, proveData []byte, blockHe
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
+func (t *Themis) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
 	return fs.GenChallenge(walletAddr, hash, uint32(fileBlockNum), uint32(proveNum))
 }
 
 // UpdateUserSpace. user space operation for space owner.
-func (t *EthereumClient) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
+func (t *Themis) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -735,7 +743,7 @@ func (t *EthereumClient) UpdateUserSpace(walletAddr common.Address, size, blockC
 }
 
 // GetUserSpace. get user space with wallet address
-func (t *EthereumClient) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
+func (t *Themis) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_USER_SPACE, []interface{}{walletAddr})
 	if err != nil {
@@ -760,7 +768,7 @@ func (t *EthereumClient) GetUserSpace(walletAddr common.Address) (*fs.UserSpace,
 	}
 }
 
-func (t *EthereumClient) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
+func (t *Themis) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -793,7 +801,7 @@ func (t *EthereumClient) GetUpdateSpaceCost(walletAddr common.Address, size, blo
 	}
 }
 
-func (t *EthereumClient) DeleteUserSpace() ([]byte, error) {
+func (t *Themis) DeleteUserSpace() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -808,7 +816,7 @@ func (t *EthereumClient) DeleteUserSpace() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
+func (t *Themis) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
 	log.Debugf("opt :%v", opt.StorageType)
 	buf := new(bytes.Buffer)
 	if err := opt.Serialize(buf); err != nil {
@@ -838,7 +846,7 @@ func (t *EthereumClient) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageF
 	}
 }
 
-func (t *EthereumClient) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
+func (t *Themis) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
 	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
 	for _, fileHashStr := range fileHashStrs {
 		fileHashes = append(fileHashes, fs.FileHash{
@@ -862,7 +870,7 @@ func (t *EthereumClient) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64
 	return ret.Gas, err
 }
 
-func (t *EthereumClient) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
+func (t *Themis) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_CREATE_SECTOR, []interface{}{
 			&fs.SectorInfo{
@@ -879,7 +887,7 @@ func (t *EthereumClient) CreateSector(sectorId uint64, proveLevel uint64, size u
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) DeleteSector(sectorId uint64) ([]byte, error) {
+func (t *Themis) DeleteSector(sectorId uint64) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_DELETE_SECTOR_INFO, []interface{}{
 			&fs.SectorRef{
@@ -893,7 +901,7 @@ func (t *EthereumClient) DeleteSector(sectorId uint64) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
+func (t *Themis) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_SECTOR_INFO, []interface{}{
 			&fs.SectorRef{
@@ -924,7 +932,7 @@ func (t *EthereumClient) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) 
 	}
 }
 
-func (t *EthereumClient) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error) {
+func (t *Themis) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_DELETE_FILE_IN_SECTOR, []interface{}{
 			&fs.SectorFileRef{
@@ -939,7 +947,7 @@ func (t *EthereumClient) DeleteFileInSector(sectorId uint64, fileHashStr string)
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
+func (t *Themis) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_SECTORS_FOR_NODE, []interface{}{addr[:]},
 	)
@@ -966,7 +974,7 @@ func (t *EthereumClient) GetSectorInfosForNode(addr common.Address) (*fs.SectorI
 	}
 }
 
-func (t *EthereumClient) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
+func (t *Themis) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_SECTOR_PROVE, []interface{}{
 			&fs.SectorProve{
@@ -982,7 +990,7 @@ func (t *EthereumClient) SectorProve(sectorId uint64, challengeHeight uint64, pr
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
+func (t *Themis) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_USER_UNSETTLED_FILES, []interface{}{addr},
 	)
@@ -1008,7 +1016,7 @@ func (t *EthereumClient) GetUnSettledFiles(addr common.Address) (*fs.FileList, e
 	}
 }
 
-func (t *EthereumClient) DeleteUnSettledFiles() ([]byte, error) {
+func (t *Themis) DeleteUnSettledFiles() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -1022,7 +1030,7 @@ func (t *EthereumClient) DeleteUnSettledFiles() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *EthereumClient) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
+func (t *Themis) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_CHECK_NODE_SECTOR_PROVED_INTIME, []interface{}{
 			&fs.SectorRef{

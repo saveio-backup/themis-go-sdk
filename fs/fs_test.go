@@ -14,7 +14,7 @@ import (
 
 var testFs *Fs
 var walletAddr = "AHjjdbVLhfTyiNFEq2X8mFnnirZY1yK8Rq"
-var walletPath = "./wallet.dat"
+var walletPath = "/Users/smallyu/work/gogs/edge-deploy/node1/keystore.dat"
 var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
 var txt = "QmevhnWdtmz89BMXuuX5pSY2uZtqKLz7frJsrCojT5kmb6"
@@ -31,9 +31,12 @@ func TestMain(m *testing.M) {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
 	testFs = &Fs{}
-	testFs.Client = &client.ClientMgr{}
-	testFs.Client.NewRpcClient().SetAddress([]string{rpc_addr})
-	testFs.DefAcc = acc
+	testFs.NewClient(&Themis{
+		Client:            &client.ClientMgr{},
+		DefAcc:            acc,
+	})
+	testFs.Client.GetClient().NewRpcClient().SetAddress([]string{rpc_addr})
+	testFs.Client.SetDefaultAccount(acc)
 	m.Run()
 }
 
@@ -157,7 +160,7 @@ func TestOntFs_NodeRegister(t *testing.T) {
 }
 
 func TestOntFs_NodeQuery(t *testing.T) {
-	fsNodeInfo, err := testFs.NodeQuery(testFs.DefAcc.Address)
+	fsNodeInfo, err := testFs.NodeQuery(testFs.Client.GetDefaultAccount().Address)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -203,7 +206,7 @@ func Testsavefs_AddUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")
 	}
-	ret, err := testFs.UpdateUserSpace(testFs.DefAcc.Address, nil, nil)
+	ret, err := testFs.UpdateUserSpace(testFs.Client.GetDefaultAccount().Address, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +214,7 @@ func Testsavefs_AddUserSpace(t *testing.T) {
 }
 
 func TestOntFs_GetUserSpace(t *testing.T) {
-	userspace, err := testFs.GetUserSpace(testFs.DefAcc.Address)
+	userspace, err := testFs.GetUserSpace(testFs.Client.GetDefaultAccount().Address)
 	if err != nil {
 		t.Errorf(err.Error())
 		return

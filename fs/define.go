@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"github.com/saveio/themis-go-sdk/client"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
@@ -10,8 +11,11 @@ import (
 	"time"
 )
 
-type ChainClient interface {
+type ContractClient interface {
 	SetDefaultAccount(acc *account.Account);
+	GetDefaultAccount() *account.Account;
+	GetClient() *client.ClientMgr;
+
 	InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error);
 	InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error)
 	PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error)

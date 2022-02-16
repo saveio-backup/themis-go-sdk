@@ -20,6 +20,7 @@ type ClientMgr struct {
 	ws        *WSClient   //Web socket client used the web socket api of oniChain
 	defClient ChainClient
 	qid       uint64
+	ec 		  map[string]interface{} // Rpc client used the ethclient of Ethereum
 }
 
 func (this *ClientMgr) NewRpcClient() *RpcClient {
@@ -472,4 +473,15 @@ func (this *ClientMgr) GetClientMgr() *ClientMgr {
 
 func (this *ClientMgr) getNextQid() string {
 	return fmt.Sprintf("%d", atomic.AddUint64(&this.qid, 1))
+}
+
+func (this *ClientMgr) NewEthClient(contractName string, client interface{}) {
+	if this.ec == nil {
+		this.ec = make(map[string]interface{})
+	}
+	this.ec[contractName] = client
+}
+
+func (this *ClientMgr) GetEthClient() map[string]interface{} {
+	return this.ec
 }

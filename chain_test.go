@@ -154,7 +154,7 @@ func TestWsTransfer(t *testing.T) {
 }
 
 func TestsavefsInit(t *testing.T) {
-	testChain.Native.Fs.DefAcc = testDefAcc
+	testChain.Native.Fs.Client.SetDefaultAccount(testDefAcc)
 	setting, _ := testChain.Native.Fs.GetSetting()
 	fmt.Printf("setting: %v\n", setting)
 }
