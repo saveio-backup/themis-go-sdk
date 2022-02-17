@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/saveio/themis-go-sdk/client"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	configStore "github.com/saveio/themis-go-sdk/fs/contracts/Config"
-	"github.com/saveio/themis-go-sdk/utils"
+	nodeStore "github.com/saveio/themis-go-sdk/fs/contracts/Node"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
@@ -26,6 +27,7 @@ type Ethereum struct {
 
 const (
 	Config string = "Config"
+	Node string = "Node"
 )
 
 func (t *Ethereum) SetDefaultAccount(acc *account.Account) {
@@ -42,53 +44,23 @@ func (t *Ethereum) GetClient() *client.ClientMgr {
 }
 
 func (t *Ethereum) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
-	if signer == nil {
-		return common.UINT256_EMPTY, errors.New("signer is nil")
-	}
-	tx, err := utils.NewNativeInvokeTransaction(sdkcom.GAS_PRICE, sdkcom.GAS_LIMIT, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
-	if err != nil {
-		return common.UINT256_EMPTY, err
-	}
-	err = utils.SignToTransaction(tx, signer)
-	if err != nil {
-		return common.UINT256_EMPTY, err
-	}
-	return t.Client.SendTransaction(tx)
+	// TODO
+	return common.Uint256{}, nil
 }
 
 func (t *Ethereum) InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error) {
-	if signer == nil {
-		return common.UINT256_EMPTY, errors.New("signer is nil")
-	}
-	tx, err := utils.NewNativeInvokeTransaction(sdkcom.GAS_PRICE, gasLimit, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
-	if err != nil {
-		return common.UINT256_EMPTY, err
-	}
-	err = utils.SignToTransaction(tx, signer)
-	if err != nil {
-		return common.UINT256_EMPTY, err
-	}
-	return t.Client.SendTransaction(tx)
+	// TODO
+	return common.Uint256{}, nil
 }
 
 func (t *Ethereum) PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error) {
-	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
-	if err != nil {
-		return nil, err
-	}
-	return t.Client.PreExecTransaction(tx)
+	// TODO
+	return &sdkcom.PreExecResult{}, nil
 }
 
 func (t *Ethereum) PreExecInvokeNativeContractWithSigner(signer *account.Account, method string, params []interface{}) (*sdkcom.PreExecResult, error) {
-	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
-	if err != nil {
-		return nil, err
-	}
-	err = utils.SignToTransaction(tx, signer)
-	if err != nil {
-		return nil, err
-	}
-	return t.Client.PreExecTransaction(tx)
+	// TODO
+	return &sdkcom.PreExecResult{}, nil
 }
 
 func (t *Ethereum) GetSetting() (*fs.FsSetting, error) {
@@ -113,59 +85,58 @@ func (t *Ethereum) GetSetting() (*fs.FsSetting, error) {
 }
 
 func (t *Ethereum) GetNodeList() (*fs.FsNodesInfo, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_NODE_LIST, []interface{}{},
-	)
+	ethClient := t.Client.GetEthClient()
+	store := ethClient[Node].(*nodeStore.Store)
+	list, err := store.GetNodeList(&bind.CallOpts{})
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
-	if err != nil {
-		return nil, fmt.Errorf("GetNodeList result toByteArray: %s", err.Error())
-	}
-	var nodesInfo fs.FsNodesInfo
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		reader := bytes.NewReader(retInfo.Info)
-		if err = nodesInfo.Deserialize(reader); err != nil {
-			return nil, fmt.Errorf("GetNodeList json Unmarshal: %s", err.Error())
+	nodes := make([]fs.FsNodeInfo, len(list))
+	for k, v := range list {
+		info := fs.FsNodeInfo{
+			Pledge:      v.Pledge,
+			Profit:      v.Profit,
+			Volume:      v.Volume,
+			RestVol:     v.RestVol,
+			ServiceTime: v.ServiceTime,
+			WalletAddr:  common.Address(v.WalletAddr),
+			NodeAddr:    v.NodeAddr[:],
 		}
-		return &nodesInfo, nil
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+		nodes[k] = info
 	}
+	nodeList := &fs.FsNodesInfo{
+		NodeNum:  uint64(len(list)),
+		NodeInfo: nodes,
+	}
+	return nodeList, nil
 }
 
 func (t *Ethereum) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
-	nodeList := &fs.NodeList{
-		AddrNum:  uint64(len(addrs)),
-		AddrList: addrs,
+	if len(addrs) == 0 {
+		return nil, errors.New("")
 	}
-	buf := new(bytes.Buffer)
-	if err := nodeList.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("nodeList serialize error: %s", err.Error())
-	}
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_NODE_LIST_BY_ADDRS, []interface{}{buf.Bytes()},
-	)
+	ethClient := t.Client.GetEthClient()
+	store := ethClient[Node].(*nodeStore.Store)
+	info, err := store.GetNodeInfoByNodeAddr(&bind.CallOpts{}, ethCommon.Address(addrs[0]))
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
-	if err != nil {
-		return nil, fmt.Errorf("GetNodeList result toByteArray: %s", err.Error())
+	nodes := make([]fs.FsNodeInfo, 1)
+	nodeInfo := fs.FsNodeInfo{
+		Pledge:      info.Pledge,
+		Profit:      info.Profit,
+		Volume:      info.Volume,
+		RestVol:     info.RestVol,
+		ServiceTime: info.ServiceTime,
+		WalletAddr:  common.Address(info.WalletAddr),
+		NodeAddr:    info.NodeAddr[:],
 	}
-	var nodesInfo fs.FsNodesInfo
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		reader := bytes.NewReader(retInfo.Info)
-		if err = nodesInfo.Deserialize(reader); err != nil {
-			return nil, fmt.Errorf("GetNodeList json Unmarshal: %s", err.Error())
-		}
-		return &nodesInfo, nil
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	nodes[0] = nodeInfo
+	nodeList := &fs.FsNodesInfo{
+		NodeNum:  1,
+		NodeInfo: nodes,
 	}
+	return nodeList, nil
 }
 
 func (t *Ethereum) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
