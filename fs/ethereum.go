@@ -25,10 +25,9 @@ type Ethereum struct {
 	PollForTxDuration time.Duration
 }
 
-const (
-	Config string = "Config"
-	Node string = "Node"
-)
+var address = ethCommon.HexToAddress("0xa934808a26bd08c5145cf1894d06176d3664f567")
+var ConfigAddress = ethCommon.HexToAddress("0x6b450d2b53Bd6C2d866F5630eDc3bB61e8016A91")
+var NodeAddress = ethCommon.HexToAddress("0x5C373B9C51f65Ec44C315A70c999F7B313Ac90c3")
 
 func (t *Ethereum) SetDefaultAccount(acc *account.Account) {
 	t.DefAcc = acc
@@ -64,8 +63,10 @@ func (t *Ethereum) PreExecInvokeNativeContractWithSigner(signer *account.Account
 }
 
 func (t *Ethereum) GetSetting() (*fs.FsSetting, error) {
-	ethClient := t.Client.GetEthClient()
-	store := ethClient[Config].(*configStore.Store)
+	store, err := configStore.NewStore(ConfigAddress, t.Client.GetEthClient())
+	if err != nil {
+		return nil, err
+	}
 	setting, err := store.GetSetting(&bind.CallOpts{})
 	if err != nil {
 		return nil, err
@@ -85,8 +86,10 @@ func (t *Ethereum) GetSetting() (*fs.FsSetting, error) {
 }
 
 func (t *Ethereum) GetNodeList() (*fs.FsNodesInfo, error) {
-	ethClient := t.Client.GetEthClient()
-	store := ethClient[Node].(*nodeStore.Store)
+	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient())
+	if err != nil {
+		return nil, err
+	}
 	list, err := store.GetNodeList(&bind.CallOpts{})
 	if err != nil {
 		return nil, err
@@ -111,12 +114,15 @@ func (t *Ethereum) GetNodeList() (*fs.FsNodesInfo, error) {
 	return nodeList, nil
 }
 
+// GetNodeListByAddrs get node list by node address
 func (t *Ethereum) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
 	if len(addrs) == 0 {
-		return nil, errors.New("")
+		return nil, errors.New("address cannot empty")
 	}
-	ethClient := t.Client.GetEthClient()
-	store := ethClient[Node].(*nodeStore.Store)
+	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient())
+	if err != nil {
+		return nil, err
+	}
 	info, err := store.GetNodeInfoByNodeAddr(&bind.CallOpts{}, ethCommon.Address(addrs[0]))
 	if err != nil {
 		return nil, err
@@ -140,22 +146,13 @@ func (t *Ethereum) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, 
 }
 
 func (t *Ethereum) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
-	var proveParam fs.ProveParam
-	proveParam.RootHash = rootHash
-	proveParam.FileID = fileId
-	bf := new(bytes.Buffer)
-	if err := proveParam.Serialize(bf); err != nil {
-		return nil, fmt.Errorf("ProveParam Serialize error: %s", err.Error())
-	}
-	return bf.Bytes(), nil
+    // TODO
+	return []byte{}, nil
 }
 
 func (t *Ethereum) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
+	// TODO
 	var proveParamSt fs.ProveParam
-	reader := bytes.NewReader(proveParam)
-	if err := proveParamSt.Deserialize(reader); err != nil {
-		return nil, fmt.Errorf("ProveParamDes Deserialize error: %s", err.Error())
-	}
 	return &proveParamSt, nil
 }
 
@@ -594,30 +591,26 @@ func (t *Ethereum) NodeRegister(volume uint64, serviceTime uint64, nodeAddr stri
 	return ret.ToArray(), err
 }
 
+// NodeQuery get node info by wallet address
 func (t *Ethereum) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_NODE_QUERY, []interface{}{nodeWallet},
-	)
+	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient())
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	info, err := store.GetNodeInfoByWalletAddr(&bind.CallOpts{}, ethCommon.Address(nodeWallet))
 	if err != nil {
-		return nil, fmt.Errorf("GetNodeList result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var fsNodeInfo fs.FsNodeInfo
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsNodeInfoReader := bytes.NewReader(retInfo.Info)
-		err = fsNodeInfo.Deserialize(fsNodeInfoReader)
-		if err != nil {
-			return nil, fmt.Errorf("FsNodeQuery error: %s", err.Error())
-		}
-		return &fsNodeInfo, nil
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	nodeInfo := &fs.FsNodeInfo{
+		Pledge:      info.Pledge,
+		Profit:      info.Profit,
+		Volume:      info.Volume,
+		RestVol:     info.RestVol,
+		ServiceTime: info.ServiceTime,
+		WalletAddr:  common.Address(info.WalletAddr),
+		NodeAddr:    info.NodeAddr[:],
 	}
+	return nodeInfo, nil
 }
 
 func (t *Ethereum) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {

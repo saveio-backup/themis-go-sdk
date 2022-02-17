@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"sync/atomic"
 	"time"
 
@@ -20,7 +21,7 @@ type ClientMgr struct {
 	ws        *WSClient   //Web socket client used the web socket api of oniChain
 	defClient ChainClient
 	qid       uint64
-	ec 		  map[string]interface{} // Rpc client used the ethclient of Ethereum
+	ethClient *ethclient.Client // Rpc client used the ethclient of Ethereum
 }
 
 func (this *ClientMgr) NewRpcClient() *RpcClient {
@@ -475,13 +476,15 @@ func (this *ClientMgr) getNextQid() string {
 	return fmt.Sprintf("%d", atomic.AddUint64(&this.qid, 1))
 }
 
-func (this *ClientMgr) NewEthClient(contractName string, client interface{}) {
-	if this.ec == nil {
-		this.ec = make(map[string]interface{})
+func (this *ClientMgr) NewEthClient(url string) error {
+	var err error
+	this.ethClient, err = ethclient.Dial(url)
+	if err != nil {
+		return err
 	}
-	this.ec[contractName] = client
+	return nil
 }
 
-func (this *ClientMgr) GetEthClient() map[string]interface{} {
-	return this.ec
+func (this *ClientMgr) GetEthClient() *ethclient.Client {
+	return this.ethClient
 }
