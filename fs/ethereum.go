@@ -2,10 +2,12 @@ package fs
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/saveio/themis-go-sdk/client"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	configStore "github.com/saveio/themis-go-sdk/fs/contracts/Config"
@@ -16,6 +18,7 @@ import (
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/savefs/pdp"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
+	"math/big"
 	"time"
 )
 
@@ -25,9 +28,48 @@ type Ethereum struct {
 	PollForTxDuration time.Duration
 }
 
-var address = ethCommon.HexToAddress("0xa934808a26bd08c5145cf1894d06176d3664f567")
+// for Goerli testnet
+//var address = ethCommon.HexToAddress("0xa934808a26bd08c5145cf1894d06176d3664f567")
+//var privateKey, _ = crypto.HexToECDSA("c9cc08e8564d21be633f55558e9186efcbcd5f2950bee49c9faafb612ccf53fa")
+//var ConfigAddress = ethCommon.HexToAddress("0x6b450d2b53Bd6C2d866F5630eDc3bB61e8016A91")
+//var NodeAddress = ethCommon.HexToAddress("0x5C373B9C51f65Ec44C315A70c999F7B313Ac90c3")
+
+// for dev mode
+var address = ethCommon.HexToAddress("0x792e47e160f4ee67c17714df1c92f678640e0e4c")
+var privateKey, _ = crypto.HexToECDSA("97e14a3dc8f8721172090dc5a27681e8eb3e650cb43551b43f0ce4345d4748f7")
 var ConfigAddress = ethCommon.HexToAddress("0x6b450d2b53Bd6C2d866F5630eDc3bB61e8016A91")
 var NodeAddress = ethCommon.HexToAddress("0x5C373B9C51f65Ec44C315A70c999F7B313Ac90c3")
+
+func (t *Ethereum) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
+	ec := t.Client.GetEthClient()
+
+	nonce, err := ec.PendingNonceAt(context.Background(), address)
+	if err != nil {
+		return nil, err
+	}
+
+	gasPrice, err := ec.SuggestGasPrice(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	chainID, err := ec.ChainID(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	if err != nil {
+		return nil, err
+	}
+	auth.From = address
+	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Value = value       			// in wei
+	auth.GasLimit = uint64(5000000) 	// in units
+	auth.GasPrice = gasPrice
+
+	return auth, nil
+}
 
 func (t *Ethereum) SetDefaultAccount(acc *account.Account) {
 	t.DefAcc = acc
@@ -544,7 +586,20 @@ func (t *Ethereum) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, 
 }
 
 func (t *Ethereum) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
-	return t.Client.PollForTxConfirmed(timeout, txHash)
+	// TODO timeout
+	var hash ethCommon.Hash
+	copy(hash[:], txHash)
+	receipt, err := t.Client.GetEthClient().TransactionReceipt(context.Background(), hash)
+	if err != nil || receipt == nil {
+		log.Fatal(err)
+	}
+	if receipt.Status == 0 {
+		return false, nil
+	}
+	if receipt.Status == 1 {
+		return true, nil
+	}
+	return false, errors.New("unknown status")
 }
 
 func (t *Ethereum) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
@@ -572,23 +627,48 @@ func (t *Ethereum) NodeRegister(volume uint64, serviceTime uint64, nodeAddr stri
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_NODE_REGISTER,
-		[]interface{}{&fs.FsNodeInfo{Pledge: 0, Profit: 0, Volume: volume, RestVol: 0,
-			ServiceTime: serviceTime, WalletAddr: t.DefAcc.Address, NodeAddr: []byte(nodeAddr)}},
-	)
+
+	ec := t.Client.GetEthClient()
+	store, err := nodeStore.NewStore(NodeAddress, ec)
 	if err != nil {
 		return nil, err
 	}
 
-	if t.PollForTxDuration != 0 {
-		confirmed, _ := t.PollForTxConfirmed(t.PollForTxDuration, ret.ToArray())
-		if !confirmed {
-			return nil, fmt.Errorf("tx %x not confirmed", ret.ToArray())
-		}
-
+	node := nodeStore.NodeInfo{
+		Pledge:      0,
+		Profit:      0,
+		Volume:      volume,
+		RestVol:     0,
+		ServiceTime: serviceTime,
+		WalletAddr:  t.DefAcc.EthAddress,
+		NodeAddr:    ethCommon.HexToAddress(nodeAddr),
 	}
-	return ret.ToArray(), err
+
+	pledge, err := store.CalculateNodePledge(&bind.CallOpts{}, node)
+	if err != nil {
+		return nil, err
+	}
+
+	signer, err := t.GetSigner(big.NewInt(int64(pledge)))
+	if err != nil {
+		return nil, err
+	}
+
+	register, err := store.Register(signer, node)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := register.Hash()
+	fmt.Println(hash)
+	confirmed, err := t.PollForTxConfirmed(t.PollForTxDuration, hash[:])
+	if err != nil {
+		return nil, err
+	}
+	if !confirmed {
+		return nil, errors.New("tx not confirmed")
+	}
+	return hash[:], nil
 }
 
 // NodeQuery get node info by wallet address
