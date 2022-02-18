@@ -21,6 +21,7 @@ type Themis struct {
 	DefAcc            *account.Account
 	PollForTxDuration time.Duration
 }
+var _ ContractClient = (*Themis)(nil)
 
 func (t *Themis) SetDefaultAccount(acc *account.Account) {
 	t.DefAcc = acc

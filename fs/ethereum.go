@@ -27,6 +27,7 @@ type Ethereum struct {
 	DefAcc            *account.Account
 	PollForTxDuration time.Duration
 }
+var _ ContractClient = (*Ethereum)(nil)
 
 // for Goerli testnet
 //var address = ethCommon.HexToAddress("0xa934808a26bd08c5145cf1894d06176d3664f567")
@@ -592,54 +593,41 @@ func (t *Ethereum) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, 
 }
 
 func (t *Ethereum) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
-	// TODO timeout
 	var hash ethCommon.Hash
 	copy(hash[:], txHash)
-	receipt, err := t.Client.GetEthClient().TransactionReceipt(context.Background(), hash)
-	if err != nil || receipt == nil {
-		log.Fatal(err)
+	interval := time.Duration(sdkcom.POLL_TX_INTERVAL) * time.Second
+	secs := int(timeout / interval)
+	if secs <= 0 {
+		secs = 1
 	}
-	if receipt.Status == 0 {
-		return false, nil
+	for i := 0; i < secs; i++ {
+		time.Sleep(interval)
+		receipt, err := t.Client.GetEthClient().TransactionReceipt(context.Background(), hash)
+		if err != nil || receipt == nil {
+			return false, err
+		}
+		if receipt.Status == 1 {
+			return true, nil
+		}
 	}
-	if receipt.Status == 1 {
-		return true, nil
-	}
-	return false, errors.New("unknown status")
+	return false, nil
 }
 
 func (t *Ethereum) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
 	maxProveBlockNum, defProveLevel uint64, minVolume uint64) ([]byte, error) {
-	if t.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_INIT,
-		[]interface{}{&fs.FsSetting{FsGasPrice: fsGasPrice,
-			GasPerGBPerBlock:  gasPerGBPerBlock,
-			GasPerKBForRead:   gasPerKBForRead,
-			GasForChallenge:   gasForChallenge,
-			MaxProveBlockNum:  maxProveBlockNum,
-			DefaultProveLevel: defProveLevel,
-			MinVolume:         minVolume}},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ret.ToArray(), err
+	// TODO not be implemented in contract
+	return []byte{}, nil
 }
 
 func (t *Ethereum) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-
 	ec := t.Client.GetEthClient()
 	store, err := nodeStore.NewStore(NodeAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-
 	node := nodeStore.NodeInfo{
 		Pledge:      0,
 		Profit:      0,
@@ -649,31 +637,19 @@ func (t *Ethereum) NodeRegister(volume uint64, serviceTime uint64, nodeAddr stri
 		WalletAddr:  t.DefAcc.EthAddress,
 		NodeAddr:    ethCommon.HexToAddress(nodeAddr),
 	}
-
 	pledge, err := store.CalculateNodePledge(&bind.CallOpts{}, node)
 	if err != nil {
 		return nil, err
 	}
-
 	signer, err := t.GetSigner(big.NewInt(int64(pledge)))
 	if err != nil {
 		return nil, err
 	}
-
 	register, err := store.Register(signer, node)
 	if err != nil {
 		return nil, err
 	}
-
 	hash := register.Hash()
-	fmt.Println(hash)
-	confirmed, err := t.PollForTxConfirmed(t.PollForTxDuration, hash[:])
-	if err != nil {
-		return nil, err
-	}
-	if !confirmed {
-		return nil, errors.New("tx not confirmed")
-	}
 	return hash[:], nil
 }
 
@@ -703,43 +679,72 @@ func (t *Ethereum) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_NODE_UPDATE,
-		[]interface{}{&fs.FsNodeInfo{Pledge: 0, Profit: 0, Volume: volume, RestVol: 0,
-			ServiceTime: serviceTime, WalletAddr: t.DefAcc.Address, NodeAddr: []byte(nodeAddr)}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := nodeStore.NewStore(NodeAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	node := nodeStore.NodeInfo{
+		Pledge:      0,
+		Profit:      0,
+		Volume:      volume,
+		RestVol:     0,
+		ServiceTime: serviceTime,
+		WalletAddr:  t.DefAcc.EthAddress,
+		NodeAddr:    ethCommon.HexToAddress(nodeAddr),
+	}
+	update, err := store.NodeUpdate(signer, node)
+	if err != nil {
+		return nil, err
+	}
+	hash := update.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) NodeCancel() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_NODE_CANCEL,
-		[]interface{}{t.DefAcc.Address},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := nodeStore.NewStore(NodeAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	cancel, err := store.Cancel(signer, t.DefAcc.EthAddress)
+	if err != nil {
+		return nil, err
+	}
+	hash := cancel.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) NodeWithDrawProfit() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_NODE_WITH_DRAW_PROFIT,
-		[]interface{}{t.DefAcc.Address},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := nodeStore.NewStore(NodeAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	cancel, err := store.WithDrawProfit(signer, t.DefAcc.EthAddress)
+	if err != nil {
+		return nil, err
+	}
+	hash := cancel.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {

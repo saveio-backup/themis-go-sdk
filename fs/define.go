@@ -36,10 +36,14 @@ type ContractClient interface {
 	NodeCancel() ([]byte, error)
 	NodeWithDrawProfit() ([]byte, error)
 
+	// ----
+
+	GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error)
+	GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error)
 	StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
-		blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
-		fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-		primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error)
+	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
+	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error)
 	FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error)
 	GetFileInfo(fileHashStr string) (*fs.FileInfo, error)
 	GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error)
@@ -49,29 +53,30 @@ type ContractClient interface {
 	GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error)
 	GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error)
 	GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error)
+	DeleteFile(fileHashStr string) ([]byte, error)
+	DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error)
+	DeleteUnSettledFiles() ([]byte, error)
+	GetUnSettledFiles(addr common.Address) (*fs.FileList, error)
 
 	AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error)
 	WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error)
 	GetWhiteList(fileHashStr string) (*fs.WhiteList, error)
-	DeleteFile(fileHashStr string) ([]byte, error)
-	DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error)
+
 	ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error)
 	ProveParamDes(proveParam []byte) (*fs.ProveParam, error)
 	FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error)
+	SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error)
 	GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge
+	CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error)
+
 	UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error)
 	GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error)
 	GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error)
 	DeleteUserSpace() ([]byte, error)
-	GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error)
-	GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error)
+
 	CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error)
 	DeleteSector(sectorId uint64) ([]byte, error)
 	GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error)
 	DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error)
 	GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error)
-	SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error)
-	GetUnSettledFiles(addr common.Address) (*fs.FileList, error)
-	DeleteUnSettledFiles() ([]byte, error)
-	CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error)
 }
