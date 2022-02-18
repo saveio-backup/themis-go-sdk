@@ -37,8 +37,14 @@ type Ethereum struct {
 // for dev mode
 var address = ethCommon.HexToAddress("0x792e47e160f4ee67c17714df1c92f678640e0e4c")
 var privateKey, _ = crypto.HexToECDSA("97e14a3dc8f8721172090dc5a27681e8eb3e650cb43551b43f0ce4345d4748f7")
-var ConfigAddress = ethCommon.HexToAddress("0x6b450d2b53Bd6C2d866F5630eDc3bB61e8016A91")
-var NodeAddress = ethCommon.HexToAddress("0x5C373B9C51f65Ec44C315A70c999F7B313Ac90c3")
+var ConfigAddress = ethCommon.HexToAddress("0x4EE485900378F0a9770f8C68b7f8e380E0E6b379")
+var NodeAddress = ethCommon.HexToAddress("0x0b31749E38686E064a262E8C6A8B9933E445D7cf")
+var SectorAddress = ethCommon.HexToAddress("0xB820Aa50dA03bbfD168e394cD4efAcB8651F7f81")
+var SpaceAddress = ethCommon.HexToAddress("0xE9f7aC624883dA5699CB562d271914b8A91C4dC9")
+var FSAddress = ethCommon.HexToAddress("0x8CB2BF28Dd2A174299D9ed67C12764bE3347Bb13")
+var ListAddress = ethCommon.HexToAddress("0xC18F9f9C98d7248A4459C95ff0e6a0e52785Ee5b")
+var ProveAddress = ethCommon.HexToAddress("0x6ff6A62B13937aF544763d8A24D04101B2313Fdc")
+var PDPAddress = ethCommon.HexToAddress("0x46028ecA45731E4E92bb0930623cdF0b88Dd23a4")
 
 func (t *Ethereum) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient()
@@ -65,7 +71,7 @@ func (t *Ethereum) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	auth.From = address
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = value       			// in wei
-	auth.GasLimit = uint64(5000000) 	// in units
+	auth.GasLimit = uint64(10_000_000) 	// in units
 	auth.GasPrice = gasPrice
 
 	return auth, nil
