@@ -36,15 +36,15 @@ type ContractClient interface {
 	NodeCancel() ([]byte, error)
 	NodeWithDrawProfit() ([]byte, error)
 
-	// ----
+	// =======
 
-	GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error)
-	GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error)
+	GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) // ===
+	GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error)   //===
 	StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
-	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
-	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error)
-	FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error)
+		blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
+		fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
+		primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error)
+	FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error)  //===
 	GetFileInfo(fileHashStr string) (*fs.FileInfo, error)
 	GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error)
 	ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error)
