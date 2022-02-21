@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	listStore "github.com/saveio/themis-go-sdk/fs/contracts/List"
 	"math/big"
 	"time"
 
@@ -493,7 +494,7 @@ func (t *Ethereum) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	}
 	fileHash := []byte(fileHashStr)
 	f := fsStore.FileInfo{
-		FileHash:       fileHash,
+		FileHash: fileHash,
 		//BlocksRoot:     []byte(blocksRoot), // TODO ?
 		FileOwner:      t.DefAcc.EthAddress,
 		FileDesc:       fileDesc,
@@ -509,12 +510,12 @@ func (t *Ethereum) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		ProveBlockNum:  0,
 		BlockHeight:    big.NewInt(0),
 		ValidFlag:      true,
-		StorageType: uint8(storageType),
+		StorageType:    uint8(storageType),
 		RealFileSize:   realFileSize,
 		PrimaryNodes:   primary,
 		CandidateNodes: candidates,
 		IsPlotFile:     plotInfo != nil,
-		PlotInfo:       fsStore.PlotInfo{
+		PlotInfo: fsStore.PlotInfo{
 			NumberID:   plotInfo.NumericID,
 			StartNonce: plotInfo.StartNonce,
 			Nonces:     plotInfo.Nonces,
@@ -766,10 +767,35 @@ func (t *Ethereum) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]by
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	return t.WhiteListOp(fileHashStr, fs.ADD, fs.WhiteList{
-		Num:  uint64(len(whitelists)),
-		List: whitelists,
-	})
+	ec := t.Client.GetEthClient()
+	store, err := listStore.NewStore(ListAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]listStore.WhiteList, len(whitelists))
+	for k, v := range whitelists {
+		list[k] = listStore.WhiteList{
+			Addr:         ethCommon.Address(v.Addr),
+			BaseHeight:   v.BaseHeight,
+			ExpireHeight: v.ExpireHeight,
+		}
+	}
+	param := listStore.ListWhiteListParams{
+		FileHash: []byte(fileHashStr),
+		Op:       fs.ADD,
+		List:     list,
+	}
+	operate, err := store.WhiteListOperate(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	hash := operate.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
@@ -779,45 +805,60 @@ func (t *Ethereum) WhiteListOp(fileHashStr string, op uint64, whiteList fs.White
 	if op != fs.ADD && op != fs.ADD_COV && op != fs.DEL && op != fs.DEL_ALL {
 		return nil, errors.New("Param [op] error")
 	}
-	fileHash := []byte(fileHashStr)
-	whiteListOp := fs.WhiteListOp{FileHash: fileHash, Op: op, List: whiteList}
-	buf := new(bytes.Buffer)
-	if err := whiteListOp.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("WhiteListOp serialize error: %s", err.Error())
-	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_WHITE_LIST_OP, []interface{}{buf.Bytes()},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := listStore.NewStore(ListAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	list := make([]listStore.WhiteList, whiteList.Num)
+	for k, v := range whiteList.List {
+		list[k] = listStore.WhiteList{
+			Addr:         ethCommon.Address(v.Addr),
+			BaseHeight:   v.BaseHeight,
+			ExpireHeight: v.ExpireHeight,
+		}
+	}
+	param := listStore.ListWhiteListParams{
+		FileHash: []byte(fileHashStr),
+		Op:       fs.ADD,
+		List:     list,
+	}
+	operate, err := store.WhiteListOperate(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	hash := operate.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 	fileHash := []byte(fileHashStr)
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_WHITE_LIST, []interface{}{fileHash},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := listStore.NewStore(ListAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	list, err := store.GetWhiteList(&bind.CallOpts{}, fileHash)
 	if err != nil {
-		return nil, fmt.Errorf("GetProveDetails result toByteArray: %s", err.Error())
+		return nil, err
 	}
-	var whiteList fs.WhiteList
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		whiteListReader := bytes.NewReader(retInfo.Info)
-		err = whiteList.Deserialize(whiteListReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetWhiteList deserialize error: %s", err.Error())
+	rules := make([]fs.Rule, len(list))
+	for k, v := range list {
+		rules[k] = fs.Rule{
+			Addr:         common.Address(v.Addr),
+			BaseHeight:   v.BaseHeight,
+			ExpireHeight: v.ExpireHeight,
 		}
-		return &whiteList, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
 	}
+	ret := &fs.WhiteList{
+		Num:  uint64(len(list)),
+		List: rules,
+	}
+	return ret, nil
 }
 
 func (t *Ethereum) DeleteFile(fileHashStr string) ([]byte, error) {
