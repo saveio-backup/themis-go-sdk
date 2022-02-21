@@ -5,6 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -19,8 +22,6 @@ import (
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/savefs/pdp"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
-	"math/big"
-	"time"
 )
 
 type Ethereum struct {
@@ -472,52 +473,60 @@ func (t *Ethereum) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-
-	primary := fs.NodeList{
-		AddrNum:  uint64(len(primaryNodes)),
-		AddrList: primaryNodes,
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
+	if err != nil {
+		return nil, err
 	}
-	candidates := fs.NodeList{
-		AddrNum:  uint64(len(candidateNodes)),
-		AddrList: candidateNodes,
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
 	}
 
+	primary := make([]ethCommon.Address, len(primaryNodes))
+	for k, v := range primaryNodes {
+		primary[k] = ethCommon.Address(v)
+	}
+	candidates := make([]ethCommon.Address, len(candidateNodes))
+	for k, v := range candidateNodes {
+		candidates[k] = ethCommon.Address(v)
+	}
 	fileHash := []byte(fileHashStr)
-	fileInfo := &fs.FileInfo{
+	f := fsStore.FileInfo{
 		FileHash:       fileHash,
-		BlocksRoot:     []byte(blocksRoot),
-		FileOwner:      t.DefAcc.Address,
+		//BlocksRoot:     []byte(blocksRoot), // TODO ?
+		FileOwner:      t.DefAcc.EthAddress,
 		FileDesc:       fileDesc,
 		Privilege:      privilege,
 		FileBlockNum:   blockNum,
 		FileBlockSize:  blockSize,
-		ProveLevel:     proveLevel,
+		ProveLevel:     uint8(proveLevel),
 		ProveTimes:     0,
-		ExpiredHeight:  expiredHeight,
+		ExpiredHeight:  big.NewInt(int64(expiredHeight)),
 		CopyNum:        copyNum,
 		Deposit:        0,
 		FileProveParam: proveParam,
 		ProveBlockNum:  0,
-		BlockHeight:    0,
+		BlockHeight:    big.NewInt(0),
 		ValidFlag:      true,
-		StorageType:    storageType,
+		StorageType: uint8(storageType),
 		RealFileSize:   realFileSize,
 		PrimaryNodes:   primary,
 		CandidateNodes: candidates,
 		IsPlotFile:     plotInfo != nil,
-		PlotInfo:       plotInfo,
+		PlotInfo:       fsStore.PlotInfo{
+			NumberID:   plotInfo.NumericID,
+			StartNonce: plotInfo.StartNonce,
+			Nonces:     plotInfo.Nonces,
+		},
 	}
-	buf := new(bytes.Buffer)
-	if err := fileInfo.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("fileInfo serialize error: %s", err.Error())
-	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_STORE_FILE, []interface{}{buf.Bytes()},
-	)
+
+	file, err := store.StoreFile(signer, f)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	hash := file.Hash()
+	return hash[:], err
 }
 
 func copyFileInfo(info fsStore.FileInfo) fs.FileInfo {
@@ -812,17 +821,21 @@ func (t *Ethereum) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 }
 
 func (t *Ethereum) DeleteFile(fileHashStr string) ([]byte, error) {
-	if t.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
-	fileHash := []byte(fileHashStr)
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_DELETE_FILE, []interface{}{fileHash},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	file, err := store.DeleteFile(signer, []byte(fileHashStr))
+	if err != nil {
+		return nil, err
+	}
+	hash := file.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
@@ -834,28 +847,25 @@ func (t *Ethereum) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, 
 		gasLimit = sdkcom.GAS_LIMIT
 	}
 
-	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
-	for _, fileHashStr := range fileHashStrs {
-		fileHashes = append(fileHashes, fs.FileHash{
-			Hash: []byte(fileHashStr),
-		})
-	}
-	fileList := fs.FileList{
-		FileNum: uint64(len(fileHashStrs)),
-		List:    fileHashes,
-	}
-	fmt.Printf("file list: %v\n", fileList)
-	buf := new(bytes.Buffer)
-	if err := fileList.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
-	}
-	ret, err := t.InvokeNativeContractWithGasLimitUserDefine(t.DefAcc,
-		gasLimit, fs.FS_DELETE_FILES, []interface{}{buf.Bytes()},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	p := make([][]byte, len(fileHashStrs))
+	for k, v := range fileHashStrs {
+		p[k] = []byte(v)
+	}
+	file, err := store.DeleteFiles(signer, p)
+	if err != nil {
+		return nil, err
+	}
+	hash := file.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
@@ -1105,43 +1115,45 @@ func (t *Ethereum) SectorProve(sectorId uint64, challengeHeight uint64, proveDat
 }
 
 func (t *Ethereum) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_USER_UNSETTLED_FILES, []interface{}{addr},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	list, err := store.GetUnSettledFileList(&bind.CallOpts{}, ethCommon.Address(addr))
 	if err != nil {
-		return nil, fmt.Errorf("GetUnSettledFiles result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var fileList fs.FileList
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsFileListReader := bytes.NewReader(retInfo.Info)
-		err = fileList.Deserialize(fsFileListReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetUnSettledFiles error: %s", err.Error())
-		}
-		return &fileList, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	rlist := make([]fs.FileHash, len(list))
+	for k, v := range list {
+		rlist[k] = fs.FileHash{Hash: v}
 	}
+	ret := &fs.FileList{
+		FileNum: uint64(len(list)),
+		List:    rlist,
+	}
+	return ret, nil
 }
 
 func (t *Ethereum) DeleteUnSettledFiles() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-
-	ret, err := t.InvokeNativeContract(
-		t.DefAcc, fs.FS_DELETE_UNSETTLED_FILES, []interface{}{t.DefAcc.Address},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	tx, err := store.DeleteUnsettledFiles(signer, t.DefAcc.EthAddress)
+	if err != nil {
+		return nil, err
+	}
+	hash := tx.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {

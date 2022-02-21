@@ -204,9 +204,9 @@ func TestEthereum_NodeRegister(t1 *testing.T) {
 				},
 			},
 			args: args{
-				volume: 1000 * 1000,
+				volume:      1000 * 1000,
 				serviceTime: 0,
-				nodeAddr: "0x792e47e160f4ee67c17714df1c92f678640e0e4c",
+				nodeAddr:    "0x792e47e160f4ee67c17714df1c92f678640e0e4c",
 			},
 		},
 	}
@@ -258,9 +258,9 @@ func TestEthereum_NodeUpdate(t1 *testing.T) {
 				},
 			},
 			args: args{
-				volume: 1000 * 1000,
+				volume:      1000 * 1000,
 				serviceTime: 0,
-				nodeAddr: "0x792e47e160f4ee67c17714df1c92f678640e0e4c",
+				nodeAddr:    "0x792e47e160f4ee67c17714df1c92f678640e0e4c",
 			},
 		},
 	}

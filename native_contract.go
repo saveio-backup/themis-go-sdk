@@ -55,7 +55,7 @@ func newEthereumContract(client *client.ClientMgr) *NativeContract {
 	native.Dns = &dns.Dns{Client: client}
 	native.Fs = &fs.Fs{}
 	native.Fs.NewClient(&fs.Ethereum{
-		Client: 		   client,
+		Client:            client,
 		DefAcc:            nil,
 		PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
 	})

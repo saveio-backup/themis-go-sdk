@@ -21,6 +21,7 @@ type Themis struct {
 	DefAcc            *account.Account
 	PollForTxDuration time.Duration
 }
+
 var _ ContractClient = (*Themis)(nil)
 
 func (t *Themis) SetDefaultAccount(acc *account.Account) {
@@ -32,7 +33,7 @@ func (t *Themis) GetDefaultAccount() *account.Account {
 }
 
 func (t *Themis) GetClient() *client.ClientMgr {
-	return t.Client;
+	return t.Client
 }
 
 func (t *Themis) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {

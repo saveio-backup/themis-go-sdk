@@ -5,7 +5,6 @@ import (
 	"time"
 
 	sdk "github.com/saveio/themis-go-sdk"
-
 )
 
 var singleRpcServers1 = []string{
@@ -21,14 +20,13 @@ func main() {
 	//rpcCl.SetCallMode(client.ServerScore)
 
 	t1 := time.Now()
-	for ;; {
+	for {
 		hash, err := testChain.GetBlockHash(5)
 		if err != nil {
 			fmt.Println("[ERROR] LoopTestRpc GetBlockHash Error: ", err.Error())
 		} else {
 			fmt.Println("        LoopTestRpc GetBlockHash Height: ", hash.ToHexString())
 		}
-
 
 		hashString := hash.ToHexString()
 		block, err := testChain.GetBlockByHash(hashString)

@@ -191,10 +191,10 @@ func TestChannel_SetFeeInfo(t *testing.T) {
 	bytes, err := common.HexToBytes(pkHex)
 	feeInfo := micropayment.FeeInfo{
 		WalletAddr: walletAddr,
-		TokenAddr: utils.UsdtContractAddress,
-		Flat: 20,
-		PublicKey: bytes,
-		Signature: serialize,
+		TokenAddr:  utils.UsdtContractAddress,
+		Flat:       20,
+		PublicKey:  bytes,
+		Signature:  serialize,
 	}
 	verify := signature.Verify(channel.DefAcc.PublicKey, msgHash[:], sign)
 	if !verify {

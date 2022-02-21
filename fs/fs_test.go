@@ -32,8 +32,8 @@ func TestMain(m *testing.M) {
 	}
 	testFs = &Fs{}
 	testFs.NewClient(&Themis{
-		Client:            &client.ClientMgr{},
-		DefAcc:            acc,
+		Client: &client.ClientMgr{},
+		DefAcc: acc,
 	})
 	testFs.Client.GetClient().NewRpcClient().SetAddress([]string{rpc_addr})
 	testFs.Client.SetDefaultAccount(acc)
