@@ -59,8 +59,6 @@ type ContractClient interface {
 	WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error)
 	GetWhiteList(fileHashStr string) (*fs.WhiteList, error)
 
-	// =======
-
 	ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error)
 	ProveParamDes(proveParam []byte) (*fs.ProveParam, error)
 	FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error)
@@ -73,6 +71,8 @@ type ContractClient interface {
 	GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error)
 	GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error)
 	DeleteUserSpace() ([]byte, error)
+
+	// =======
 
 	CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error)
 	DeleteSector(sectorId uint64) ([]byte, error)

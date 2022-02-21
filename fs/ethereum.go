@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	listStore "github.com/saveio/themis-go-sdk/fs/contracts/List"
+	spaceStore "github.com/saveio/themis-go-sdk/fs/contracts/Space"
 	"math/big"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 	configStore "github.com/saveio/themis-go-sdk/fs/contracts/Config"
 	fsStore "github.com/saveio/themis-go-sdk/fs/contracts/FileSystem"
 	nodeStore "github.com/saveio/themis-go-sdk/fs/contracts/Node"
+	pdpStore "github.com/saveio/themis-go-sdk/fs/contracts/PDP"
+	proveStore "github.com/saveio/themis-go-sdk/fs/contracts/Prove"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
@@ -457,13 +460,22 @@ func (t *Ethereum) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, err
 }
 
 func (t *Ethereum) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
-	// TODO
-	return []byte{}, nil
+	var proveParam fs.ProveParam
+	proveParam.RootHash = rootHash
+	proveParam.FileID = fileId
+	bf := new(bytes.Buffer)
+	if err := proveParam.Serialize(bf); err != nil {
+		return nil, fmt.Errorf("ProveParam Serialize error: %s", err.Error())
+	}
+	return bf.Bytes(), nil
 }
 
 func (t *Ethereum) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
-	// TODO
 	var proveParamSt fs.ProveParam
+	reader := bytes.NewReader(proveParam)
+	if err := proveParamSt.Deserialize(reader); err != nil {
+		return nil, fmt.Errorf("ProveParamDes Deserialize error: %s", err.Error())
+	}
 	return &proveParamSt, nil
 }
 
@@ -735,29 +747,31 @@ func (t *Ethereum) GetUnProveCandidateFileList(addr common.Address) (*fs.FileLis
 }
 
 func (t *Ethereum) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error) {
-	fileHash := []byte(fileHashStr)
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_FILE_PROVE_DETAILS, []interface{}{fileHash},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := proveStore.NewStore(ProveAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	list, err := store.GetProveDetailList(&bind.CallOpts{}, []byte(fileHashStr))
 	if err != nil {
-		return nil, fmt.Errorf("GetProveDetails result toByteArray: %s", err.Error())
+		return nil, err
 	}
-	var fileProveDetails fs.FsProveDetails
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fileProveDetailReader := bytes.NewReader(retInfo.Info)
-		err = fileProveDetails.Deserialize(fileProveDetailReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetProveDetails deserialize error: %s", err.Error())
+	rlist := make([]fs.ProveDetail, len(list))
+	for k, v := range list {
+		rlist[k] = fs.ProveDetail{
+			NodeAddr:    v.NodeAddr[:],
+			WalletAddr:  common.Address(v.WalletAddr),
+			ProveTimes:  v.ProveTimes,
+			BlockHeight: v.BlockHeight.Uint64(),
+			Finished:    v.Finished,
 		}
-		return &fileProveDetails, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
 	}
+	ret := &fs.FsProveDetails{
+		CopyNum:        uint64(len(list)), // TODO ?
+		ProveDetailNum: uint64(len(list)),
+		ProveDetails:   rlist,
+	}
+	return ret, nil
 }
 
 func (t *Ethereum) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error) {
@@ -914,30 +928,62 @@ func (t *Ethereum) FileProve(fileHashStr string, proveData []byte, blockHeight u
 		return nil, errors.New("DefAcc is nil")
 	}
 	fileHash := []byte(fileHashStr)
-	ret, err := t.InvokeNativeContract(
-		t.DefAcc, fs.FS_FILE_PROVE,
-		[]interface{}{&fs.FileProve{FileHash: fileHash,
-			ProveData:   proveData,
-			BlockHeight: blockHeight,
-			NodeWallet:  t.DefAcc.Address,
-			Profit:      0,
-			SectorID:    sectorId}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := proveStore.NewStore(ProveAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	if t.PollForTxDuration != 0 {
-		confirmed, _ := t.PollForTxConfirmed(t.PollForTxDuration, ret.ToArray())
-		if !confirmed {
-			return nil, fmt.Errorf("tx %x not confirmed", ret.ToArray())
-		}
-
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
 	}
-	return ret.ToArray(), err
+	param := proveStore.ProveFileProveParams{
+		FileHash:    fileHash,
+		ProveData:   proveData,
+		BlockHeight: big.NewInt(int64(blockHeight)),
+		NodeWallet:  t.DefAcc.EthAddress,
+		Profit:      0,
+		SectorID:    sectorId,
+	}
+	prove, err := store.FileProve(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	hash := prove.Hash()
+	confirmed, err := t.PollForTxConfirmed(t.PollForTxDuration, hash[:])
+	if err != nil {
+		return nil, err
+	}
+	if !confirmed {
+		return nil, errors.New("tx failed")
+	}
+	return hash[:], nil
 }
 
 func (t *Ethereum) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
-	return fs.GenChallenge(walletAddr, hash, uint32(fileBlockNum), uint32(proveNum))
+	ec := t.Client.GetEthClient()
+	store, err := pdpStore.NewStore(PDPAddress, ec)
+	if err != nil {
+		return nil
+	}
+	param := pdpStore.GenChallengeParams{
+		WalletAddr:   ethCommon.Address(walletAddr),
+		HashValue:    hash[:],
+		FileBlockNum: fileBlockNum,
+		ProveNum:     proveNum,
+	}
+	challenge, err := store.GenChallenge(&bind.CallOpts{}, param)
+	if err != nil {
+		return nil
+	}
+	ret := make([]pdp.Challenge, proveNum)
+	for k, v := range challenge {
+		ret[k] = pdp.Challenge{
+			Index: v.Index,
+			Rand:  v.Rand,
+		}
+	}
+	return ret
 }
 
 // UpdateUserSpace. user space operation for space owner.
@@ -945,94 +991,108 @@ func (t *Ethereum) UpdateUserSpace(walletAddr common.Address, size, blockCount *
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	params := &fs.UserSpaceParams{
-		WalletAddr: t.DefAcc.Address,
-		Owner:      walletAddr,
-		Size:       size,
-		BlockCount: blockCount,
-	}
-	ret, err := t.InvokeNativeContract(
-		t.DefAcc, fs.FS_MANAGE_USER_SPACE,
-		[]interface{}{params},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := spaceStore.NewStore(SpaceAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	param := spaceStore.SpaceUserSpaceParams{
+		WalletAddr: ethCommon.Address(walletAddr),
+		Owner:      t.DefAcc.EthAddress,
+		Size: spaceStore.SpaceUserSpaceOperation{
+			Type:  uint8(size.Type),
+			Value: size.Value,
+		},
+		BlockCount: spaceStore.SpaceUserSpaceOperation{
+			Type:  uint8(blockCount.Type),
+			Value: blockCount.Value,
+		},
+	}
+	space, err := store.ManageUserSpace(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	hash := space.Hash()
+	return hash[:], err
 }
 
 // GetUserSpace. get user space with wallet address
 func (t *Ethereum) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_USER_SPACE, []interface{}{walletAddr})
+	ec := t.Client.GetEthClient()
+	store, err := spaceStore.NewStore(SpaceAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	space, err := store.GetUserSpace(&bind.CallOpts{}, ethCommon.Address(walletAddr))
 	if err != nil {
-		return nil, fmt.Errorf("GetUserSpace result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var userspace fs.UserSpace
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		r := bytes.NewReader(retInfo.Info)
-		err = userspace.Deserialize(r)
-		if err != nil {
-			return nil, fmt.Errorf("GetUserSpace error: %s", err.Error())
-		}
-		return &userspace, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	ret := &fs.UserSpace{
+		Used:         space.Used,
+		Remain:       space.Remain,
+		ExpireHeight: space.ExpireHeight.Uint64(),
+		Balance:      space.Balance,
+		UpdateHeight: space.UpdateHeight.Uint64(),
 	}
+	return ret, nil
 }
 
 func (t *Ethereum) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	params := &fs.UserSpaceParams{
-		WalletAddr: t.DefAcc.Address,
-		Owner:      walletAddr,
-		Size:       size,
-		BlockCount: blockCount,
-	}
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_USER_SPACE_COST, []interface{}{params})
+	ec := t.Client.GetEthClient()
+	store, err := spaceStore.NewStore(SpaceAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	param := spaceStore.SpaceUserSpaceParams{
+		WalletAddr: ethCommon.Address(walletAddr),
+		Owner:      t.DefAcc.EthAddress,
+		Size: spaceStore.SpaceUserSpaceOperation{
+			Type:  uint8(size.Type),
+			Value: size.Value,
+		},
+		BlockCount: spaceStore.SpaceUserSpaceOperation{
+			Type:  uint8(blockCount.Type),
+			Value: blockCount.Value,
+		},
+	}
+	cost, err := store.GetUpdateCost(&bind.CallOpts{}, param)
 	if err != nil {
-		return nil, fmt.Errorf("GetUserSpace result toByteArray: %s", err.Error())
+		return nil, err
 	}
-	var state usdt.State
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		r := bytes.NewReader(retInfo.Info)
-		err = state.Deserialize(r)
-		if err != nil {
-			return nil, fmt.Errorf("GetUserSpace error: %s", err.Error())
-		}
-		return &state, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	state := &usdt.State{
+		From:  common.Address(cost.From),
+		To:    common.Address(cost.To),
+		Value: cost.Value,
 	}
+	return state, nil
 }
 
 func (t *Ethereum) DeleteUserSpace() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-
-	ret, err := t.InvokeNativeContract(
-		t.DefAcc, fs.FS_DELETE_USER_SPACE,
-		[]interface{}{t.DefAcc.Address},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := spaceStore.NewStore(SpaceAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	space, err := store.DeleteUserSpace(signer, t.DefAcc.EthAddress)
+	if err != nil {
+		return nil, err
+	}
+	hash := space.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
@@ -1140,19 +1200,27 @@ func (t *Ethereum) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, 
 }
 
 func (t *Ethereum) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_SECTOR_PROVE, []interface{}{
-			&fs.SectorProve{
-				NodeAddr:        t.DefAcc.Address,
-				SectorID:        sectorId,
-				ChallengeHeight: challengeHeight,
-				ProveData:       proveData,
-			}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := proveStore.NewStore(ProveAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	param := proveStore.ProveSectorProveParams{
+		NodeAddr:        t.DefAcc.EthAddress,
+		SectorID:        sectorId,
+		ChallengeHeight: challengeHeight,
+		ProveData:       proveData,
+	}
+	prove, err := store.SectorProve(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	hash := prove.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
@@ -1198,15 +1266,23 @@ func (t *Ethereum) DeleteUnSettledFiles() ([]byte, error) {
 }
 
 func (t *Ethereum) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_CHECK_NODE_SECTOR_PROVED_INTIME, []interface{}{
-			&fs.SectorRef{
-				NodeAddr: addr,
-				SectorID: sectorId,
-			}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := proveStore.NewStore(ProveAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	param := proveStore.SectorRef{
+		NodeAddr: ethCommon.Address(addr),
+		SectorId: sectorId,
+	}
+	inTime, err := store.CheckNodeSectorProvedInTime(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	hash := inTime.Hash()
+	return hash[:], err
 }
