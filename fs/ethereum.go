@@ -520,184 +520,208 @@ func (t *Ethereum) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	return ret.ToArray(), err
 }
 
+func copyFileInfo(info fsStore.FileInfo) fs.FileInfo {
+	pa := make([]common.Address, len(info.PrimaryNodes))
+	for k, v := range info.PrimaryNodes {
+		pa[k] = common.Address(v)
+	}
+	pnode := fs.NodeList{
+		AddrNum:  0,
+		AddrList: pa,
+	}
+	ca := make([]common.Address, len(info.CandidateNodes))
+	for k, v := range info.PrimaryNodes {
+		ca[k] = common.Address(v)
+	}
+	cnode := fs.NodeList{
+		AddrNum:  0,
+		AddrList: ca,
+	}
+	p := &fs.PlotInfo{
+		NumericID:  info.PlotInfo.NumberID,
+		StartNonce: info.PlotInfo.StartNonce,
+		Nonces:     info.PlotInfo.Nonces,
+	}
+	fileInfo := fs.FileInfo{
+		FileHash:       info.FileHash,
+		FileOwner:      common.Address(info.FileOwner),
+		FileDesc:       info.FileDesc,
+		Privilege:      info.Privilege,
+		FileBlockNum:   info.FileBlockNum,
+		FileBlockSize:  info.FileBlockSize,
+		ProveInterval:  info.ProveInterval,
+		ProveTimes:     info.ProveTimes,
+		ExpiredHeight:  info.ExpiredHeight.Uint64(),
+		CopyNum:        info.CopyNum,
+		Deposit:        info.Deposit,
+		FileProveParam: info.FileProveParam,
+		ProveBlockNum:  info.ProveBlockNum,
+		BlockHeight:    info.BlockHeight.Uint64(),
+		ValidFlag:      info.ValidFlag,
+		StorageType:    uint64(info.StorageType),
+		RealFileSize:   info.RealFileSize,
+		PrimaryNodes:   pnode,
+		CandidateNodes: cnode,
+		BlocksRoot:     nil, // TODO ?
+		ProveLevel:     uint64(info.ProveLevel),
+		SectorRefs:     nil, // TODO
+		IsPlotFile:     info.IsPlotFile,
+		PlotInfo:       p,
+	}
+	return fileInfo
+}
 
 func (t *Ethereum) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
-	fileHash := []byte(fileHashStr)
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_FILE_INFO, []interface{}{fileHash},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	info, err := store.GetFileInfo(&bind.CallOpts{}, []byte(fileHashStr))
 	if err != nil {
-		return nil, fmt.Errorf("GetFileInfo result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var fileInfo fs.FileInfo
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsFileInfoReader := bytes.NewReader(retInfo.Info)
-		err = fileInfo.Deserialize(fsFileInfoReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetFileInfo error: %s", err.Error())
-		}
-		return &fileInfo, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
-	}
+	fileInfo := copyFileInfo(info)
+	return &fileInfo, nil
 }
 
 func (t *Ethereum) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
-	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
-	for _, fileHashStr := range fileHashStrs {
-		fileHashes = append(fileHashes, fs.FileHash{
-			Hash: []byte(fileHashStr),
-		})
-	}
-	fileList := fs.FileList{
-		FileNum: uint64(len(fileHashStrs)),
-		List:    fileHashes,
-	}
-	buf := new(bytes.Buffer)
-	if err := fileList.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("fileList serialize error: %s", err.Error())
-	}
-	ret, err := t.PreExecInvokeNativeContract(fs.FS_GET_FILE_INFOS, []interface{}{buf.Bytes()})
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	list := make([][]byte, len(fileHashStrs))
+	for k, v := range fileHashStrs {
+		list[k] = []byte(v)
+	}
+	info, err := store.GetFileInfos(&bind.CallOpts{}, list)
 	if err != nil {
-		return nil, fmt.Errorf("GetFileInfo result toByteArray: %s", err.Error())
+		return nil, err
 	}
-	fileInfos := &fs.FileInfoList{}
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsFileInfoReader := bytes.NewReader(retInfo.Info)
-		err = fileInfos.Deserialize(fsFileInfoReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetFileInfo error: %s", err.Error())
-		}
-		return fileInfos, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	rlist := make([]fs.FileInfo, len(info))
+	for k, v := range info {
+		rlist[k] = copyFileInfo(v)
 	}
+	ret := &fs.FileInfoList{
+		FileNum: uint64(len(info)),
+		List:    rlist,
+	}
+	return ret, nil
 }
 
 func (t *Ethereum) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	fileHash := []byte(fileHashStr)
-	ownerChange := &fs.OwnerChange{
-		FileHash: fileHash,
-		CurOwner: t.DefAcc.Address,
-		NewOwner: newOwner,
-	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_CHANGE_FILE_OWNER, []interface{}{ownerChange},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	ownerChange := fsStore.FileSystemOwnerChange{
+		FileHash: []byte(fileHashStr),
+		CurOwner: t.DefAcc.EthAddress,
+		NewOwner: ethCommon.Address(newOwner),
+	}
+	owner, err := store.ChangeFileOwner(signer, ownerChange)
+	if err != nil {
+		return nil, err
+	}
+	hash := owner.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-	fileHash := []byte(fileHashStr)
-	priChange := &fs.PriChange{
-		FileHash:  fileHash,
-		Privilege: newPrivilege,
-	}
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_CHANGE_FILE_PRIVILEGE, []interface{}{priChange},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	pri := fsStore.FileSystemPriChange{
+		FileHash:  []byte(fileHashStr),
+		Privilege: newPrivilege,
+	}
+	privilege, err := store.ChangeFilePrivilege(signer, pri)
+	if err != nil {
+		return nil, err
+	}
+	hash := privilege.Hash()
+	return hash[:], nil
 }
 
 func (t *Ethereum) GetFileList(addr common.Address) (*fs.FileList, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_FILE_LIST, []interface{}{addr},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	list, err := store.GetFileList(&bind.CallOpts{}, ethCommon.Address(addr))
 	if err != nil {
-		return nil, fmt.Errorf("GetFileList result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var fileList fs.FileList
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsFileListReader := bytes.NewReader(retInfo.Info)
-		err = fileList.Deserialize(fsFileListReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetFileList error: %s", err.Error())
-		}
-		return &fileList, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	flist := make([]fs.FileHash, len(list))
+	for k, v := range list {
+		flist[k] = fs.FileHash{Hash: v}
 	}
+	rlist := &fs.FileList{
+		FileNum: uint64(len(list)),
+		List:    flist,
+	}
+	return rlist, nil
 }
 
 func (t *Ethereum) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	files, err := store.GetUnProvePrimaryFiles(&bind.CallOpts{}, ethCommon.Address(addr))
 	if err != nil {
-		return nil, fmt.Errorf("GetFileList result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var fileList fs.FileList
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsFileListReader := bytes.NewReader(retInfo.Info)
-		err = fileList.Deserialize(fsFileListReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetFileList error: %s", err.Error())
-		}
-		return &fileList, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	flist := make([]fs.FileHash, len(files))
+	for k, v := range files {
+		flist[k] = fs.FileHash{Hash: v}
 	}
+	list := &fs.FileList{
+		FileNum: uint64(len(files)),
+		List:    nil,
+	}
+	return list, nil
 }
 
 func (t *Ethereum) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := fsStore.NewStore(FSAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	data, err := ret.Result.ToByteArray()
+	files, err := store.GetUnProveCandidateFiles(&bind.CallOpts{}, ethCommon.Address(addr))
 	if err != nil {
-		return nil, fmt.Errorf("GetFileList result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var fileList fs.FileList
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		fsFileListReader := bytes.NewReader(retInfo.Info)
-		err = fileList.Deserialize(fsFileListReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetFileList error: %s", err.Error())
-		}
-		return &fileList, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	flist := make([]fs.FileHash, len(files))
+	for k, v := range files {
+		flist[k] = fs.FileHash{Hash: v}
 	}
+	list := &fs.FileList{
+		FileNum: uint64(len(files)),
+		List:    nil,
+	}
+	return list, nil
 }
 
 func (t *Ethereum) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error) {
@@ -959,8 +983,6 @@ func (t *Ethereum) DeleteUserSpace() ([]byte, error) {
 	}
 	return ret.ToArray(), err
 }
-
-
 
 func (t *Ethereum) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,

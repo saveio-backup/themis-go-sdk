@@ -45,13 +45,13 @@ type ContractClient interface {
 		fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
 		primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error)
 	FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error)  //===
-	GetFileInfo(fileHashStr string) (*fs.FileInfo, error)
-	GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error)
-	ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error)
-	ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error)
-	GetFileList(addr common.Address) (*fs.FileList, error)
-	GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error)
-	GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error)
+	GetFileInfo(fileHashStr string) (*fs.FileInfo, error) // ===
+	GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) //===
+	ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) //===
+	ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) //===
+	GetFileList(addr common.Address) (*fs.FileList, error) //===
+	GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) //===
+	GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) //===
 	GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error)
 	DeleteFile(fileHashStr string) ([]byte, error)
 	DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error)
