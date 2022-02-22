@@ -72,8 +72,6 @@ type ContractClient interface {
 	GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error)
 	DeleteUserSpace() ([]byte, error)
 
-	// =======
-
 	CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error)
 	DeleteSector(sectorId uint64) ([]byte, error)
 	GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error)

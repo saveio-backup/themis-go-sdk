@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	listStore "github.com/saveio/themis-go-sdk/fs/contracts/List"
+	sectorStore "github.com/saveio/themis-go-sdk/fs/contracts/Sector"
 	spaceStore "github.com/saveio/themis-go-sdk/fs/contracts/Space"
 	"math/big"
 	"time"
@@ -1096,107 +1097,162 @@ func (t *Ethereum) DeleteUserSpace() ([]byte, error) {
 }
 
 func (t *Ethereum) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_CREATE_SECTOR, []interface{}{
-			&fs.SectorInfo{
-				NodeAddr:   t.DefAcc.Address,
-				SectorID:   sectorId,
-				ProveLevel: proveLevel,
-				Size:       size,
-				IsPlots:    isPlots,
-			}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := sectorStore.NewStore(SectorAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	sector := sectorStore.SectorInfo{
+		NodeAddr:   t.DefAcc.EthAddress,
+		SectorID:   sectorId,
+		Size:       size,
+		ProveLevel: uint8(proveLevel),
+		IsPlots:    isPlots,
+	}
+	createSector, err := store.CreateSector(signer, sector)
+	if err != nil {
+		return nil, err
+	}
+	hash := createSector.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) DeleteSector(sectorId uint64) ([]byte, error) {
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_DELETE_SECTOR_INFO, []interface{}{
-			&fs.SectorRef{
-				NodeAddr: t.DefAcc.Address,
-				SectorID: sectorId,
-			}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := sectorStore.NewStore(SectorAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	sector := sectorStore.SectorRef{
+		NodeAddr: t.DefAcc.EthAddress,
+		SectorId: sectorId,
+	}
+	createSector, err := store.DeleteSecotr(signer, sector)
+	if err != nil {
+		return nil, err
+	}
+	hash := createSector.Hash()
+	return hash[:], err
 }
 
 func (t *Ethereum) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_SECTOR_INFO, []interface{}{
-			&fs.SectorRef{
-				NodeAddr: t.DefAcc.Address,
-				SectorID: sectorId,
-			}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := sectorStore.NewStore(SectorAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-
-	data, err := ret.Result.ToByteArray()
+	sector := sectorStore.SectorRef{
+		NodeAddr: t.DefAcc.EthAddress,
+		SectorId: sectorId,
+	}
+	info, err := store.GetSectorInfo(&bind.CallOpts{}, sector)
 	if err != nil {
-		return nil, fmt.Errorf("GetSectorInfo result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var sectorInfo fs.SectorInfo
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		sectorInfoReader := bytes.NewReader(retInfo.Info)
-		err = sectorInfo.Deserialize(sectorInfoReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetSectorInfo error: %s", err.Error())
-		}
-		return &sectorInfo, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	hlist := make([]fs.FileHash, len(info.FileList))
+	for k, v := range info.FileList {
+		hlist[k] = fs.FileHash{Hash: v}
 	}
+	flist := fs.FileList{
+		FileNum: uint64(len(info.FileList)),
+		List:    hlist,
+	}
+	ret := &fs.SectorInfo{
+		NodeAddr:         common.Address(info.NodeAddr),
+		SectorID:         info.SectorID,
+		Size:             info.Size,
+		Used:             info.Used,
+		ProveLevel:       uint64(info.ProveLevel),
+		FirstProveHeight: info.FirstProveHeight.Uint64(),
+		NextProveHeight:  info.NextProveHeight.Uint64(),
+		TotalBlockNum:    info.TotalBlockNum,
+		FileNum:          info.FileNum,
+		GroupNum:         info.GroupNum,
+		IsPlots:          info.IsPlots,
+		FileList:         flist,
+	}
+	return ret, err
 }
 
 func (t *Ethereum) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error) {
-	ret, err := t.InvokeNativeContract(t.DefAcc,
-		fs.FS_DELETE_FILE_IN_SECTOR, []interface{}{
-			&fs.SectorFileRef{
-				NodeAddr: t.DefAcc.Address,
-				SectorID: sectorId,
-				FileHash: ([]byte)(fileHashStr),
-			}},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := sectorStore.NewStore(SectorAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	return ret.ToArray(), err
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	s := sectorStore.SectorInfo{
+		NodeAddr: t.DefAcc.EthAddress,
+		SectorID: sectorId,
+	}
+	f := sectorStore.FileInfo{
+		FileHash:  []byte(fileHashStr),
+		FileOwner: t.DefAcc.EthAddress,
+	}
+	createSector, err := store.DeleteFileFromSector(signer, s, f) // TODO
+	if err != nil {
+		return nil, err
+	}
+	hash := createSector.Hash()
+	return hash[:], err
+}
+
+func copeSectorInfo(info sectorStore.SectorInfo) *fs.SectorInfo {
+	hlist := make([]fs.FileHash, len(info.FileList))
+	for k, v := range info.FileList {
+		hlist[k] = fs.FileHash{Hash: v}
+	}
+	flist := fs.FileList{
+		FileNum: uint64(len(info.FileList)),
+		List:    hlist,
+	}
+	ret := &fs.SectorInfo{
+		NodeAddr:         common.Address(info.NodeAddr),
+		SectorID:         info.SectorID,
+		Size:             info.Size,
+		Used:             info.Used,
+		ProveLevel:       uint64(info.ProveLevel),
+		FirstProveHeight: info.FirstProveHeight.Uint64(),
+		NextProveHeight:  info.NextProveHeight.Uint64(),
+		TotalBlockNum:    info.TotalBlockNum,
+		FileNum:          info.FileNum,
+		GroupNum:         info.GroupNum,
+		IsPlots:          info.IsPlots,
+		FileList:         flist,
+	}
+	return ret
 }
 
 func (t *Ethereum) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
-	ret, err := t.PreExecInvokeNativeContract(
-		fs.FS_GET_SECTORS_FOR_NODE, []interface{}{addr[:]},
-	)
+	ec := t.Client.GetEthClient()
+	store, err := sectorStore.NewStore(SectorAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-
-	data, err := ret.Result.ToByteArray()
+	list, err := store.GetSectorsForNode(&bind.CallOpts{}, ethCommon.Address(addr))
 	if err != nil {
-		return nil, fmt.Errorf("GetSectorInfo result toByteArray: %s", err.Error())
+		return nil, err
 	}
-
-	var sectorInfos fs.SectorInfos
-	retInfo := fs.DecRet(data)
-	if retInfo.Ret {
-		sectorInfosReader := bytes.NewReader(retInfo.Info)
-		err = sectorInfos.Deserialize(sectorInfosReader)
-		if err != nil {
-			return nil, fmt.Errorf("GetSectorInfo error: %s", err.Error())
-		}
-		return &sectorInfos, err
-	} else {
-		return nil, errors.New(string(retInfo.Info))
+	infos := make([]*fs.SectorInfo, len(list))
+	for k, v := range list {
+		infos[k] = copeSectorInfo(v)
 	}
+	ret := &fs.SectorInfos{
+		SectorCount: uint64(len(infos)),
+		Sectors:     infos,
+	}
+	return ret, err
 }
 
 func (t *Ethereum) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
