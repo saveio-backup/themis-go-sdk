@@ -40,7 +40,7 @@ func TestEthereum_GetSetting(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Ethereum{
+			t := &EVM{
 				Client:            tt.fields.Client,
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,
@@ -76,7 +76,7 @@ func TestEthereum_GetNodeList(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Ethereum{
+			t := &EVM{
 				Client:            tt.fields.Client,
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,
@@ -117,7 +117,7 @@ func TestEthereum_GetNodeListByAddrs(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Ethereum{
+			t := &EVM{
 				Client:            tt.fields.Client,
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,
@@ -158,7 +158,7 @@ func TestEthereum_NodeQuery(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Ethereum{
+			t := &EVM{
 				Client:            tt.fields.Client,
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,
@@ -212,7 +212,7 @@ func TestEthereum_NodeRegister(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Ethereum{
+			t := &EVM{
 				Client:            tt.fields.Client,
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,
@@ -266,7 +266,7 @@ func TestEthereum_NodeUpdate(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &Ethereum{
+			t := &EVM{
 				Client:            tt.fields.Client,
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,

@@ -36,7 +36,7 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 	native.Auth = &auth.Auth{Client: client}
 	native.Dns = &dns.Dns{Client: client}
 	native.Fs = &fs.Fs{}
-	native.Fs.NewClient(&fs.Themis{
+	native.Fs.NewClient(&fs.Native{
 		Client:            client,
 		DefAcc:            nil,
 		PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,

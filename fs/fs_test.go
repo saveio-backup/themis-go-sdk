@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
 	testFs = &Fs{}
-	testFs.NewClient(&Themis{
+	testFs.NewClient(&Native{
 		Client: &client.ClientMgr{},
 		DefAcc: acc,
 	})

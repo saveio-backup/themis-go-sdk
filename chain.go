@@ -29,7 +29,7 @@ func NewChain() *Chain {
 	chain.Native = native
 	neoVM := newNeoVMContract(chain)
 	chain.NeoVM = neoVM
-	evm := newEthereumContract(chain.GetClientMgr())
+	evm := newEVMContract(chain.GetClientMgr())
 	chain.EVM = evm
 	return chain
 }

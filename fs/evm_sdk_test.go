@@ -37,7 +37,7 @@ func Test_Init(t *testing.T) {
 func Test_Deploy_Config(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -56,7 +56,7 @@ func Test_Deploy_Config(t *testing.T) {
 func Test_Deploy_Node(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -75,7 +75,7 @@ func Test_Deploy_Node(t *testing.T) {
 func Test_Deploy_Sector(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -94,7 +94,7 @@ func Test_Deploy_Sector(t *testing.T) {
 func Test_Deploy_Space(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -113,7 +113,7 @@ func Test_Deploy_Space(t *testing.T) {
 func Test_Deploy_FS(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -132,7 +132,7 @@ func Test_Deploy_FS(t *testing.T) {
 func Test_Deploy_List(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -151,7 +151,7 @@ func Test_Deploy_List(t *testing.T) {
 func Test_Deploy_Prove(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -170,7 +170,7 @@ func Test_Deploy_Prove(t *testing.T) {
 func Test_Deploy_PDP(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -191,7 +191,7 @@ func Test_Deploy_PDP(t *testing.T) {
 func Test_Init_Node(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -212,7 +212,7 @@ func Test_Init_Node(t *testing.T) {
 func Test_Init_Sector(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -233,7 +233,7 @@ func Test_Init_Sector(t *testing.T) {
 func Test_Init_FS(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -254,7 +254,7 @@ func Test_Init_FS(t *testing.T) {
 func Test_Init_Space(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))
@@ -275,7 +275,7 @@ func Test_Init_Space(t *testing.T) {
 func Test_Init_Prove(t *testing.T) {
 	Test_Init(t)
 
-	eth := &Ethereum{
+	eth := &EVM{
 		Client: CreateClientMgr(),
 	}
 	auth, _ := eth.GetSigner(big.NewInt(0))

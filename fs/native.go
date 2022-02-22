@@ -16,27 +16,27 @@ import (
 	"time"
 )
 
-type Themis struct {
+type Native struct {
 	Client            *client.ClientMgr
 	DefAcc            *account.Account
 	PollForTxDuration time.Duration
 }
 
-var _ ContractClient = (*Themis)(nil)
+var _ ContractClient = (*Native)(nil)
 
-func (t *Themis) SetDefaultAccount(acc *account.Account) {
+func (t *Native) SetDefaultAccount(acc *account.Account) {
 	t.DefAcc = acc
 }
 
-func (t *Themis) GetDefaultAccount() *account.Account {
+func (t *Native) GetDefaultAccount() *account.Account {
 	return t.DefAcc
 }
 
-func (t *Themis) GetClient() *client.ClientMgr {
+func (t *Native) GetClient() *client.ClientMgr {
 	return t.Client
 }
 
-func (t *Themis) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
+func (t *Native) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
@@ -51,7 +51,7 @@ func (t *Themis) InvokeNativeContract(signer *account.Account, method string, pa
 	return t.Client.SendTransaction(tx)
 }
 
-func (t *Themis) InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error) {
+func (t *Native) InvokeNativeContractWithGasLimitUserDefine(signer *account.Account, gasLimit uint64, method string, params []interface{}) (common.Uint256, error) {
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
@@ -66,7 +66,7 @@ func (t *Themis) InvokeNativeContractWithGasLimitUserDefine(signer *account.Acco
 	return t.Client.SendTransaction(tx)
 }
 
-func (t *Themis) PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error) {
+func (t *Native) PreExecInvokeNativeContract(method string, params []interface{}) (*sdkcom.PreExecResult, error) {
 	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (t *Themis) PreExecInvokeNativeContract(method string, params []interface{}
 	return t.Client.PreExecTransaction(tx)
 }
 
-func (t *Themis) PreExecInvokeNativeContractWithSigner(signer *account.Account, method string, params []interface{}) (*sdkcom.PreExecResult, error) {
+func (t *Native) PreExecInvokeNativeContractWithSigner(signer *account.Account, method string, params []interface{}) (*sdkcom.PreExecResult, error) {
 	tx, err := utils.NewNativeInvokeTransaction(0, 0, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (t *Themis) PreExecInvokeNativeContractWithSigner(signer *account.Account, 
 	return t.Client.PreExecTransaction(tx)
 }
 
-func (t *Themis) GetSetting() (*fs.FsSetting, error) {
+func (t *Native) GetSetting() (*fs.FsSetting, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GETSETTING, []interface{}{},
 	)
@@ -112,7 +112,7 @@ func (t *Themis) GetSetting() (*fs.FsSetting, error) {
 	}
 }
 
-func (t *Themis) GetNodeList() (*fs.FsNodesInfo, error) {
+func (t *Native) GetNodeList() (*fs.FsNodesInfo, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_NODE_LIST, []interface{}{},
 	)
@@ -136,7 +136,7 @@ func (t *Themis) GetNodeList() (*fs.FsNodesInfo, error) {
 	}
 }
 
-func (t *Themis) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
+func (t *Native) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error) {
 	nodeList := &fs.NodeList{
 		AddrNum:  uint64(len(addrs)),
 		AddrList: addrs,
@@ -168,7 +168,7 @@ func (t *Themis) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, er
 	}
 }
 
-func (t *Themis) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
+func (t *Native) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
 	var proveParam fs.ProveParam
 	proveParam.RootHash = rootHash
 	proveParam.FileID = fileId
@@ -179,7 +179,7 @@ func (t *Themis) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, erro
 	return bf.Bytes(), nil
 }
 
-func (t *Themis) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
+func (t *Native) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 	var proveParamSt fs.ProveParam
 	reader := bytes.NewReader(proveParam)
 	if err := proveParamSt.Deserialize(reader); err != nil {
@@ -188,7 +188,7 @@ func (t *Themis) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 	return &proveParamSt, nil
 }
 
-func (t *Themis) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
+func (t *Native) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
 	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error) {
@@ -243,7 +243,7 @@ func (t *Themis) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	return ret.ToArray(), err
 }
 
-func (t *Themis) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
+func (t *Native) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -262,7 +262,7 @@ func (t *Themis) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
+func (t *Native) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_INFO, []interface{}{fileHash},
@@ -289,7 +289,7 @@ func (t *Themis) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	}
 }
 
-func (t *Themis) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
+func (t *Native) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
 	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
 	for _, fileHashStr := range fileHashStrs {
 		fileHashes = append(fileHashes, fs.FileHash{
@@ -326,7 +326,7 @@ func (t *Themis) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
 	}
 }
 
-func (t *Themis) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) {
+func (t *Native) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -345,7 +345,7 @@ func (t *Themis) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([
 	return ret.ToArray(), err
 }
 
-func (t *Themis) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) {
+func (t *Native) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -363,7 +363,7 @@ func (t *Themis) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetFileList(addr common.Address) (*fs.FileList, error) {
+func (t *Native) GetFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_LIST, []interface{}{addr},
 	)
@@ -389,7 +389,7 @@ func (t *Themis) GetFileList(addr common.Address) (*fs.FileList, error) {
 	}
 }
 
-func (t *Themis) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
+func (t *Native) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
 	)
@@ -415,7 +415,7 @@ func (t *Themis) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, e
 	}
 }
 
-func (t *Themis) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
+func (t *Native) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_UNPROVE_PRIMARY_FILES, []interface{}{addr},
 	)
@@ -441,7 +441,7 @@ func (t *Themis) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList,
 	}
 }
 
-func (t *Themis) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error) {
+func (t *Native) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_FILE_PROVE_DETAILS, []interface{}{fileHash},
@@ -467,7 +467,7 @@ func (t *Themis) GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, er
 	}
 }
 
-func (t *Themis) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error) {
+func (t *Native) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, error) {
 	if len(fileHashStr) == 0 || len(whitelists) == 0 {
 		return nil, errors.New("invalid params")
 	}
@@ -480,7 +480,7 @@ func (t *Themis) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte
 	})
 }
 
-func (t *Themis) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
+func (t *Native) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -502,7 +502,7 @@ func (t *Themis) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteLi
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
+func (t *Native) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 	fileHash := []byte(fileHashStr)
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_WHITE_LIST, []interface{}{fileHash},
@@ -528,7 +528,7 @@ func (t *Themis) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 	}
 }
 
-func (t *Themis) DeleteFile(fileHashStr string) ([]byte, error) {
+func (t *Native) DeleteFile(fileHashStr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -542,7 +542,7 @@ func (t *Themis) DeleteFile(fileHashStr string) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *Themis) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
+func (t *Native) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -575,11 +575,11 @@ func (t *Themis) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, er
 	return ret.ToArray(), err
 }
 
-func (t *Themis) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
+func (t *Native) PollForTxConfirmed(timeout time.Duration, txHash []byte) (bool, error) {
 	return t.Client.PollForTxConfirmed(timeout, txHash)
 }
 
-func (t *Themis) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
+func (t *Native) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
 	maxProveBlockNum, defProveLevel uint64, minVolume uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
@@ -600,7 +600,7 @@ func (t *Themis) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasFo
 	return ret.ToArray(), err
 }
 
-func (t *Themis) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
+func (t *Native) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -623,7 +623,7 @@ func (t *Themis) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string
 	return ret.ToArray(), err
 }
 
-func (t *Themis) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
+func (t *Native) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_NODE_QUERY, []interface{}{nodeWallet},
 	)
@@ -649,7 +649,7 @@ func (t *Themis) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
 	}
 }
 
-func (t *Themis) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
+func (t *Native) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -664,7 +664,7 @@ func (t *Themis) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) 
 	return ret.ToArray(), err
 }
 
-func (t *Themis) NodeCancel() ([]byte, error) {
+func (t *Native) NodeCancel() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -678,7 +678,7 @@ func (t *Themis) NodeCancel() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *Themis) NodeWithDrawProfit() ([]byte, error) {
+func (t *Native) NodeWithDrawProfit() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -692,7 +692,7 @@ func (t *Themis) NodeWithDrawProfit() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *Themis) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
+func (t *Native) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -719,12 +719,12 @@ func (t *Themis) FileProve(fileHashStr string, proveData []byte, blockHeight uin
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
+func (t *Native) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
 	return fs.GenChallenge(walletAddr, hash, uint32(fileBlockNum), uint32(proveNum))
 }
 
 // UpdateUserSpace. user space operation for space owner.
-func (t *Themis) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
+func (t *Native) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -745,7 +745,7 @@ func (t *Themis) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs
 }
 
 // GetUserSpace. get user space with wallet address
-func (t *Themis) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
+func (t *Native) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_USER_SPACE, []interface{}{walletAddr})
 	if err != nil {
@@ -770,7 +770,7 @@ func (t *Themis) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) 
 	}
 }
 
-func (t *Themis) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
+func (t *Native) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -803,7 +803,7 @@ func (t *Themis) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount 
 	}
 }
 
-func (t *Themis) DeleteUserSpace() ([]byte, error) {
+func (t *Native) DeleteUserSpace() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -818,7 +818,7 @@ func (t *Themis) DeleteUserSpace() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
+func (t *Native) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
 	log.Debugf("opt :%v", opt.StorageType)
 	buf := new(bytes.Buffer)
 	if err := opt.Serialize(buf); err != nil {
@@ -848,7 +848,7 @@ func (t *Themis) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, erro
 	}
 }
 
-func (t *Themis) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
+func (t *Native) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
 	fileHashes := make([]fs.FileHash, 0, len(fileHashStrs))
 	for _, fileHashStr := range fileHashStrs {
 		fileHashes = append(fileHashes, fs.FileHash{
@@ -872,7 +872,7 @@ func (t *Themis) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error)
 	return ret.Gas, err
 }
 
-func (t *Themis) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
+func (t *Native) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_CREATE_SECTOR, []interface{}{
 			&fs.SectorInfo{
@@ -889,7 +889,7 @@ func (t *Themis) CreateSector(sectorId uint64, proveLevel uint64, size uint64, i
 	return ret.ToArray(), err
 }
 
-func (t *Themis) DeleteSector(sectorId uint64) ([]byte, error) {
+func (t *Native) DeleteSector(sectorId uint64) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_DELETE_SECTOR_INFO, []interface{}{
 			&fs.SectorRef{
@@ -903,7 +903,7 @@ func (t *Themis) DeleteSector(sectorId uint64) ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
+func (t *Native) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_SECTOR_INFO, []interface{}{
 			&fs.SectorRef{
@@ -934,7 +934,7 @@ func (t *Themis) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
 	}
 }
 
-func (t *Themis) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error) {
+func (t *Native) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_DELETE_FILE_IN_SECTOR, []interface{}{
 			&fs.SectorFileRef{
@@ -949,7 +949,7 @@ func (t *Themis) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
+func (t *Native) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_SECTORS_FOR_NODE, []interface{}{addr[:]},
 	)
@@ -976,7 +976,7 @@ func (t *Themis) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, er
 	}
 }
 
-func (t *Themis) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
+func (t *Native) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_SECTOR_PROVE, []interface{}{
 			&fs.SectorProve{
@@ -992,7 +992,7 @@ func (t *Themis) SectorProve(sectorId uint64, challengeHeight uint64, proveData 
 	return ret.ToArray(), err
 }
 
-func (t *Themis) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
+func (t *Native) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
 	ret, err := t.PreExecInvokeNativeContract(
 		fs.FS_GET_USER_UNSETTLED_FILES, []interface{}{addr},
 	)
@@ -1018,7 +1018,7 @@ func (t *Themis) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
 	}
 }
 
-func (t *Themis) DeleteUnSettledFiles() ([]byte, error) {
+func (t *Native) DeleteUnSettledFiles() ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -1032,7 +1032,7 @@ func (t *Themis) DeleteUnSettledFiles() ([]byte, error) {
 	return ret.ToArray(), err
 }
 
-func (t *Themis) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
+func (t *Native) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
 	ret, err := t.InvokeNativeContract(t.DefAcc,
 		fs.FS_CHECK_NODE_SECTOR_PROVED_INTIME, []interface{}{
 			&fs.SectorRef{
