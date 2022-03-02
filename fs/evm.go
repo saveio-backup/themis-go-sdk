@@ -416,19 +416,7 @@ func (t *EVM) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	signer, err := t.GetSigner(big.NewInt(0))
-	if err != nil {
-		return 0, err
-	}
-	b := make([][]byte, len(fileHashStrs))
-	for k, v := range fileHashStrs {
-		b[k] = []byte(v)
-	}
-	files, err := store.DeleteFiles(signer, b)
-	if err != nil {
-		return 0, err
-	}
-	log.Info(files)
+	log.Info(store)
 	// TODO how get the fees
 	return 0, nil
 }
@@ -508,7 +496,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	fileHash := []byte(fileHashStr)
 	f := fsStore.FileInfo{
 		FileHash: fileHash,
-		//BlocksRoot:     []byte(blocksRoot), // TODO ?
+		BlocksRoot:     []byte(blocksRoot),
 		FileOwner:      t.DefAcc.EthAddress,
 		FileDesc:       fileDesc,
 		Privilege:      privilege,
