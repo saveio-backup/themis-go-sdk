@@ -573,9 +573,9 @@ func copyFileInfo(info fsStore.FileInfo) fs.FileInfo {
 		RealFileSize:   info.RealFileSize,
 		PrimaryNodes:   pnode,
 		CandidateNodes: cnode,
-		BlocksRoot:     nil, // TODO ?
+		BlocksRoot:     info.BlocksRoot,
 		ProveLevel:     uint64(info.ProveLevel),
-		SectorRefs:     nil, // TODO
+		SectorRefs:     nil, // TODO get from sector info?
 		IsPlotFile:     info.IsPlotFile,
 		PlotInfo:       p,
 	}
@@ -1188,7 +1188,7 @@ func (t *EVM) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, e
 		FileHash:  []byte(fileHashStr),
 		FileOwner: t.DefAcc.EthAddress,
 	}
-	createSector, err := store.DeleteFileFromSector(signer, s, f) // TODO
+	createSector, err := store.DeleteFileFromSector(signer, s, f) // TODO why todo?
 	if err != nil {
 		return nil, err
 	}
