@@ -141,8 +141,8 @@ func CheckKeyTypeCurve(keyType keypair.KeyType, curveCode byte) bool {
 		switch curveCode {
 		case keypair.P224:
 		case keypair.P256:
-		case keypair.P384:
-		case keypair.P521:
+		// case keypair.P384:
+		// case keypair.P521:
 		default:
 			return false
 		}
