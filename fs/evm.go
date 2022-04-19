@@ -495,7 +495,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	}
 	fileHash := []byte(fileHashStr)
 	f := fsStore.FileInfo{
-		FileHash: fileHash,
+		FileHash:       fileHash,
 		BlocksRoot:     []byte(blocksRoot),
 		FileOwner:      t.DefAcc.EthAddress,
 		FileDesc:       fileDesc,
@@ -634,7 +634,7 @@ func (t *EVM) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]by
 	if err != nil {
 		return nil, err
 	}
-	ownerChange := fsStore.FileSystemOwnerChange{
+	ownerChange := fsStore.OwnerChange{
 		FileHash: []byte(fileHashStr),
 		CurOwner: t.DefAcc.EthAddress,
 		NewOwner: ethCommon.Address(newOwner),
@@ -660,7 +660,7 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 	if err != nil {
 		return nil, err
 	}
-	pri := fsStore.FileSystemPriChange{
+	pri := fsStore.PriChange{
 		FileHash:  []byte(fileHashStr),
 		Privilege: newPrivilege,
 	}
@@ -788,7 +788,7 @@ func (t *EVM) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, e
 			ExpireHeight: v.ExpireHeight,
 		}
 	}
-	param := listStore.ListWhiteListParams{
+	param := listStore.WhiteListParams{
 		FileHash: []byte(fileHashStr),
 		Op:       fs.ADD,
 		List:     list,
@@ -825,7 +825,7 @@ func (t *EVM) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList)
 			ExpireHeight: v.ExpireHeight,
 		}
 	}
-	param := listStore.ListWhiteListParams{
+	param := listStore.WhiteListParams{
 		FileHash: []byte(fileHashStr),
 		Op:       fs.ADD,
 		List:     list,
@@ -926,7 +926,7 @@ func (t *EVM) FileProve(fileHashStr string, proveData []byte, blockHeight uint64
 	if err != nil {
 		return nil, err
 	}
-	param := proveStore.ProveFileProveParams{
+	param := proveStore.FileProveParams{
 		FileHash:    fileHash,
 		ProveData:   proveData,
 		BlockHeight: big.NewInt(int64(blockHeight)),
@@ -989,14 +989,14 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	if err != nil {
 		return nil, err
 	}
-	param := spaceStore.SpaceUserSpaceParams{
+	param := spaceStore.UserSpaceParams{
 		WalletAddr: ethCommon.Address(walletAddr),
 		Owner:      t.DefAcc.EthAddress,
-		Size: spaceStore.SpaceUserSpaceOperation{
+		Size: spaceStore.UserSpaceOperation{
 			Type:  uint8(size.Type),
 			Value: size.Value,
 		},
-		BlockCount: spaceStore.SpaceUserSpaceOperation{
+		BlockCount: spaceStore.UserSpaceOperation{
 			Type:  uint8(blockCount.Type),
 			Value: blockCount.Value,
 		},
@@ -1039,14 +1039,14 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 	if err != nil {
 		return nil, err
 	}
-	param := spaceStore.SpaceUserSpaceParams{
+	param := spaceStore.UserSpaceParams{
 		WalletAddr: ethCommon.Address(walletAddr),
 		Owner:      t.DefAcc.EthAddress,
-		Size: spaceStore.SpaceUserSpaceOperation{
+		Size: spaceStore.UserSpaceOperation{
 			Type:  uint8(size.Type),
 			Value: size.Value,
 		},
-		BlockCount: spaceStore.SpaceUserSpaceOperation{
+		BlockCount: spaceStore.UserSpaceOperation{
 			Type:  uint8(blockCount.Type),
 			Value: blockCount.Value,
 		},
@@ -1253,7 +1253,7 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 	if err != nil {
 		return nil, err
 	}
-	param := proveStore.ProveSectorProveParams{
+	param := proveStore.SectorProveParams{
 		NodeAddr:        t.DefAcc.EthAddress,
 		SectorID:        sectorId,
 		ChallengeHeight: challengeHeight,
