@@ -10,23 +10,23 @@ import (
 )
 
 type EVMContract struct {
-	Fs           *fs.Fs
-	Dns          *dns.Dns
-	Channel      *channel.Channel
-	Governance   *governance.Governance
+	Fs         *fs.Fs
+	Dns        *dns.Dns
+	Channel    *channel.Channel
+	Governance *governance.Governance
 }
 
 func newEVMContract(client *client.ClientMgr) *EVMContract {
-	native := &EVMContract{}
-	native.Fs = &fs.Fs{}
-	native.Fs.NewClient(&fs.EVM{
+	evm := &EVMContract{}
+	evm.Fs = &fs.Fs{}
+	evm.Fs.NewClient(&fs.EVM{
 		Client:            client,
 		DefAcc:            nil,
 		PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
 	})
-	native.Channel = &channel.Channel{Client: client}
-	native.Governance = &governance.Governance{Client: client}
-	return native
+	evm.Channel = &channel.Channel{Client: client}
+	evm.Governance = &governance.Governance{Client: client}
+	return evm
 }
 
 func (this *EVMContract) SetDefaultAccount(acc *account.Account) {
