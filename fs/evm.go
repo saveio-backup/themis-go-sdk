@@ -37,18 +37,6 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-// for Goerli testnet
-//var address = ethCommon.HexToAddress("0xa934808a26bd08c5145cf1894d06176d3664f567")
-//var privateKey, _ = crypto.HexToECDSA("c9cc08e8564d21be633f55558e9186efcbcd5f2950bee49c9faafb612ccf53fa")
-//var ConfigAddress = ethCommon.HexToAddress("0x6b450d2b53Bd6C2d866F5630eDc3bB61e8016A91")
-//var NodeAddress = ethCommon.HexToAddress("0x0")
-//var SectorAddress = ethCommon.HexToAddress("0x0")
-//var SpaceAddress = ethCommon.HexToAddress("0x0")
-//var FSAddress = ethCommon.HexToAddress("0x0")
-//var ListAddress = ethCommon.HexToAddress("0x0")
-//var ProveAddress = ethCommon.HexToAddress("0x0")
-//var PDPAddress = ethCommon.HexToAddress("0x0")
-
 // for dev mode
 var address = ethCommon.HexToAddress("0x792e47e160f4ee67c17714df1c92f678640e0e4c")
 var privateKey, _ = crypto.HexToECDSA("97e14a3dc8f8721172090dc5a27681e8eb3e650cb43551b43f0ce4345d4748f7")

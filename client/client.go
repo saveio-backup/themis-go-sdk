@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -51,8 +53,25 @@ func (this *ClientMgr) GetWebSocketClient() *WSClient {
 	return this.ws
 }
 
-func (this *ClientMgr) NewEthClient() *EthClient {
-	panic("implement it")
+func (this *ClientMgr) NewEthClient(urls []string) *EthClient {
+	this.ethClient = &EthClient{
+		Urls:   new(sync.Map),
+		Client: nil,
+	}
+	for _, url := range urls {
+		this.ethClient.Urls.Store(url, 0)
+	}
+	this.ethClient.Urls.Range(func(key, value interface{}) bool {
+		url := key.(string)
+		dial, err := ethclient.Dial(url)
+		if err != nil {
+			log.Errorf("NewEthClient error:%s", err)
+		} else {
+			this.ethClient.Client = dial
+			return true
+		}
+		return false
+	})
 	return this.ethClient
 }
 
