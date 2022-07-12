@@ -34,6 +34,17 @@ func NewChain() *Chain {
 	return chain
 }
 
+func NewChainByType(contractType ContractType) *Chain {
+	chain := &Chain{}
+	native := newNativeContractByType(chain.GetClientMgr(), contractType)
+	chain.Native = native
+	neoVM := newNeoVMContract(chain)
+	chain.NeoVM = neoVM
+	evm := newEVMContract(chain.GetClientMgr())
+	chain.EVM = evm
+	return chain
+}
+
 func (this *Chain) SetDefaultAccount(acc *account.Account) {
 	this.Native.SetDefaultAccount(acc)
 }
