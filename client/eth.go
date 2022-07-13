@@ -1,9 +1,13 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/saveio/themis/core/types"
 	"sync"
+	"time"
 )
 
 type EthClient struct {
@@ -11,9 +15,55 @@ type EthClient struct {
 	Urls   *sync.Map // string => int
 }
 
+func NewEthClient() *EthClient {
+	client := &EthClient{
+		Urls:   new(sync.Map),
+		Client: nil,
+	}
+	go client.MonitorBasEthServer()
+	return client
+}
+
+func (e *EthClient) MonitorBasEthServer() {
+	for {
+		e.Urls.Range(func(key, value interface{}) bool {
+			url := key.(string)
+			dial, err := ethclient.Dial(url)
+			if err != nil {
+				return true
+			}
+			id, err := dial.ChainID(context.TODO())
+			if err != nil {
+				return true
+			}
+			e.Urls.Store(url, id)
+			e.Client = dial
+			return false
+		})
+		time.Sleep(time.Second * MonitorBadRpcServersInterval)
+	}
+}
+
+func (e *EthClient) SetAddress(urls []string) *ethclient.Client {
+	for _, url := range urls {
+		e.Urls.Store(url, 0)
+	}
+	return e.Client
+}
+
 func (e *EthClient) getCurrentBlockHeight(qid string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	if e.Client == nil {
+		return nil, errors.New("no eth client")
+	}
+	number, err := e.Client.BlockNumber(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	marshal, err := json.Marshal(number - 1)
+	if err != nil {
+		return nil, err
+	}
+	return marshal, nil
 }
 
 func (e *EthClient) getCurrentBlockHash(qid string) ([]byte, error) {
