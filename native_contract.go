@@ -19,11 +19,6 @@ const DEFAULT_POLL_FOR_CONFIRM_DURATION = time.Duration(10) * time.Second
 
 type ContractType int
 
-const (
-	Themis ContractType = iota
-	EVM
-)
-
 type NativeContract struct {
 	Usdt         *usdt.Usdt
 	OntId        *ontid.OntId
@@ -48,34 +43,6 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 		DefAcc:            nil,
 		PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
 	})
-	native.Channel = &channel.Channel{Client: client}
-	native.Governance = &governance.Governance{Client: client}
-	return native
-}
-
-// there can use evm type because evm contract implement the same fs interface with native contract
-// only for fs contract and client
-func newNativeContractByType(client *client.ClientMgr, contractType ContractType) *NativeContract {
-	native := &NativeContract{}
-	native.Usdt = &usdt.Usdt{Client: client}
-	native.OntId = &ontid.OntId{Client: client}
-	native.GlobalParams = &cgp.GlobalParam{Client: client}
-	native.Auth = &auth.Auth{Client: client}
-	native.Dns = &dns.Dns{Client: client}
-	native.Fs = &fs.Fs{}
-	if contractType == EVM {
-		native.Fs.NewClient(&fs.EVM{
-			Client:            client,
-			DefAcc:            nil,
-			PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
-		})
-	} else {
-		native.Fs.NewClient(&fs.Native{
-			Client:            client,
-			DefAcc:            nil,
-			PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
-		})
-	}
 	native.Channel = &channel.Channel{Client: client}
 	native.Governance = &governance.Governance{Client: client}
 	return native

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/saveio/themis/core/types"
+	"math/big"
 	"sync"
 	"time"
 )
@@ -72,8 +74,7 @@ func (e *EthClient) getCurrentBlockHash(qid string) ([]byte, error) {
 }
 
 func (e *EthClient) getVersion(qid string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return json.Marshal("1.0.0")
 }
 
 func (e *EthClient) getNetworkId(qid string) ([]byte, error) {
@@ -92,8 +93,17 @@ func (e *EthClient) getBlockByHeight(qid string, height uint32) ([]byte, error) 
 }
 
 func (e *EthClient) getBlockHash(qid string, height uint32) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	block, err := e.Client.BlockByNumber(context.TODO(), big.NewInt(int64(height)))
+	if err != nil {
+		return nil, err
+	}
+	hex := block.Hash().Hex()
+	hex = hex[2:]
+	marshal, err := json.Marshal(hex)
+	if err != nil {
+		return nil, err
+	}
+	return marshal, nil
 }
 
 func (e *EthClient) getBlockHeightByTxHash(qid, txHash string) ([]byte, error) {
@@ -136,9 +146,10 @@ func (e *EthClient) getSmartContractEventByEventId(qid string, contractAddress s
 	panic("implement me")
 }
 
-func (e *EthClient) getSmartContractEventByEventIdAndHeights(qid string, contractAddress string, address string, eventId, startHeight, endHeight uint32) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+func (e *EthClient) getSmartContractEventByEventIdAndHeights(qid string, contractAddress string, address string,
+	eventId, startHeight, endHeight uint32) ([]byte, error) {
+	// TODO wangyu : implement me
+	return nil, nil
 }
 
 func (e *EthClient) getStorage(qid, contractAddress string, key []byte) ([]byte, error) {
@@ -162,8 +173,23 @@ func (e *EthClient) getMemPoolTxCount(qid string) ([]byte, error) {
 }
 
 func (e *EthClient) sendRawTransaction(qid string, tx *types.Transaction, isPreExec bool) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	// TODO wangyu: implement me
+	txData := &ethTypes.DynamicFeeTx{
+		ChainID:    nil,
+		Nonce:      0,
+		GasTipCap:  nil,
+		GasFeeCap:  nil,
+		Gas:        0,
+		To:         nil,
+		Value:      nil,
+		Data:       nil,
+		AccessList: nil,
+		V:          nil,
+		R:          nil,
+		S:          nil,
+	}
+	txRes := ethTypes.NewTx(txData)
+	return txRes.MarshalJSON()
 }
 
 func (e *EthClient) getGasPrice(qid string) ([]byte, error) {
