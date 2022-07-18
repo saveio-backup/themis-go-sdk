@@ -6,6 +6,7 @@ import (
 	"errors"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 	"math/big"
 	"sync"
@@ -42,6 +43,7 @@ func (e *EthClient) MonitorBasEthServer() {
 			e.Client = dial
 			return false
 		})
+		log.Debug("monitor eth client:", e.Client)
 		time.Sleep(time.Second * MonitorBadRpcServersInterval)
 	}
 }
