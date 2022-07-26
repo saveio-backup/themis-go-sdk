@@ -14,7 +14,7 @@ import (
 )
 
 type EVMContract struct {
-	Usdt         *usdt.Usdt
+	ERC20        *usdt.ERC20
 	OntId        *ontid.OntId
 	GlobalParams *cgp.GlobalParam
 	Auth         *auth.Auth
@@ -26,7 +26,7 @@ type EVMContract struct {
 
 func newEVMContract(client *client.ClientMgr) *EVMContract {
 	evm := &EVMContract{}
-	evm.Usdt = &usdt.Usdt{Client: client}
+	evm.ERC20 = &usdt.ERC20{Client: client}
 	evm.OntId = &ontid.OntId{Client: client}
 	evm.GlobalParams = &cgp.GlobalParam{Client: client}
 	evm.Auth = &auth.Auth{Client: client}

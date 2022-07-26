@@ -38,31 +38,32 @@ type EVM struct {
 var _ ContractClient = (*EVM)(nil)
 
 // for dev mode
-var address = ethCommon.HexToAddress("0x792e47e160f4ee67c17714df1c92f678640e0e4c")
-var privateKey, _ = crypto.HexToECDSA("97e14a3dc8f8721172090dc5a27681e8eb3e650cb43551b43f0ce4345d4748f7")
-var ConfigAddress = ethCommon.HexToAddress("0x4EE485900378F0a9770f8C68b7f8e380E0E6b379")
-var NodeAddress = ethCommon.HexToAddress("0x0b31749E38686E064a262E8C6A8B9933E445D7cf")
-var SectorAddress = ethCommon.HexToAddress("0xB820Aa50dA03bbfD168e394cD4efAcB8651F7f81")
-var SpaceAddress = ethCommon.HexToAddress("0xE9f7aC624883dA5699CB562d271914b8A91C4dC9")
-var FSAddress = ethCommon.HexToAddress("0x8CB2BF28Dd2A174299D9ed67C12764bE3347Bb13")
-var ListAddress = ethCommon.HexToAddress("0xC18F9f9C98d7248A4459C95ff0e6a0e52785Ee5b")
-var ProveAddress = ethCommon.HexToAddress("0x6ff6A62B13937aF544763d8A24D04101B2313Fdc")
-var PDPAddress = ethCommon.HexToAddress("0x46028ecA45731E4E92bb0930623cdF0b88Dd23a4")
+var address = ethCommon.HexToAddress("0xB22f5E275a30826B5718A3a06612567701DD9126")
+var privateKey, _ = crypto.HexToECDSA("58d923527aac8f3e792f341e7e186f5aa9a8555ec7426bb639415710015460d2")
+
+var ConfigAddress = ethCommon.HexToAddress("0xA009F5dFA3D2c89b14E7a64ef1b3A954C1a8AACb")
+var NodeAddress = ethCommon.HexToAddress("0xE3a76fCa97bdFCa0274388b91901028Cc90635C8")
+var SectorAddress = ethCommon.HexToAddress("0xFD6c336668Df20A9505A7e072A6c6827caF8124f")
+var SpaceAddress = ethCommon.HexToAddress("0xDB430EA3d781E6746D6963123483F5E5E9bA009A")
+var FileAddress = ethCommon.HexToAddress("0x9E300194A11da9Be466368d7af3470B72B3D2F2a")
+var ListAddress = ethCommon.HexToAddress("0xfecd702e246469aaCf94a0c94Cc3561Db527Bd67")
+var ProveAddress = ethCommon.HexToAddress("0x644D1bEFF706B5161E5D208B1e870519117940f7")
+var PDPAddress = ethCommon.HexToAddress("0x3518D099E55512dEf1827c643c528a8ba8234aD4")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
 
-	nonce, err := ec.PendingNonceAt(context.Background(), address)
+	nonce, err := ec.PendingNonceAt(context.TODO(), address)
 	if err != nil {
 		return nil, err
 	}
 
-	gasPrice, err := ec.SuggestGasPrice(context.Background())
+	gasPrice, err := ec.SuggestGasPrice(context.TODO())
 	if err != nil {
 		return nil, err
 	}
 
-	chainID, err := ec.ChainID(context.Background())
+	chainID, err := ec.ChainID(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +382,7 @@ func copyUploadOption(opt *fs.UploadOption) fsStore.UploadOption {
 
 func (t *EVM) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +401,7 @@ func (t *EVM) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) 
 
 func (t *EVM) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return 0, err
 	}
@@ -414,7 +415,7 @@ func (t *EVM) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -464,7 +465,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -572,7 +573,7 @@ func copyFileInfo(info fsStore.FileInfo) fs.FileInfo {
 
 func (t *EVM) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +587,7 @@ func (t *EVM) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 
 func (t *EVM) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +615,7 @@ func (t *EVM) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]by
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -640,7 +641,7 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -662,7 +663,7 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 
 func (t *EVM) GetFileList(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -683,7 +684,7 @@ func (t *EVM) GetFileList(addr common.Address) (*fs.FileList, error) {
 
 func (t *EVM) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -704,7 +705,7 @@ func (t *EVM) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, erro
 
 func (t *EVM) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -854,7 +855,7 @@ func (t *EVM) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 
 func (t *EVM) DeleteFile(fileHashStr string) ([]byte, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -880,7 +881,7 @@ func (t *EVM) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error
 	}
 
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -1257,7 +1258,7 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 
 func (t *EVM) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -1281,7 +1282,7 @@ func (t *EVM) DeleteUnSettledFiles() ([]byte, error) {
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FSAddress, ec)
+	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}

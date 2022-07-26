@@ -222,7 +222,7 @@ func Test_Init_Sector(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	initialize, err := store.Initialize(auth, NodeAddress)
+	initialize, err := store.Initialize(auth, NodeAddress, sectorStore.SectorConfig{SECTORFILEINFOGROUPMAXLEN: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,11 @@ func Test_Init_FS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	initialize, err := store.Initialize(auth, ConfigAddress, NodeAddress, SpaceAddress, SectorAddress, ProveAddress)
+	initialize, err := store.Initialize(auth, ConfigAddress, NodeAddress, SpaceAddress, SectorAddress, ProveAddress, fsStore.FSConfig{
+		DEFAULTBLOCKINTERVAL: 1,
+		DEFAULTPROVEPERIOD:   1,
+		INSECTORSIZE:         1,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +268,7 @@ func Test_Init_Space(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	initialize, err := store.Initialize(auth, ConfigAddress, FSAddress)
+	initialize, err := store.Initialize(auth, ConfigAddress, FileAddress)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +289,7 @@ func Test_Init_Prove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	initialize, err := store.Initialize(auth, ConfigAddress, FSAddress, NodeAddress, PDPAddress, SectorAddress)
+	initialize, err := store.Initialize(auth, ConfigAddress, FileAddress, NodeAddress, PDPAddress, SectorAddress, proveStore.ProveConfig{SECTORPROVEBLOCKNUM: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

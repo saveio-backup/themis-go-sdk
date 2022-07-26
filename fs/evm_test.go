@@ -12,7 +12,7 @@ import (
 
 func CreateClientMgr() *client.ClientMgr {
 	c := &client.ClientMgr{}
-	err := c.NewEthClient(url)
+	err := c.NewEthClient().SetAddress([]string{url})
 	if err != nil {
 		log.Error(err)
 	}
