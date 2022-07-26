@@ -19,7 +19,7 @@ import (
 	"testing"
 )
 
-var url = "http://104.225.158.242:8545"
+var url = "HTTP://127.0.0.1:7545"
 
 var ec *ethclient.Client
 

@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"fmt"
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
@@ -16,6 +17,7 @@ func CreateClientMgr() *client.ClientMgr {
 	if err != nil {
 		log.Error(err)
 	}
+	time.Sleep(time.Second * 1)
 	return c
 }
 
@@ -45,6 +47,7 @@ func TestEthereum_GetSetting(t1 *testing.T) {
 				DefAcc:            tt.fields.DefAcc,
 				PollForTxDuration: tt.fields.PollForTxDuration,
 			}
+			fmt.Println("===", t.Client.GetEthClient().Client)
 			got, err := t.GetSetting()
 			if (err != nil) != tt.wantErr {
 				t1.Errorf("GetSetting() error = %v, wantErr %v", err, tt.wantErr)

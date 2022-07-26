@@ -16,35 +16,46 @@ import (
 type EthClient struct {
 	Client *ethclient.Client
 	Urls   *sync.Map // string => int
+	dial   chan bool
 }
 
 func NewEthClient() *EthClient {
 	client := &EthClient{
 		Urls:   new(sync.Map),
 		Client: nil,
+		dial:   make(chan bool),
 	}
 	go client.MonitorBasEthServer()
 	return client
 }
 
+func (e *EthClient) DialClient() {
+	e.Urls.Range(func(key, value interface{}) bool {
+		url := key.(string)
+		dial, err := ethclient.Dial(url)
+		if err != nil {
+			return true
+		}
+		id, err := dial.ChainID(context.TODO())
+		if err != nil {
+			return true
+		}
+		e.Urls.Store(url, id)
+		e.Client = dial
+		return false
+	})
+	log.Debugf("eth client dialed")
+}
+
 func (e *EthClient) MonitorBasEthServer() {
+	ticker := time.NewTicker(time.Second * MonitorBadRpcServersInterval)
 	for {
-		e.Urls.Range(func(key, value interface{}) bool {
-			url := key.(string)
-			dial, err := ethclient.Dial(url)
-			if err != nil {
-				return true
-			}
-			id, err := dial.ChainID(context.TODO())
-			if err != nil {
-				return true
-			}
-			e.Urls.Store(url, id)
-			e.Client = dial
-			return false
-		})
-		log.Debug("monitor eth client:", e.Client)
-		time.Sleep(time.Second * MonitorBadRpcServersInterval)
+		select {
+		case <-ticker.C:
+			e.DialClient()
+		case <-e.dial:
+			e.DialClient()
+		}
 	}
 }
 
@@ -52,6 +63,7 @@ func (e *EthClient) SetAddress(urls []string) *ethclient.Client {
 	for _, url := range urls {
 		e.Urls.Store(url, 0)
 	}
+	e.dial <- true
 	return e.Client
 }
 
