@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
@@ -188,22 +187,7 @@ func (e *EthClient) getMemPoolTxCount(qid string) ([]byte, error) {
 
 func (e *EthClient) sendRawTransaction(qid string, tx *types.Transaction, isPreExec bool) ([]byte, error) {
 	// TODO wangyu: implement me
-	txData := &ethTypes.DynamicFeeTx{
-		ChainID:    nil,
-		Nonce:      0,
-		GasTipCap:  nil,
-		GasFeeCap:  nil,
-		Gas:        0,
-		To:         nil,
-		Value:      nil,
-		Data:       nil,
-		AccessList: nil,
-		V:          nil,
-		R:          nil,
-		S:          nil,
-	}
-	txRes := ethTypes.NewTx(txData)
-	return txRes.MarshalJSON()
+	return nil, errors.New("implement me")
 }
 
 func (e *EthClient) getGasPrice(qid string) ([]byte, error) {
