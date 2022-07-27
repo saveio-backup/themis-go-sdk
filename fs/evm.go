@@ -1028,6 +1028,10 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 	if err != nil {
 		return nil, err
 	}
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
 	param := spaceStore.UserSpaceParams{
 		WalletAddr: ethCommon.Address(walletAddr),
 		Owner:      t.DefAcc.EthAddress,
@@ -1040,14 +1044,16 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 			Value: blockCount.Value,
 		},
 	}
-	cost, err := store.GetUpdateCost(&bind.CallOpts{}, param)
+	cost, err := store.GetUpdateCost(signer, param)
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("GetUpdateSpaceCost: %+v", cost)
+	// TODO wangyu get res
 	state := &usdt.State{
-		From:  common.Address(cost.From),
-		To:    common.Address(cost.To),
-		Value: cost.Value,
+		From:  common.Address{},
+		To:    common.Address{},
+		Value: 0,
 	}
 	return state, nil
 }
@@ -1112,7 +1118,7 @@ func (t *EVM) DeleteSector(sectorId uint64) ([]byte, error) {
 		NodeAddr: t.DefAcc.EthAddress,
 		SectorId: sectorId,
 	}
-	createSector, err := store.DeleteSecotr(signer, sector)
+	createSector, err := store.DeleteSector(signer, sector)
 	if err != nil {
 		return nil, err
 	}
