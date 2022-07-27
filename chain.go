@@ -36,6 +36,7 @@ func NewChain() *Chain {
 
 func (this *Chain) SetDefaultAccount(acc *account.Account) {
 	this.Native.SetDefaultAccount(acc)
+	this.EVM.SetDefaultAccount(acc)
 }
 
 func (this *Chain) InvokeNativeContract(
