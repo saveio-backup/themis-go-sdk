@@ -5,11 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	listStore "github.com/saveio/themis-go-sdk/fs/contracts/List"
 	sectorStore "github.com/saveio/themis-go-sdk/fs/contracts/Sector"
 	spaceStore "github.com/saveio/themis-go-sdk/fs/contracts/Space"
-	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethCommon "github.com/ethereum/go-ethereum/common"
@@ -1090,11 +1091,18 @@ func (t *EVM) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPl
 		return nil, err
 	}
 	sector := sectorStore.SectorInfo{
-		NodeAddr:   t.DefAcc.EthAddress,
-		SectorID:   sectorId,
-		Size:       size,
-		ProveLevel: uint8(proveLevel),
-		IsPlots:    isPlots,
+		NodeAddr:         t.DefAcc.EthAddress,
+		SectorID:         sectorId,
+		Size:             size,
+		ProveLevel:       uint8(proveLevel),
+		IsPlots:          isPlots,
+		Used:             0,
+		FirstProveHeight: big.NewInt(0),
+		NextProveHeight:  big.NewInt(0),
+		TotalBlockNum:    0,
+		FileNum:          0,
+		GroupNum:         0,
+		FileList:         nil,
 	}
 	createSector, err := store.CreateSector(signer, sector)
 	if err != nil {

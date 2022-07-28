@@ -243,11 +243,8 @@ func Test_Init_FS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	initialize, err := store.Initialize(auth, ConfigAddress, NodeAddress, SpaceAddress, SectorAddress, ProveAddress, fsStore.FSConfig{
-		DEFAULTBLOCKINTERVAL: 1,
-		DEFAULTPROVEPERIOD:   1,
-		INSECTORSIZE:         1,
-	})
+	initialize, err := store.Initialize(auth, ConfigAddress, FileAddress, ListAddress,
+		NodeAddress, PDPAddress, SpaceAddress, SectorAddress, ProveAddress)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,7 +286,8 @@ func Test_Init_Prove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	initialize, err := store.Initialize(auth, ConfigAddress, FileAddress, NodeAddress, PDPAddress, SectorAddress, proveStore.ProveConfig{SECTORPROVEBLOCKNUM: 1})
+	initialize, err := store.Initialize(auth, ConfigAddress, FileAddress, NodeAddress, PDPAddress,
+		SectorAddress, proveStore.ProveConfig{SECTORPROVEBLOCKNUM: 1}, ConfigAddress)
 	if err != nil {
 		t.Fatal(err)
 	}

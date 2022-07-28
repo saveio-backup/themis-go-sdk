@@ -7,6 +7,7 @@ import (
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -280,6 +281,64 @@ func TestEthereum_NodeUpdate(t1 *testing.T) {
 				return
 			}
 			t1.Log(got)
+		})
+	}
+}
+
+func TestEVM_CreateSector(t1 *testing.T) {
+	type fields struct {
+		Client            *client.ClientMgr
+		DefAcc            *account.Account
+		PollForTxDuration time.Duration
+	}
+	type args struct {
+		sectorId   uint64
+		proveLevel uint64
+		size       uint64
+		isPlots    bool
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "general",
+			fields: fields{
+				Client: CreateClientMgr(),
+				DefAcc: &account.Account{
+					PrivateKey: nil,
+					PublicKey:  nil,
+					Address:    common.Address{},
+					EthAddress: address,
+					SigScheme:  0,
+				},
+			},
+			args: args{
+				sectorId:   1,
+				proveLevel: 1,
+				size:       1024 * 1024,
+				isPlots:    false,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t1.Run(tt.name, func(t1 *testing.T) {
+			t := &EVM{
+				Client:            tt.fields.Client,
+				DefAcc:            tt.fields.DefAcc,
+				PollForTxDuration: tt.fields.PollForTxDuration,
+			}
+			got, err := t.CreateSector(tt.args.sectorId, tt.args.proveLevel, tt.args.size, tt.args.isPlots)
+			if (err != nil) != tt.wantErr {
+				t1.Errorf("CreateSector() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t1.Errorf("CreateSector() got = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
