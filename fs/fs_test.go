@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 		Client: &client.ClientMgr{},
 		DefAcc: acc,
 	})
-	testFs.Client.GetClient().NewRpcClient().SetAddress([]string{rpc_addr})
+	//testFs.Client.GetClient().NewRpcClient().SetAddress([]string{rpc_addr})
 	testFs.Client.SetDefaultAccount(acc)
 	m.Run()
 }

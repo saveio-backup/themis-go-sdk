@@ -5,7 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
+	"strings"
 	"time"
 
 	listStore "github.com/saveio/themis-go-sdk/fs/contracts/List"
@@ -40,16 +44,18 @@ var _ ContractClient = (*EVM)(nil)
 
 // for dev mode
 var address = ethCommon.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
-var privateKey, _ = crypto.HexToECDSA("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
 
-var ConfigAddress = ethCommon.HexToAddress("0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f")
-var NodeAddress = ethCommon.HexToAddress("0x4A679253410272dd5232B3Ff7cF5dbB88f295319")
-var SectorAddress = ethCommon.HexToAddress("0x7a2088a1bFc9d81c55368AE168C2C02570cB814F")
-var SpaceAddress = ethCommon.HexToAddress("0x09635F643e140090A9A8Dcd712eD6285858ceBef")
-var FileAddress = ethCommon.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
-var ListAddress = ethCommon.HexToAddress("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")
-var ProveAddress = ethCommon.HexToAddress("0x9E545E3C0baAB3E08CdfD552C960A1050f373042")
-var PDPAddress = ethCommon.HexToAddress("0xf5059a5D33d5853360D16C683c16e67980206f36")
+// don't start with 0x
+var privateKey, _ = crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+
+var ConfigAddress = ethCommon.HexToAddress("0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154")
+var NodeAddress = ethCommon.HexToAddress("0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575")
+var SectorAddress = ethCommon.HexToAddress("0xCD8a1C3ba11CF5ECfa6267617243239504a98d90")
+var SpaceAddress = ethCommon.HexToAddress("0x82e01223d51Eb87e16A03E24687EDF0F294da6f1")
+var FileAddress = ethCommon.HexToAddress("0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3")
+var ListAddress = ethCommon.HexToAddress("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650")
+var ProveAddress = ethCommon.HexToAddress("0xc351628EB244ec633d5f21fBD6621e1a683B1181")
+var PDPAddress = ethCommon.HexToAddress("0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -68,7 +74,6 @@ func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
 		return nil, err
@@ -996,7 +1001,52 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 		return nil, err
 	}
 	fmt.Println("tx:", tx)
+
 	// TODO wangyu
+	ewsc := t.Client.GetEthClient().WSClient
+	query := ethereum.FilterQuery{
+		Addresses: []ethCommon.Address{
+			t.DefAcc.EthAddress,
+		},
+	}
+	logs := make(chan types.Log)
+	sub, err := ewsc.SubscribeFilterLogs(context.TODO(), query, logs)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("sub:", sub)
+
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case vLog := <-logs:
+			fmt.Println("vLog", vLog) // pointer to event log
+			contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
+			if err != nil {
+				return nil, err
+			}
+			data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
+			if err != nil {
+				return nil, err
+			}
+			fmt.Println("data:", data)
+		}
+	}
+	//contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
+	//if err != nil {
+	//	return nil, err
+	//}
+	//fmt.Println("logs:", logs)
+	//for _, vlog := range logs {
+	//	//event := spaceStore.TransferState{}
+	//	data, err := contractAbi.Unpack("GetUpdateCostEvent", vlog.Data)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	fmt.Println("data:", data)
+	//}
+
 	space, err := store.ManageUserSpace(signer, param)
 	if err != nil {
 		return nil, err
