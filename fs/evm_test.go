@@ -342,3 +342,64 @@ func TestEVM_CreateSector(t1 *testing.T) {
 		})
 	}
 }
+
+func TestEVM_UpdateUserSpace(t1 *testing.T) {
+	type fields struct {
+		Client            *client.ClientMgr
+		DefAcc            *account.Account
+		PollForTxDuration time.Duration
+	}
+	type args struct {
+		walletAddr common.Address
+		size       *fs.UserSpaceOperation
+		blockCount *fs.UserSpaceOperation
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "general",
+			fields: fields{
+				Client: CreateClientMgr(),
+				DefAcc: &account.Account{
+					PrivateKey: nil,
+					PublicKey:  nil,
+					Address:    common.Address{},
+					EthAddress: address,
+					SigScheme:  0,
+				},
+			},
+			args: args{
+				size: &fs.UserSpaceOperation{
+					Type:  1,
+					Value: 1024000,
+				},
+				blockCount: &fs.UserSpaceOperation{
+					Type:  1,
+					Value: 172800,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t1.Run(tt.name, func(t1 *testing.T) {
+			t := &EVM{
+				Client:            tt.fields.Client,
+				DefAcc:            tt.fields.DefAcc,
+				PollForTxDuration: tt.fields.PollForTxDuration,
+			}
+			got, err := t.UpdateUserSpace(tt.args.walletAddr, tt.args.size, tt.args.blockCount)
+			if (err != nil) != tt.wantErr {
+				t1.Errorf("UpdateUserSpace() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t1.Errorf("UpdateUserSpace() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

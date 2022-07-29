@@ -39,17 +39,17 @@ type EVM struct {
 var _ ContractClient = (*EVM)(nil)
 
 // for dev mode
-var address = ethCommon.HexToAddress("0xB22f5E275a30826B5718A3a06612567701DD9126")
-var privateKey, _ = crypto.HexToECDSA("58d923527aac8f3e792f341e7e186f5aa9a8555ec7426bb639415710015460d2")
+var address = ethCommon.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
+var privateKey, _ = crypto.HexToECDSA("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
 
-var ConfigAddress = ethCommon.HexToAddress("0xA009F5dFA3D2c89b14E7a64ef1b3A954C1a8AACb")
-var NodeAddress = ethCommon.HexToAddress("0xE3a76fCa97bdFCa0274388b91901028Cc90635C8")
-var SectorAddress = ethCommon.HexToAddress("0xFD6c336668Df20A9505A7e072A6c6827caF8124f")
-var SpaceAddress = ethCommon.HexToAddress("0xDB430EA3d781E6746D6963123483F5E5E9bA009A")
-var FileAddress = ethCommon.HexToAddress("0x9E300194A11da9Be466368d7af3470B72B3D2F2a")
-var ListAddress = ethCommon.HexToAddress("0xfecd702e246469aaCf94a0c94Cc3561Db527Bd67")
-var ProveAddress = ethCommon.HexToAddress("0x644D1bEFF706B5161E5D208B1e870519117940f7")
-var PDPAddress = ethCommon.HexToAddress("0x3518D099E55512dEf1827c643c528a8ba8234aD4")
+var ConfigAddress = ethCommon.HexToAddress("0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f")
+var NodeAddress = ethCommon.HexToAddress("0x4A679253410272dd5232B3Ff7cF5dbB88f295319")
+var SectorAddress = ethCommon.HexToAddress("0x7a2088a1bFc9d81c55368AE168C2C02570cB814F")
+var SpaceAddress = ethCommon.HexToAddress("0x09635F643e140090A9A8Dcd712eD6285858ceBef")
+var FileAddress = ethCommon.HexToAddress("0xc5a5C42992dECbae36851359345FE25997F5C42d")
+var ListAddress = ethCommon.HexToAddress("0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690")
+var ProveAddress = ethCommon.HexToAddress("0x9E545E3C0baAB3E08CdfD552C960A1050f373042")
+var PDPAddress = ethCommon.HexToAddress("0xf5059a5D33d5853360D16C683c16e67980206f36")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -991,6 +991,12 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 			Value: blockCount.Value,
 		},
 	}
+	tx, err := store.GetUpdateCost(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("tx:", tx)
+	// TODO wangyu
 	space, err := store.ManageUserSpace(signer, param)
 	if err != nil {
 		return nil, err
