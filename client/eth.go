@@ -13,18 +13,16 @@ import (
 )
 
 type EthClient struct {
-	Client   *ethclient.Client
-	Urls     *sync.Map // string => int
-	dial     chan bool
-	WSClient *ethclient.Client
+	Client *ethclient.Client
+	Urls   *sync.Map // string => int
+	dial   chan bool
 }
 
 func NewEthClient() *EthClient {
 	client := &EthClient{
-		Urls:     new(sync.Map),
-		Client:   nil,
-		dial:     make(chan bool),
-		WSClient: nil,
+		Urls:   new(sync.Map),
+		Client: nil,
+		dial:   make(chan bool),
 	}
 	go client.MonitorBasEthServer()
 	return client
@@ -46,18 +44,6 @@ func (e *EthClient) DialClient() {
 		return false
 	})
 	log.Debugf("eth client dialed")
-	e.DialWSClient()
-}
-
-func (e *EthClient) DialWSClient() {
-	// TODO wangyu
-	dial, err := ethclient.Dial("ws://localhost:8546")
-	if err != nil {
-		log.Errorf("dial ws client error: %v", err)
-		return
-	}
-	e.WSClient = dial
-	log.Debugf("ws client dialed")
 }
 
 func (e *EthClient) MonitorBasEthServer() {

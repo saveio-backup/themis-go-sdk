@@ -5,9 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"strings"
 	"time"
@@ -43,19 +41,19 @@ type EVM struct {
 var _ ContractClient = (*EVM)(nil)
 
 // for dev mode
-var address = ethCommon.HexToAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
+var address = ethCommon.HexToAddress("0x159F5EFDAb6747E72c8827BeA109bf8880BA076c")
 
 // don't start with 0x
-var privateKey, _ = crypto.HexToECDSA("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
+var privateKey, _ = crypto.HexToECDSA("3fd8c7f630a5517da7a01c97ee5e3e2d36f79bf254bd6d85f78895541aaa860a")
 
-var ConfigAddress = ethCommon.HexToAddress("0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154")
-var NodeAddress = ethCommon.HexToAddress("0xb7278A61aa25c888815aFC32Ad3cC52fF24fE575")
-var SectorAddress = ethCommon.HexToAddress("0xCD8a1C3ba11CF5ECfa6267617243239504a98d90")
-var SpaceAddress = ethCommon.HexToAddress("0x82e01223d51Eb87e16A03E24687EDF0F294da6f1")
-var FileAddress = ethCommon.HexToAddress("0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3")
-var ListAddress = ethCommon.HexToAddress("0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650")
-var ProveAddress = ethCommon.HexToAddress("0xc351628EB244ec633d5f21fBD6621e1a683B1181")
-var PDPAddress = ethCommon.HexToAddress("0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f")
+var ConfigAddress = ethCommon.HexToAddress("0xbA17E07C5F3644342Dd90dC3BC2B3f1d75EC991b")
+var NodeAddress = ethCommon.HexToAddress("0x0e3320Ef69ef952EbaC437dc409730a434691cbA")
+var SectorAddress = ethCommon.HexToAddress("0x59E4bF130AF06c979fdD8Ea05d7beF1587AeDB69")
+var SpaceAddress = ethCommon.HexToAddress("0x3A2128Df35d532a661674548c6d6CB5838D52D63")
+var FileAddress = ethCommon.HexToAddress("0x4c712606851d0C12755A31061D58Cb1A67B0eD02")
+var ListAddress = ethCommon.HexToAddress("0x045d53781934e898728F32a2E627A58Ba3C605B7")
+var ProveAddress = ethCommon.HexToAddress("0x4a382B63Fc9D397d24b08FC00CE660Dc709e4348")
+var PDPAddress = ethCommon.HexToAddress("0x91D8566d308a1e58bA507216ac4991Ca5D93D6A6")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -1000,53 +998,32 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("tx:", tx)
 
-	// TODO wangyu
-	ewsc := t.Client.GetEthClient().WSClient
-	query := ethereum.FilterQuery{
-		Addresses: []ethCommon.Address{
-			t.DefAcc.EthAddress,
-		},
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	var res spaceStore.TransferState
+	for _, vLog := range mined.Logs {
+		contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
+		if err != nil {
+			return nil, err
+		}
+		//var event spaceStore.TransferState
+		data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range data {
+			res = spaceStore.TransferState(v.(struct {
+				From  ethCommon.Address `json:"From"`
+				To    ethCommon.Address `json:"To"`
+				Value uint64            `json:"Value"`
+			}))
+		}
 	}
-	logs := make(chan types.Log)
-	sub, err := ewsc.SubscribeFilterLogs(context.TODO(), query, logs)
+
+	signer, err = t.GetSigner(big.NewInt(int64(res.Value)))
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("sub:", sub)
-
-	for {
-		select {
-		case err := <-sub.Err():
-			log.Fatal(err)
-		case vLog := <-logs:
-			fmt.Println("vLog", vLog) // pointer to event log
-			contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
-			if err != nil {
-				return nil, err
-			}
-			data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
-			if err != nil {
-				return nil, err
-			}
-			fmt.Println("data:", data)
-		}
-	}
-	//contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//fmt.Println("logs:", logs)
-	//for _, vlog := range logs {
-	//	//event := spaceStore.TransferState{}
-	//	data, err := contractAbi.Unpack("GetUpdateCostEvent", vlog.Data)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	fmt.Println("data:", data)
-	//}
-
 	space, err := store.ManageUserSpace(signer, param)
 	if err != nil {
 		return nil, err
