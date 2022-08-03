@@ -201,11 +201,12 @@ func (t *EVM) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error
 	if len(addrs) == 0 {
 		return nil, errors.New("address cannot empty")
 	}
+	address := ethCommon.BytesToAddress(addrs[0][:])
 	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient().Client)
 	if err != nil {
 		return nil, err
 	}
-	info, err := store.GetNodeInfoByNodeAddr(&bind.CallOpts{}, ethCommon.Address(addrs[0]))
+	info, err := store.GetNodeInfoByNodeAddr(&bind.CallOpts{}, address)
 	if err != nil {
 		return nil, err
 	}
@@ -229,11 +230,12 @@ func (t *EVM) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error
 
 // NodeQuery get node info by wallet address
 func (t *EVM) NodeQuery(nodeWallet common.Address) (*fs.FsNodeInfo, error) {
+	address := ethCommon.BytesToAddress(nodeWallet[:])
 	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient().Client)
 	if err != nil {
 		return nil, err
 	}
-	info, err := store.GetNodeInfoByWalletAddr(&bind.CallOpts{}, ethCommon.Address(nodeWallet))
+	info, err := store.GetNodeInfoByWalletAddr(&bind.CallOpts{}, address)
 	if err != nil {
 		return nil, err
 	}
@@ -358,8 +360,9 @@ func (t *EVM) NodeWithDrawProfit() ([]byte, error) {
 func copyUploadOption(opt *fs.UploadOption) fsStore.UploadOption {
 	list := make([]fsStore.WhiteList, opt.WhiteList.Num)
 	for k, v := range opt.WhiteList.List {
+		addr := ethCommon.BytesToAddress(v.Addr[:])
 		list[k] = fsStore.WhiteList{
-			Addr:         ethCommon.Address(v.Addr),
+			Addr:         addr,
 			BaseHeight:   v.BaseHeight,
 			ExpireHeight: v.ExpireHeight,
 		}
@@ -484,7 +487,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	}
 	candidates := make([]ethCommon.Address, len(candidateNodes))
 	for k, v := range candidateNodes {
-		candidates[k] = ethCommon.Address(v)
+		candidates[k] = ethCommon.BytesToAddress(v[:])
 	}
 	fileHash := []byte(fileHashStr)
 	f := fsStore.FileInfo{
@@ -671,7 +674,7 @@ func (t *EVM) GetFileList(addr common.Address) (*fs.FileList, error) {
 	if err != nil {
 		return nil, err
 	}
-	list, err := store.GetFileList(&bind.CallOpts{}, ethCommon.Address(addr))
+	list, err := store.GetFileList(&bind.CallOpts{}, ethCommon.BytesToAddress(addr[:]))
 	if err != nil {
 		return nil, err
 	}
@@ -692,7 +695,7 @@ func (t *EVM) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, erro
 	if err != nil {
 		return nil, err
 	}
-	files, err := store.GetUnProvePrimaryFiles(&bind.CallOpts{}, ethCommon.Address(addr))
+	files, err := store.GetUnProvePrimaryFiles(&bind.CallOpts{}, ethCommon.BytesToAddress(addr[:]))
 	if err != nil {
 		return nil, err
 	}
@@ -713,7 +716,7 @@ func (t *EVM) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, er
 	if err != nil {
 		return nil, err
 	}
-	files, err := store.GetUnProveCandidateFiles(&bind.CallOpts{}, ethCommon.Address(addr))
+	files, err := store.GetUnProveCandidateFiles(&bind.CallOpts{}, ethCommon.BytesToAddress(addr[:]))
 	if err != nil {
 		return nil, err
 	}
@@ -949,7 +952,7 @@ func (t *EVM) GenChallenge(walletAddr common.Address, hash common.Uint256, fileB
 		return nil
 	}
 	param := pdpStore.GenChallengeParams{
-		WalletAddr:   ethCommon.Address(walletAddr),
+		WalletAddr:   ethCommon.BytesToAddress(walletAddr[:]),
 		HashValue:    hash[:],
 		FileBlockNum: fileBlockNum,
 		ProveNum:     proveNum,
@@ -973,6 +976,7 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
+	address := ethCommon.BytesToAddress(walletAddr[:])
 	ec := t.Client.GetEthClient().Client
 	store, err := spaceStore.NewStore(SpaceAddress, ec)
 	if err != nil {
@@ -983,7 +987,7 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 		return nil, err
 	}
 	param := spaceStore.UserSpaceParams{
-		WalletAddr: ethCommon.Address(walletAddr),
+		WalletAddr: address,
 		Owner:      t.DefAcc.EthAddress,
 		Size: spaceStore.UserSpaceOperation{
 			Type:  uint8(size.Type),
@@ -1039,7 +1043,8 @@ func (t *EVM) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 	if err != nil {
 		return nil, err
 	}
-	space, err := store.GetUserSpace(&bind.CallOpts{}, ethCommon.Address(walletAddr))
+	address := ethCommon.BytesToAddress(walletAddr[:])
+	space, err := store.GetUserSpace(&bind.CallOpts{}, address)
 	if err != nil {
 		return nil, err
 	}
@@ -1057,6 +1062,7 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
+	address := ethCommon.BytesToAddress(walletAddr[:])
 	ec := t.Client.GetEthClient().Client
 	store, err := spaceStore.NewStore(SpaceAddress, ec)
 	if err != nil {
@@ -1067,7 +1073,7 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 		return nil, err
 	}
 	param := spaceStore.UserSpaceParams{
-		WalletAddr: ethCommon.Address(walletAddr),
+		WalletAddr: address,
 		Owner:      t.DefAcc.EthAddress,
 		Size: spaceStore.UserSpaceOperation{
 			Type:  uint8(size.Type),
@@ -1259,12 +1265,13 @@ func copeSectorInfo(info sectorStore.SectorInfo) *fs.SectorInfo {
 }
 
 func (t *EVM) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error) {
+	address := ethCommon.BytesToAddress(addr[:])
 	ec := t.Client.GetEthClient().Client
 	store, err := sectorStore.NewStore(SectorAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	list, err := store.GetSectorsForNode(&bind.CallOpts{}, ethCommon.Address(addr))
+	list, err := store.GetSectorsForNode(&bind.CallOpts{}, address)
 	if err != nil {
 		return nil, err
 	}
@@ -1304,12 +1311,13 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 }
 
 func (t *EVM) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
+	address := ethCommon.BytesToAddress(addr[:])
 	ec := t.Client.GetEthClient().Client
 	store, err := fsStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	list, err := store.GetUnSettledFileList(&bind.CallOpts{}, ethCommon.Address(addr))
+	list, err := store.GetUnSettledFileList(&bind.CallOpts{}, address)
 	if err != nil {
 		return nil, err
 	}
@@ -1346,6 +1354,7 @@ func (t *EVM) DeleteUnSettledFiles() ([]byte, error) {
 }
 
 func (t *EVM) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
+	address := ethCommon.BytesToAddress(addr[:])
 	ec := t.Client.GetEthClient().Client
 	store, err := proveStore.NewStore(ProveAddress, ec)
 	if err != nil {
@@ -1356,7 +1365,7 @@ func (t *EVM) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) (
 		return nil, err
 	}
 	param := proveStore.SectorRef{
-		NodeAddr: ethCommon.Address(addr),
+		NodeAddr: address,
 		SectorId: sectorId,
 	}
 	inTime, err := store.CheckNodeSectorProvedInTime(signer, param)
