@@ -46,14 +46,14 @@ var address = ethCommon.HexToAddress("0x159F5EFDAb6747E72c8827BeA109bf8880BA076c
 // don't start with 0x
 var privateKey, _ = crypto.HexToECDSA("3fd8c7f630a5517da7a01c97ee5e3e2d36f79bf254bd6d85f78895541aaa860a")
 
-var ConfigAddress = ethCommon.HexToAddress("0xbA17E07C5F3644342Dd90dC3BC2B3f1d75EC991b")
-var NodeAddress = ethCommon.HexToAddress("0x0e3320Ef69ef952EbaC437dc409730a434691cbA")
-var SectorAddress = ethCommon.HexToAddress("0x59E4bF130AF06c979fdD8Ea05d7beF1587AeDB69")
-var SpaceAddress = ethCommon.HexToAddress("0x3A2128Df35d532a661674548c6d6CB5838D52D63")
-var FileAddress = ethCommon.HexToAddress("0x4c712606851d0C12755A31061D58Cb1A67B0eD02")
-var ListAddress = ethCommon.HexToAddress("0x045d53781934e898728F32a2E627A58Ba3C605B7")
-var ProveAddress = ethCommon.HexToAddress("0x4a382B63Fc9D397d24b08FC00CE660Dc709e4348")
-var PDPAddress = ethCommon.HexToAddress("0x91D8566d308a1e58bA507216ac4991Ca5D93D6A6")
+var ConfigAddress = ethCommon.HexToAddress("0xE570570CDe56E91f8D4CDB97323a76aBd222078A")
+var NodeAddress = ethCommon.HexToAddress("0x0FCc3b2a1Fe79DAefF2DE1Fdc17D9cd3aEaf6d3f")
+var SectorAddress = ethCommon.HexToAddress("0xdD5be5294bF15E697da6FcCBe9a09B9F7bcaFa34")
+var SpaceAddress = ethCommon.HexToAddress("0x08C94A0C2407c6Ca00be004c6603473bc41aca8C")
+var FileAddress = ethCommon.HexToAddress("0xaD9b00ffc9f0207783121F4f9cF7392f7d38EE5A")
+var ListAddress = ethCommon.HexToAddress("0x1bC0A3267aD0E3bD367E11eD21758a7a02f387F8")
+var ProveAddress = ethCommon.HexToAddress("0x2Ecc3A30122299f35E2F3bC723DA16bb63c86ada")
+var PDPAddress = ethCommon.HexToAddress("0x87b3938595A271b0179C74491069365360b499aC")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -78,8 +78,8 @@ func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	}
 	auth.From = address
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = value                 // in wei
-	auth.GasLimit = uint64(10_000_000) // in units
+	auth.Value = value                     // in wei
+	auth.GasLimit = uint64(10_000_000_000) // in units
 	auth.GasPrice = gasPrice
 
 	return auth, nil
@@ -206,7 +206,7 @@ func (t *EVM) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error
 	if err != nil {
 		return nil, err
 	}
-	info, err := store.GetNodeInfoByNodeAddr(&bind.CallOpts{}, address)
+	info, err := store.GetNodeInfoByWalletAddr(&bind.CallOpts{}, address)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (t *EVM) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) (
 		RestVol:     0,
 		ServiceTime: serviceTime,
 		WalletAddr:  t.DefAcc.EthAddress,
-		NodeAddr:    ethCommon.HexToAddress(nodeAddr),
+		NodeAddr:    []byte(nodeAddr),
 	}
 	pledge, err := store.CalculateNodePledge(&bind.CallOpts{}, node)
 	if err != nil {
@@ -305,7 +305,7 @@ func (t *EVM) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]
 		RestVol:     0,
 		ServiceTime: serviceTime,
 		WalletAddr:  t.DefAcc.EthAddress,
-		NodeAddr:    ethCommon.HexToAddress(nodeAddr),
+		NodeAddr:    []byte(nodeAddr),
 	}
 	update, err := store.NodeUpdate(signer, node)
 	if err != nil {

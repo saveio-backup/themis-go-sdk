@@ -401,3 +401,57 @@ func TestEVM_UpdateUserSpace(t1 *testing.T) {
 		})
 	}
 }
+
+func TestEVM_NodeRegister(t1 *testing.T) {
+	type fields struct {
+		Client            *client.ClientMgr
+		DefAcc            *account.Account
+		PollForTxDuration time.Duration
+	}
+	type args struct {
+		volume      uint64
+		serviceTime uint64
+		nodeAddr    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "general",
+			fields: fields{
+				Client: CreateClientMgr(),
+				DefAcc: &account.Account{
+					PrivateKey: nil,
+					PublicKey:  nil,
+					Address:    common.Address{},
+					EthAddress: address,
+					SigScheme:  0,
+				},
+			},
+			args: args{
+				volume:      1000 * 1000,
+				serviceTime: 0,
+				nodeAddr:    "tcp://127.0.0.1:8080",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t1.Run(tt.name, func(t1 *testing.T) {
+			t := &EVM{
+				Client:            tt.fields.Client,
+				DefAcc:            tt.fields.DefAcc,
+				PollForTxDuration: tt.fields.PollForTxDuration,
+			}
+			got, err := t.NodeRegister(tt.args.volume, tt.args.serviceTime, tt.args.nodeAddr)
+			if err != nil {
+				t1.Errorf("NodeRegister() error = %v", err)
+				return
+			}
+			t1.Log(got)
+		})
+	}
+}
