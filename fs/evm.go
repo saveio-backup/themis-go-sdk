@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 	"strings"
 	"time"
@@ -40,48 +41,48 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-// for dev mode
-var address = ethCommon.HexToAddress("0x159F5EFDAb6747E72c8827BeA109bf8880BA076c")
-
-// don't start with 0x
-var privateKey, _ = crypto.HexToECDSA("3fd8c7f630a5517da7a01c97ee5e3e2d36f79bf254bd6d85f78895541aaa860a")
-
-var ConfigAddress = ethCommon.HexToAddress("0xE570570CDe56E91f8D4CDB97323a76aBd222078A")
-var NodeAddress = ethCommon.HexToAddress("0x0FCc3b2a1Fe79DAefF2DE1Fdc17D9cd3aEaf6d3f")
-var SectorAddress = ethCommon.HexToAddress("0xdD5be5294bF15E697da6FcCBe9a09B9F7bcaFa34")
-var SpaceAddress = ethCommon.HexToAddress("0x08C94A0C2407c6Ca00be004c6603473bc41aca8C")
-var FileAddress = ethCommon.HexToAddress("0xaD9b00ffc9f0207783121F4f9cF7392f7d38EE5A")
-var ListAddress = ethCommon.HexToAddress("0x1bC0A3267aD0E3bD367E11eD21758a7a02f387F8")
-var ProveAddress = ethCommon.HexToAddress("0x2Ecc3A30122299f35E2F3bC723DA16bb63c86ada")
-var PDPAddress = ethCommon.HexToAddress("0x87b3938595A271b0179C74491069365360b499aC")
+var ConfigAddress = ethCommon.HexToAddress("0xE819Ed2d8e08557101c6106723ade68c19f04b4f")
+var NodeAddress = ethCommon.HexToAddress("0x87E1AE21A300a99b10cA727B5b041BcD274860DE")
+var SectorAddress = ethCommon.HexToAddress("0x2c283E61300FDAaF1d9170161F43e89C6E70E60e")
+var SpaceAddress = ethCommon.HexToAddress("0xb5BFBEFCdbcbfFd4769bfBe4ee63CeC70437571E")
+var FileAddress = ethCommon.HexToAddress("0x838e9ec78f140F1b934a3B4Dd4C3051F705a6ac4")
+var ListAddress = ethCommon.HexToAddress("0xf5382271392d8ECae98335A8ca9C2D31c4923461")
+var ProveAddress = ethCommon.HexToAddress("0xecCfEAB3Cc52e9d75409547F33683058C8E23f4d")
+var PDPAddress = ethCommon.HexToAddress("0xb8F29A7f16fa6FC44EfA7c209Ab6d253D5B184e3")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
-
-	nonce, err := ec.PendingNonceAt(context.TODO(), address)
+	nonce, err := ec.PendingNonceAt(context.TODO(), t.DefAcc.EthAddress)
 	if err != nil {
 		return nil, err
 	}
-
 	gasPrice, err := ec.SuggestGasPrice(context.TODO())
 	if err != nil {
 		return nil, err
 	}
-
 	chainID, err := ec.ChainID(context.TODO())
 	if err != nil {
 		return nil, err
 	}
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
+	keyBytes := t.DefAcc.GetEthPrivateKey()
+	keyStr := hexutil.Encode(keyBytes)
+	key, err := crypto.HexToECDSA(keyStr[2:])
 	if err != nil {
 		return nil, err
 	}
-	auth.From = address
+	auth, err := bind.NewKeyedTransactorWithChainID(key, chainID)
+	if err != nil {
+		return nil, err
+	}
+	auth.From = t.DefAcc.EthAddress
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = value                     // in wei
-	auth.GasLimit = uint64(10_000_000_000) // in units
+	auth.Value = value                 // in wei
+	auth.GasLimit = uint64(10_000_000) // in units
 	auth.GasPrice = gasPrice
 
+	gas := new(big.Int).Mul(auth.GasPrice, big.NewInt(int64(auth.GasLimit)))
+	gas = new(big.Int).Add(auth.Value, gas)
+	log.Debugf("get signer with gas: %v, %v, %v, %v", auth.GasPrice, auth.GasLimit, auth.Value, gas)
 	return auth, nil
 }
 

@@ -2,6 +2,7 @@ package fs
 
 import (
 	"fmt"
+	ethCom "github.com/ethereum/go-ethereum/common"
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
@@ -11,6 +12,8 @@ import (
 	"testing"
 	"time"
 )
+
+var address = ethCom.HexToAddress("0x5406d22c2aDd39Fa7bE8Bc0f18a03D3CEfbBc0E8")
 
 func CreateClientMgr() *client.ClientMgr {
 	c := &client.ClientMgr{}
@@ -435,7 +438,7 @@ func TestEVM_NodeRegister(t1 *testing.T) {
 			args: args{
 				volume:      1000 * 1000,
 				serviceTime: 0,
-				nodeAddr:    "tcp://127.0.0.1:8080",
+				nodeAddr:    "",
 			},
 		},
 	}
