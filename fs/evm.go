@@ -988,8 +988,8 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 		return nil, err
 	}
 	param := spaceStore.UserSpaceParams{
-		WalletAddr: address,
-		Owner:      t.DefAcc.EthAddress,
+		WalletAddr: t.DefAcc.EthAddress,
+		Owner:      address,
 		Size: spaceStore.UserSpaceOperation{
 			Type:  uint8(size.Type),
 			Value: size.Value,
