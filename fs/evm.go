@@ -41,14 +41,14 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xE819Ed2d8e08557101c6106723ade68c19f04b4f")
-var NodeAddress = ethCommon.HexToAddress("0x87E1AE21A300a99b10cA727B5b041BcD274860DE")
-var SectorAddress = ethCommon.HexToAddress("0x2c283E61300FDAaF1d9170161F43e89C6E70E60e")
-var SpaceAddress = ethCommon.HexToAddress("0xb5BFBEFCdbcbfFd4769bfBe4ee63CeC70437571E")
-var FileAddress = ethCommon.HexToAddress("0x838e9ec78f140F1b934a3B4Dd4C3051F705a6ac4")
-var ListAddress = ethCommon.HexToAddress("0xf5382271392d8ECae98335A8ca9C2D31c4923461")
-var ProveAddress = ethCommon.HexToAddress("0xecCfEAB3Cc52e9d75409547F33683058C8E23f4d")
-var PDPAddress = ethCommon.HexToAddress("0xb8F29A7f16fa6FC44EfA7c209Ab6d253D5B184e3")
+var ConfigAddress = ethCommon.HexToAddress("0xE74018f582D9C7B712FD2795438c3A38B59249d9")
+var NodeAddress = ethCommon.HexToAddress("0x398cc45659B4955BC32F20379E81346D859e75F1")
+var SectorAddress = ethCommon.HexToAddress("0x238876B37eb38A54cae095e5bD36c83BF17c2164")
+var SpaceAddress = ethCommon.HexToAddress("0x3DfC292537750013aC6dD4b9dfFFd27EF52b6983")
+var FileAddress = ethCommon.HexToAddress("0xFDaAAcDd26b4dA6812039cCcc0acA62eE7658758")
+var ListAddress = ethCommon.HexToAddress("0x546bd96Ad3173aE46a58036f38ad2108d8210460")
+var ProveAddress = ethCommon.HexToAddress("0x7d86E0A0e7ddE9D90c5789A5BB4c18012FE541AF")
+var PDPAddress = ethCommon.HexToAddress("0xF90f9ea7594Bfb8944Af654eD8a203d200919F82")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client

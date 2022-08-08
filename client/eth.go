@@ -74,7 +74,7 @@ func (e *EthClient) getCurrentBlockHeight(qid string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	marshal, err := json.Marshal(number - 1)
+	marshal, err := json.Marshal(number)
 	if err != nil {
 		return nil, err
 	}
