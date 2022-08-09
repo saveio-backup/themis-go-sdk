@@ -145,8 +145,8 @@ func (e *EthClient) getSmartContractEvent(qid, txHash string) ([]byte, error) {
 }
 
 func (e *EthClient) getSmartContractEventByBlock(qid string, blockHeight uint32) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	log.Errorf("getSmartContractEventByBlock not implemented")
+	return nil, nil
 }
 
 func (e *EthClient) getSmartContractEventByBlockAndAddress(qid string, blockHeight uint32, contractAddress string) ([]byte, error) {
