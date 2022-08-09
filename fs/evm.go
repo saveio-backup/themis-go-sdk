@@ -202,28 +202,30 @@ func (t *EVM) GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error
 	if len(addrs) == 0 {
 		return nil, errors.New("address cannot empty")
 	}
-	address := ethCommon.BytesToAddress(addrs[0][:])
-	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient().Client)
-	if err != nil {
-		return nil, err
+	nodes := make([]fs.FsNodeInfo, 0)
+	for _, addr := range addrs {
+		address := ethCommon.BytesToAddress(addr[:])
+		store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient().Client)
+		if err != nil {
+			return nil, err
+		}
+		info, err := store.GetNodeInfoByWalletAddr(&bind.CallOpts{}, address)
+		if err != nil {
+			return nil, err
+		}
+		nodeInfo := fs.FsNodeInfo{
+			Pledge:      info.Pledge,
+			Profit:      info.Profit,
+			Volume:      info.Volume,
+			RestVol:     info.RestVol,
+			ServiceTime: info.ServiceTime,
+			WalletAddr:  common.Address(info.WalletAddr),
+			NodeAddr:    info.NodeAddr[:],
+		}
+		nodes = append(nodes, nodeInfo)
 	}
-	info, err := store.GetNodeInfoByWalletAddr(&bind.CallOpts{}, address)
-	if err != nil {
-		return nil, err
-	}
-	nodes := make([]fs.FsNodeInfo, 1)
-	nodeInfo := fs.FsNodeInfo{
-		Pledge:      info.Pledge,
-		Profit:      info.Profit,
-		Volume:      info.Volume,
-		RestVol:     info.RestVol,
-		ServiceTime: info.ServiceTime,
-		WalletAddr:  common.Address(info.WalletAddr),
-		NodeAddr:    info.NodeAddr[:],
-	}
-	nodes[0] = nodeInfo
 	nodeList := &fs.FsNodesInfo{
-		NodeNum:  1,
+		NodeNum:  uint64(len(nodes)),
 		NodeInfo: nodes,
 	}
 	return nodeList, nil
