@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"strings"
 	"time"
@@ -41,14 +42,14 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xE74018f582D9C7B712FD2795438c3A38B59249d9")
-var NodeAddress = ethCommon.HexToAddress("0x398cc45659B4955BC32F20379E81346D859e75F1")
-var SectorAddress = ethCommon.HexToAddress("0x238876B37eb38A54cae095e5bD36c83BF17c2164")
-var SpaceAddress = ethCommon.HexToAddress("0x3DfC292537750013aC6dD4b9dfFFd27EF52b6983")
-var FileAddress = ethCommon.HexToAddress("0xFDaAAcDd26b4dA6812039cCcc0acA62eE7658758")
-var ListAddress = ethCommon.HexToAddress("0x546bd96Ad3173aE46a58036f38ad2108d8210460")
-var ProveAddress = ethCommon.HexToAddress("0x7d86E0A0e7ddE9D90c5789A5BB4c18012FE541AF")
-var PDPAddress = ethCommon.HexToAddress("0xF90f9ea7594Bfb8944Af654eD8a203d200919F82")
+var ConfigAddress = ethCommon.HexToAddress("0x022B651104A036B4f06b5329F3EfE13FA66D9103")
+var NodeAddress = ethCommon.HexToAddress("0x3D039392B2BCa6EDea7cAa192010D3912798c752")
+var SectorAddress = ethCommon.HexToAddress("0x5A8D7D077b48891477b7b06E934288e94a0ac49e")
+var SpaceAddress = ethCommon.HexToAddress("0x241d51c361A6c31cc5763AB7A026b405fB3DEaEf")
+var FileAddress = ethCommon.HexToAddress("0xae13c0ad5A0c0a878A2fa1f3549B7aF85c6f8359")
+var ListAddress = ethCommon.HexToAddress("0x463f0Dd44F1a4ab80BD4728a9f9380C30fb59d2f")
+var ProveAddress = ethCommon.HexToAddress("0xD03DA6E09622E3F3fbA98BD071E50872553f745C")
+var PDPAddress = ethCommon.HexToAddress("0x6f31ED77540507B19b99e615c6a90C20E8CFC6F2")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -331,11 +332,31 @@ func (t *EVM) NodeCancel() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	cancel, err := store.Cancel(signer, t.DefAcc.EthAddress)
+	tx, err := store.Cancel(signer, t.DefAcc.EthAddress)
 	if err != nil {
 		return nil, err
 	}
-	hash := cancel.Hash()
+	hash := tx.Hash()
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	if err != nil {
+		return nil, err
+	}
+	if mined.Status == types.ReceiptStatusFailed {
+		return nil, errors.New("cancel failed")
+	}
+	for _, vLog := range mined.Logs {
+		contractAbi, err := abi.JSON(strings.NewReader(nodeStore.StoreMetaData.ABI))
+		if err != nil {
+			return nil, err
+		}
+		data, err := contractAbi.Unpack("UnRegisterNodeEvent", vLog.Data)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range data {
+			fmt.Println(v)
+		}
+	}
 	return hash[:], err
 }
 
@@ -1013,7 +1034,6 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 		if err != nil {
 			return nil, err
 		}
-		//var event spaceStore.TransferState
 		data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
 		if err != nil {
 			return nil, err

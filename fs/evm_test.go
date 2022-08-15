@@ -3,6 +3,7 @@ package fs
 import (
 	"fmt"
 	ethCom "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common"
@@ -455,6 +456,53 @@ func TestEVM_NodeRegister(t1 *testing.T) {
 				return
 			}
 			t1.Log(got)
+		})
+	}
+}
+
+func TestEVM_NodeCancel(t1 *testing.T) {
+	priKey, _ := crypto.HexToECDSA("qrRvuI+938wW3GPfEquSSzOeQDvDtpWnGx3WcJTv1PUgFmce3VC0a2LNlIXQHBJ9")
+	address := ethCom.HexToAddress("F168345D34E76118b2280dBcF905DE98e2905e61")
+	type fields struct {
+		Client            *client.ClientMgr
+		DefAcc            *account.Account
+		PollForTxDuration time.Duration
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "general",
+			fields: fields{
+				Client: CreateClientMgr(),
+				DefAcc: &account.Account{
+					PrivateKey: priKey,
+					PublicKey:  nil,
+					Address:    common.Address{},
+					EthAddress: address,
+					SigScheme:  0,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t1.Run(tt.name, func(t1 *testing.T) {
+			t := &EVM{
+				Client:            tt.fields.Client,
+				DefAcc:            tt.fields.DefAcc,
+				PollForTxDuration: tt.fields.PollForTxDuration,
+			}
+			got, err := t.NodeCancel()
+			if (err != nil) != tt.wantErr {
+				t1.Errorf("NodeCancel() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t1.Errorf("NodeCancel() got = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
