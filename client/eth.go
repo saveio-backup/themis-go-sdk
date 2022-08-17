@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ethereum/go-ethereum/ethclient"
+	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 	"math/big"
@@ -146,7 +147,8 @@ func (e *EthClient) getSmartContractEvent(qid, txHash string) ([]byte, error) {
 
 func (e *EthClient) getSmartContractEventByBlock(qid string, blockHeight uint32) ([]byte, error) {
 	log.Errorf("getSmartContractEventByBlock not implemented")
-	return nil, nil
+	events := make([]*sdkcom.SmartContactEvent, 0)
+	return json.Marshal(events)
 }
 
 func (e *EthClient) getSmartContractEventByBlockAndAddress(qid string, blockHeight uint32, contractAddress string) ([]byte, error) {
