@@ -421,6 +421,10 @@ github.com/saveio/themis v1.0.167-0.20220314081234-000f4d9925e5 h1:fGZEFfP5GPaR+
 github.com/saveio/themis v1.0.167-0.20220314081234-000f4d9925e5/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
 github.com/saveio/themis v1.0.167-0.20220331070246-8c4b60bb371a h1:7OGTytMoaAxErrOqwb8Qp7gNKeaQGp94iHLOkrcDWvg=
 github.com/saveio/themis v1.0.167-0.20220331070246-8c4b60bb371a/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.172 h1:Hxn9Ms68Q8Bz1MczW4XFKQuDLs9LrqQ4omkW08hia4o=
+github.com/saveio/themis v1.0.172/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.173-0.20220830071241-7340b768a847 h1:aoatjBqcNvFwkQuJCwKrpwmBRMrjUtE4WqiftvJuDLM=
+github.com/saveio/themis v1.0.173-0.20220830071241-7340b768a847/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
 github.com/scylladb/go-set v1.0.2 h1:SkvlMCKhP0wyyct6j+0IHJkBkSZL+TDzZ4E7f7BCcRE=
 github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
 github.com/segmentio/kafka-go v0.1.0/go.mod h1:X6itGqS9L4jDletMsxZ7Dz+JFWxM6JHfPOCvTvk+EJo=
