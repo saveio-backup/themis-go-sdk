@@ -13,11 +13,11 @@ import (
 )
 
 var testFs *Fs
-var walletAddr = "AHjjdbVLhfTyiNFEq2X8mFnnirZY1yK8Rq"
-var walletPath = "/Users/smallyu/work/gogs/edge-deploy/node1/keystore.dat"
-var pwd = []byte("pwd")
+var walletAddr = "AXW72DaTC9iiVXb1xdNtAN6fR9W3GcweC6"
+var walletPath = "/Users/zorro/go/src/github.com/saveio/edge/client1/keystore.dat"
+var pwd = []byte("123")
 var rpc_addr = "http://127.0.0.1:20336"
-var txt = "QmevhnWdtmz89BMXuuX5pSY2uZtqKLz7frJsrCojT5kmb6"
+var txt = "SaveQmShtV2hrntparv8eUAFi5yg1fTfbjuGoBNZjYYxwbxCdY"
 
 func TestMain(m *testing.M) {
 	rand.Seed(time.Now().UnixNano())
@@ -35,8 +35,8 @@ func TestMain(m *testing.M) {
 		Client: &client.ClientMgr{},
 		DefAcc: acc,
 	})
-	//testFs.Client.GetClient().NewRpcClient().SetAddress([]string{rpc_addr})
-	testFs.Client.SetDefaultAccount(acc)
+	testFs.Client.GetClient().NewRpcClient().SetAddress([]string{rpc_addr})
+	// testFs.Client.SetDefaultAccount(acc)
 	m.Run()
 }
 
@@ -113,6 +113,7 @@ func TestOntFsClient_GetFileInfo(t *testing.T) {
 	fmt.Println("Deposit:", fileInfo.Deposit)
 	fmt.Println("FileProveParam:", string(fileInfo.FileProveParam))
 	fmt.Println("ProveBlockNum:", fileInfo.ProveBlockNum)
+	fmt.Println("Url:", fileInfo.Url)
 }
 
 func TestOntFsClient_GetFileProveDetails(t *testing.T) {

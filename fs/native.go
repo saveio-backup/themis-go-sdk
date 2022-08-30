@@ -202,11 +202,10 @@ func (t *Native) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 func (t *Native) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error) {
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-
 	primary := fs.NodeList{
 		AddrNum:  uint64(len(primaryNodes)),
 		AddrList: primaryNodes,
@@ -240,6 +239,7 @@ func (t *Native) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		CandidateNodes: candidates,
 		IsPlotFile:     plotInfo != nil,
 		PlotInfo:       plotInfo,
+		Url: url,
 	}
 	buf := new(bytes.Buffer)
 	if err := fileInfo.Serialize(buf); err != nil {
@@ -285,7 +285,6 @@ func (t *Native) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetFileInfo result toByteArray: %s", err.Error())
 	}
-
 	var fileInfo fs.FileInfo
 	retInfo := fs.DecRet(data)
 	if retInfo.Ret {
