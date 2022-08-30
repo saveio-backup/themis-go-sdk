@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/saveio/themis-go-sdk/client"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis-go-sdk/utils"
@@ -13,13 +15,14 @@ import (
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/savefs/pdp"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
-	"time"
 )
 
 type Native struct {
 	Client            *client.ClientMgr
 	DefAcc            *account.Account
 	PollForTxDuration time.Duration
+	GasPrice          uint64
+	GasLimit          uint64
 }
 
 var _ ContractClient = (*Native)(nil)
@@ -40,7 +43,15 @@ func (t *Native) InvokeNativeContract(signer *account.Account, method string, pa
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
-	tx, err := utils.NewNativeInvokeTransaction(sdkcom.GAS_PRICE, sdkcom.GAS_LIMIT, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
+	gasPrice := t.GasPrice
+	gasLimit := t.GasLimit
+	if gasPrice == 0 {
+		gasPrice = sdkcom.GAS_PRICE
+	}
+	if gasLimit == 0 {
+		gasLimit = sdkcom.GAS_LIMIT
+	}
+	tx, err := utils.NewNativeInvokeTransaction(gasPrice, gasLimit, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}

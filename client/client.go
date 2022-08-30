@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +27,26 @@ type ClientMgr struct {
 
 func (this *ClientMgr) NewRpcClient() *RpcClient {
 	this.rpc = NewRpcClient()
+	return this.rpc
+}
+
+func (this *ClientMgr) NewRpcClientWithAddrs(addrs []string) *RpcClient {
+	this.rpc = &RpcClient{
+		callMode:        ServerScore,
+		rpcServerStatus: new(sync.Map),
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				MaxConnsPerHost:       2,
+				MaxIdleConnsPerHost:   12,
+				DisableKeepAlives:     false, //enable keepalive
+				IdleConnTimeout:       time.Second * 300,
+				ResponseHeaderTimeout: time.Second * 100,
+				ExpectContinueTimeout: 20,
+			},
+			Timeout: time.Second * 50, //timeout for http response
+		},
+	}
+	this.rpc.SetAddress(addrs)
 	return this.rpc
 }
 

@@ -25,15 +25,25 @@ var (
 )
 
 type Channel struct {
-	Client *client.ClientMgr
-	DefAcc *account.Account
+	Client   *client.ClientMgr
+	DefAcc   *account.Account
+	GasPrice uint64
+	GasLimit uint64
 }
 
 func (this *Channel) InvokeNativeContract(signer *account.Account, method string, params []interface{}) (common.Uint256, error) {
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
-	tx, err := utils.NewNativeInvokeTransaction(sdkcom.GAS_PRICE, sdkcom.GAS_LIMIT, CHANNEL_CONTRACT_VERSION, CHANNEL_CONTRACT_ADDRESS, method, params)
+	gasPrice := this.GasPrice
+	gasLimit := this.GasLimit
+	if gasPrice == 0 {
+		gasPrice = sdkcom.GAS_PRICE
+	}
+	if gasLimit == 0 {
+		gasLimit = sdkcom.GAS_LIMIT
+	}
+	tx, err := utils.NewNativeInvokeTransaction(gasPrice, gasLimit, CHANNEL_CONTRACT_VERSION, CHANNEL_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
