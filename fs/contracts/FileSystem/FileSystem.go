@@ -59,6 +59,7 @@ type FileInfo struct {
 	ProveLevel     uint8
 	IsPlotFile     bool
 	PlotInfo       PlotInfo
+	Url string
 }
 
 // FileProveParams is an auto generated low-level Go binding around an user-defined struct.

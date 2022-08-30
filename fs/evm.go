@@ -491,7 +491,7 @@ func (t *EVM) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error) {
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -541,6 +541,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 			StartNonce: plotInfo.StartNonce,
 			Nonces:     plotInfo.Nonces,
 		},
+		Url:url,
 	}
 
 	file, err := store.StoreFile(signer, f)

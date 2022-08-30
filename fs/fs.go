@@ -67,10 +67,10 @@ func (f *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 func (f *Fs) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo) ([]byte, error) {
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error) {
 	return f.Client.StoreFile(fileHashStr, blocksRoot, blockNum, blockSize,
 		proveLevel, expiredHeight, copyNum, fileDesc, privilege, proveParam, storageType,
-		realFileSize, primaryNodes, candidateNodes, plotInfo)
+		realFileSize, primaryNodes, candidateNodes, plotInfo,url)
 }
 
 func (f *Fs) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
