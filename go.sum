@@ -397,6 +397,22 @@ github.com/rs/cors v1.7.0 h1:+88SsELBHx5r+hZ8TCkggzSstaWNbDvThkVK8H6f9ik=
 github.com/rs/cors v1.7.0/go.mod h1:gFx+x8UowdsKA9AchylcLynDq+nNFfI8FkUZdN/jGCU=
 github.com/rs/xhandler v0.0.0-20160618193221-ed27b6fd6521/go.mod h1:RvLn4FgxWubrpZHtQLnOf6EwhN2hEMusxZOhcW9H3UQ=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
+<<<<<<< HEAD
+=======
+github.com/saveio/themis v1.0.135-0.20210802052006-7b1a7f1fef1c h1:Km7G7u9We8c9lSrL11j2dU5s1CJCCF3n8/2TufQeUWM=
+github.com/saveio/themis v1.0.135-0.20210802052006-7b1a7f1fef1c/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.166-0.20220209061821-932a77d6b09d h1:HEdZQBcesv9Tegz94zCgP7LpUCbET33V69KF3d0Ll/0=
+github.com/saveio/themis v1.0.166-0.20220209061821-932a77d6b09d/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.167-0.20220314081234-000f4d9925e5 h1:fGZEFfP5GPaR+sL0Q/glqKS6lqZI9TKPL4PO07BVSJw=
+github.com/saveio/themis v1.0.167-0.20220314081234-000f4d9925e5/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.167-0.20220331070246-8c4b60bb371a h1:7OGTytMoaAxErrOqwb8Qp7gNKeaQGp94iHLOkrcDWvg=
+github.com/saveio/themis v1.0.167-0.20220331070246-8c4b60bb371a/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.172 h1:Hxn9Ms68Q8Bz1MczW4XFKQuDLs9LrqQ4omkW08hia4o=
+github.com/saveio/themis v1.0.172/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/saveio/themis v1.0.173-0.20220830071241-7340b768a847 h1:aoatjBqcNvFwkQuJCwKrpwmBRMrjUtE4WqiftvJuDLM=
+github.com/saveio/themis v1.0.173-0.20220830071241-7340b768a847/go.mod h1:XLy1mm8cvii9bqd1xd2WzFGuXmI6QRnoFG6IbTyKwFM=
+github.com/scylladb/go-set v1.0.2 h1:SkvlMCKhP0wyyct6j+0IHJkBkSZL+TDzZ4E7f7BCcRE=
+>>>>>>> 338aa2b172ab45dd2b156729234ffc1ed282604c
 github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
 github.com/segmentio/kafka-go v0.1.0/go.mod h1:X6itGqS9L4jDletMsxZ7Dz+JFWxM6JHfPOCvTvk+EJo=
 github.com/segmentio/kafka-go v0.2.0/go.mod h1:X6itGqS9L4jDletMsxZ7Dz+JFWxM6JHfPOCvTvk+EJo=

@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 
 	listStore "github.com/saveio/themis-go-sdk/fs/contracts/List"
 	sectorStore "github.com/saveio/themis-go-sdk/fs/contracts/Sector"
@@ -491,7 +492,7 @@ func (t *EVM) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error) {
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo, url string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -500,7 +501,8 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	if err != nil {
 		return nil, err
 	}
-	signer, err := t.GetSigner(big.NewInt(0))
+	// TODO wangyu
+	signer, err := t.GetSigner(big.NewInt(10000))
 	if err != nil {
 		return nil, err
 	}
@@ -514,6 +516,20 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		candidates[k] = ethCommon.BytesToAddress(v[:])
 	}
 	fileHash := []byte(fileHashStr)
+	var evmPlotInfo fsStore.PlotInfo
+	if plotInfo == nil {
+		evmPlotInfo = fsStore.PlotInfo{
+			NumberID:   0,
+			StartNonce: 0,
+			Nonces:     0,
+		}
+	} else {
+		evmPlotInfo = fsStore.PlotInfo{
+			NumberID:   plotInfo.NumericID,
+			StartNonce: plotInfo.StartNonce,
+			Nonces:     plotInfo.Nonces,
+		}
+	}
 	f := fsStore.FileInfo{
 		FileHash:       fileHash,
 		BlocksRoot:     []byte(blocksRoot),
@@ -536,19 +552,20 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		PrimaryNodes:   primary,
 		CandidateNodes: candidates,
 		IsPlotFile:     plotInfo != nil,
-		PlotInfo: fsStore.PlotInfo{
-			NumberID:   plotInfo.NumericID,
-			StartNonce: plotInfo.StartNonce,
-			Nonces:     plotInfo.Nonces,
-		},
-		Url:url,
+		PlotInfo:       evmPlotInfo,
 	}
-
-	file, err := store.StoreFile(signer, f)
+	tx, err := store.StoreFile(signer, f)
 	if err != nil {
 		return nil, err
 	}
-	hash := file.Hash()
+	mined, err := bind.WaitMined(context.TODO(), ec, tx)
+	if err != nil {
+		return nil, err
+	}
+	if mined.Status != types.ReceiptStatusSuccessful {
+		return nil, errors.New("store file failed")
+	}
+	hash := tx.Hash()
 	return hash[:], err
 }
 

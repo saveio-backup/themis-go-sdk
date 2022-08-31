@@ -121,8 +121,9 @@ func (e *EthClient) getBlockHash(qid string, height uint32) ([]byte, error) {
 }
 
 func (e *EthClient) getBlockHeightByTxHash(qid, txHash string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	log.Errorf("getBlockHeightByTxHash not implemented")
+	rpcRsp := &JsonRpcResponse{}
+	return json.Marshal(rpcRsp)
 }
 
 func (e *EthClient) getBlockTxHashesByHeight(qid string, height uint32) ([]byte, error) {
