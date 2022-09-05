@@ -36,7 +36,11 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 	native.OntId = &ontid.OntId{Client: client}
 	native.GlobalParams = &cgp.GlobalParam{Client: client}
 	native.Auth = &auth.Auth{Client: client}
-	native.Dns = &dns.Dns{Client: client}
+	native.Dns = &dns.Dns{}
+	native.Dns.NewClient(&dns.Native{
+		Client: client,
+		DefAcc: nil,
+	})
 	native.Fs = &fs.Fs{}
 	native.Fs.NewClient(&fs.Native{
 		Client:            client,
@@ -50,7 +54,7 @@ func newNativeContract(client *client.ClientMgr) *NativeContract {
 
 func (this *NativeContract) SetDefaultAccount(acc *account.Account) {
 	this.Channel.DefAcc = acc
-	this.Fs.Client.SetDefaultAccount(acc)
-	this.Dns.DefAcc = acc
+	this.Fs.SetDefaultAccount(acc)
+	this.Dns.SetDefaultAccount(acc)
 	this.Governance.DefAcc = acc
 }

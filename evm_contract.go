@@ -30,7 +30,11 @@ func newEVMContract(client *client.ClientMgr) *EVMContract {
 	evm.OntId = &ontid.OntId{Client: client}
 	evm.GlobalParams = &cgp.GlobalParam{Client: client}
 	evm.Auth = &auth.Auth{Client: client}
-	evm.Dns = &dns.Dns{Client: client}
+	evm.Dns = &dns.Dns{}
+	evm.Dns.NewClient(&dns.EVM{
+		Client: client,
+		DefAcc: nil,
+	})
 	evm.Fs = &fs.Fs{}
 	evm.Fs.NewClient(&fs.EVM{
 		Client:            client,
@@ -44,7 +48,7 @@ func newEVMContract(client *client.ClientMgr) *EVMContract {
 
 func (this *EVMContract) SetDefaultAccount(acc *account.Account) {
 	this.Channel.DefAcc = acc
-	this.Fs.Client.SetDefaultAccount(acc)
-	this.Dns.DefAcc = acc
+	this.Fs.SetDefaultAccount(acc)
+	this.Dns.SetDefaultAccount(acc)
 	this.Governance.DefAcc = acc
 }

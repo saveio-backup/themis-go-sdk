@@ -18,7 +18,7 @@ import (
 var walletPath = "./wallet.dat"
 var pwd = []byte("pwd")
 var rpc_addr = []string{"http://10.0.1.201:20336"}
-var testDns = &Dns{}
+var testDns = &Native{}
 var txTimeout = 60
 var dnsIP = "tcp://127.0.0.1"
 var dnsPort = uint32(10000)
@@ -51,7 +51,7 @@ func TestRegister(t *testing.T) {
 	if err != nil {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testDns := &Dns{}
+	testDns := &Native{}
 	testDns.Client = &client.ClientMgr{}
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
@@ -316,7 +316,7 @@ func TestDns_DNSNodeReg(t *testing.T) {
 	if err != nil {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testDns := &Dns{}
+	testDns := &Native{}
 	testDns.Client = &client.ClientMgr{}
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
@@ -346,7 +346,7 @@ func TestDns_QueryDnsNode(t *testing.T) {
 	if err != nil {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testDns := &Dns{}
+	testDns := &Native{}
 	testDns.Client = &client.ClientMgr{}
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
@@ -370,7 +370,7 @@ func TestDns_GetDnsNodes(t *testing.T) {
 	if err != nil {
 		fmt.Printf("GetDefaultAccount error:%s\n", err)
 	}
-	testDns := &Dns{}
+	testDns := &Native{}
 	testDns.Client = &client.ClientMgr{}
 	testDns.Client.NewRpcClient().SetAddress(rpc_addr)
 	testDns.DefAcc = acc
