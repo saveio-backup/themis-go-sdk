@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"github.com/saveio/themis-go-sdk/client"
 	"time"
 
 	sdkcom "github.com/saveio/themis-go-sdk/common"
@@ -19,6 +20,20 @@ var (
 
 type Fs struct {
 	Client ContractClient
+}
+
+var _ ContractClient = (*Fs)(nil)
+
+func (f *Fs) SetDefaultAccount(acc *account.Account) {
+	f.Client.SetDefaultAccount(acc)
+}
+
+func (f *Fs) GetDefaultAccount() *account.Account {
+	return f.Client.GetDefaultAccount()
+}
+
+func (f *Fs) GetClient() *client.ClientMgr {
+	return f.Client.GetClient()
 }
 
 func (f *Fs) NewClient(contractClient ContractClient) {
@@ -67,10 +82,10 @@ func (f *Fs) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 func (f *Fs) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error) {
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo, url string) ([]byte, error) {
 	return f.Client.StoreFile(fileHashStr, blocksRoot, blockNum, blockSize,
 		proveLevel, expiredHeight, copyNum, fileDesc, privilege, proveParam, storageType,
-		realFileSize, primaryNodes, candidateNodes, plotInfo,url)
+		realFileSize, primaryNodes, candidateNodes, plotInfo, url)
 }
 
 func (f *Fs) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
