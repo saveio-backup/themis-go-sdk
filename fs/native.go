@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/saveio/themis-go-sdk/client"
@@ -1054,4 +1055,8 @@ func (t *Native) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64
 		return nil, err
 	}
 	return ret.ToArray(), err
+}
+
+func (t *Native) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error) {
+	return nil, nil
 }

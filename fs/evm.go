@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
 	"math/big"
 	"strings"
 	"time"
@@ -43,14 +44,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x022B651104A036B4f06b5329F3EfE13FA66D9103")
-var NodeAddress = ethCommon.HexToAddress("0x3D039392B2BCa6EDea7cAa192010D3912798c752")
-var SectorAddress = ethCommon.HexToAddress("0x5A8D7D077b48891477b7b06E934288e94a0ac49e")
-var SpaceAddress = ethCommon.HexToAddress("0x241d51c361A6c31cc5763AB7A026b405fB3DEaEf")
-var FileAddress = ethCommon.HexToAddress("0xae13c0ad5A0c0a878A2fa1f3549B7aF85c6f8359")
-var ListAddress = ethCommon.HexToAddress("0x463f0Dd44F1a4ab80BD4728a9f9380C30fb59d2f")
-var ProveAddress = ethCommon.HexToAddress("0xD03DA6E09622E3F3fbA98BD071E50872553f745C")
-var PDPAddress = ethCommon.HexToAddress("0x6f31ED77540507B19b99e615c6a90C20E8CFC6F2")
+var ConfigAddress = ethCommon.HexToAddress("0xbcE144A59Cd2CD9B4949dB6d2383CfFF5D70A4Dc")
+var NodeAddress = ethCommon.HexToAddress("0x4DE3351C0034a1aa8D1013343A7AC4AC9e1C8fEA")
+var SectorAddress = ethCommon.HexToAddress("0x6411693e8A783ce0EB37121911e0411a41dE4C42")
+var SpaceAddress = ethCommon.HexToAddress("0x85DCA96F12A13Fb9E34D6ACA2013E8f31190134d")
+var FileAddress = ethCommon.HexToAddress("0xEb514eD5536c4847dc15474e84fa0039Bd470c0d")
+var FileExtraAddress = ethCommon.HexToAddress("0x15557B2bf1E0e3928112DCed4A3e23991f81AD09")
+var ListAddress = ethCommon.HexToAddress("0x273EFF7Cd3FDDdBee86E4FC18b7FD9036FfC7F2c")
+var ProveAddress = ethCommon.HexToAddress("0xAaCb455D37f6e0EfcE508342a610Bf4Ec23A8D9f")
+var ProveExtraAddress = ethCommon.HexToAddress("0xE0646D2d37dAd4BE856D31997F5e87D2643A9573")
+var PDPAddress = ethCommon.HexToAddress("0x853723143F9FeB0A6031D05BCff787Af1D1F4C9D")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -1415,4 +1418,102 @@ func (t *EVM) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) (
 	}
 	hash := inTime.Hash()
 	return hash[:], err
+}
+
+func (t *EVM) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error) {
+	res := make([]map[string]interface{}, 0)
+	query := ethereum.FilterQuery{
+		FromBlock: blockHeight,
+		ToBlock:   blockHeight,
+		Addresses: []ethCommon.Address{
+			FileAddress,
+			SectorAddress,
+		},
+	}
+	ec := t.Client.GetEthClient().Client
+	logs, err := ec.FilterLogs(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	fsAbi, err := abi.JSON(strings.NewReader(fsStore.StoreMetaData.ABI))
+	if err != nil {
+		return nil, err
+	}
+	sectorAbi, err := abi.JSON(strings.NewReader(sectorStore.StoreMetaData.ABI))
+	if err != nil {
+		return nil, err
+	}
+	for _, vLog := range logs {
+		event := make(map[string]interface{})
+		err := sectorAbi.UnpackIntoMap(event, "CreateSectorEvent", vLog.Data)
+		if err != nil {
+			continue
+		}
+		event["eventName"] = GetFsEventNameByType(event["eventType"].(uint8))
+		if event["eventName"] != "createSector" {
+			continue
+		}
+		res = append(res, event)
+
+		event = make(map[string]interface{})
+		err = sectorAbi.UnpackIntoMap(event, "DeleteSectorEvent", vLog.Data)
+		if err != nil {
+			continue
+		}
+		event["eventName"] = GetFsEventNameByType(event["eventType"].(uint8))
+		if event["eventName"] != "deleteSector" {
+			continue
+		}
+		res = append(res, event)
+
+		event = make(map[string]interface{})
+		err = fsAbi.UnpackIntoMap(event, "DeleteFileEvent", vLog.Data)
+		if err != nil {
+			continue
+		}
+		event["eventName"] = GetFsEventNameByType(event["eventType"].(uint8))
+		if event["eventName"] != "deleteFile" {
+			continue
+		}
+		res = append(res, event)
+
+		event = make(map[string]interface{})
+		err = fsAbi.UnpackIntoMap(event, "DeleteFilesEvent", vLog.Data)
+		if err != nil {
+			continue
+		}
+		event["eventName"] = GetFsEventNameByType(event["eventType"].(uint8))
+		if event["eventName"] != "deleteFiles" {
+			continue
+		}
+		res = append(res, event)
+	}
+	return res, nil
+}
+
+func GetFsEventNameByType(t uint8) string {
+	t += 1
+	switch t {
+	case fs.EVENT_FS_STORE_FILE:
+		return "uploadFile"
+	case fs.EVENT_FS_DELETE_FILE:
+		return "deleteFile"
+	case fs.EVENT_FS_DELETE_FILES:
+		return "deleteFiles"
+	case fs.EVENT_FS_SET_USER_SPACE:
+		return "setUserSpace"
+	case fs.EVENT_FS_REG_NODE:
+		return "registerNode"
+	case fs.EVENT_FS_UN_REG_NODE:
+		return "unregisterNode"
+	case fs.EVENT_FS_PROVE_FILE:
+		return "proveFile"
+	case fs.EVENT_FS_FILE_PDP_SUCCESS:
+		return "filePdpSuccess"
+	case fs.EVENT_FS_CREATE_SECTOR:
+		return "createSector"
+	case fs.EVENT_FS_DELETE_SECTOR:
+		return "deleteSector"
+	}
+	return ""
 }

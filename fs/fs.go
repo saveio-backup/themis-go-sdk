@@ -2,6 +2,7 @@ package fs
 
 import (
 	"github.com/saveio/themis-go-sdk/client"
+	"math/big"
 	"time"
 
 	sdkcom "github.com/saveio/themis-go-sdk/common"
@@ -242,4 +243,8 @@ func (f *Fs) DeleteUnSettledFiles() ([]byte, error) {
 
 func (f *Fs) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
 	return f.Client.CheckNodeSectorProveInTime(addr, sectorId)
+}
+
+func (t *Fs) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error) {
+	return t.Client.GetEventsByBlockHeight(blockHeight)
 }
