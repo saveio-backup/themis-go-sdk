@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 	"strings"
 	"time"
@@ -44,16 +45,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xbcE144A59Cd2CD9B4949dB6d2383CfFF5D70A4Dc")
-var NodeAddress = ethCommon.HexToAddress("0x4DE3351C0034a1aa8D1013343A7AC4AC9e1C8fEA")
-var SectorAddress = ethCommon.HexToAddress("0x6411693e8A783ce0EB37121911e0411a41dE4C42")
-var SpaceAddress = ethCommon.HexToAddress("0x85DCA96F12A13Fb9E34D6ACA2013E8f31190134d")
-var FileAddress = ethCommon.HexToAddress("0xEb514eD5536c4847dc15474e84fa0039Bd470c0d")
-var FileExtraAddress = ethCommon.HexToAddress("0x15557B2bf1E0e3928112DCed4A3e23991f81AD09")
-var ListAddress = ethCommon.HexToAddress("0x273EFF7Cd3FDDdBee86E4FC18b7FD9036FfC7F2c")
-var ProveAddress = ethCommon.HexToAddress("0xAaCb455D37f6e0EfcE508342a610Bf4Ec23A8D9f")
-var ProveExtraAddress = ethCommon.HexToAddress("0xE0646D2d37dAd4BE856D31997F5e87D2643A9573")
-var PDPAddress = ethCommon.HexToAddress("0x853723143F9FeB0A6031D05BCff787Af1D1F4C9D")
+var ConfigAddress = ethCommon.HexToAddress("0xcf3c1715d108E9f2FEc9a2e264AA4cc6D9685894")
+var NodeAddress = ethCommon.HexToAddress("0x3837F14B40B3f1bea67AE5D1078018718b501Cb8")
+var SectorAddress = ethCommon.HexToAddress("0x6035eE68F41F87af68Ceed26CFd97AD9339199c5")
+var SpaceAddress = ethCommon.HexToAddress("0x173961eE994b70b5fFd4318d9Fb7fb8F942A4c9E")
+var FileAddress = ethCommon.HexToAddress("0x8065378433E6788Ab79CC3E8B1835A34d546445a")
+var FileExtraAddress = ethCommon.HexToAddress("0xd6c52b6abd1D948901529dE3DBB9102D2604d7Ff")
+var ListAddress = ethCommon.HexToAddress("0xB8f23d0cb0b0eDFBa9b1E6802e6bb6a79314FC77")
+var ProveAddress = ethCommon.HexToAddress("0xE301c065ECc2B2F8f3487e40EB0b78ed60baE6B0")
+var ProveExtraAddress = ethCommon.HexToAddress("0x0e3D873Aaa0a3c20d1fcB7F87423997AbA81632c")
+var PDPAddress = ethCommon.HexToAddress("0x0C2D050B1589a641b5Df2c8064A5433e418aAf62")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -289,8 +290,7 @@ func (t *EVM) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) (
 	if err != nil {
 		return nil, err
 	}
-	hash := register.Hash()
-	return hash[:], nil
+	return TxResult(ec, register)
 }
 
 func (t *EVM) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
@@ -315,12 +315,19 @@ func (t *EVM) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]
 		WalletAddr:  t.DefAcc.EthAddress,
 		NodeAddr:    []byte(nodeAddr),
 	}
-	update, err := store.NodeUpdate(signer, node)
+	pledge, err := store.CalculateNodePledge(&bind.CallOpts{}, node)
 	if err != nil {
 		return nil, err
 	}
-	hash := update.Hash()
-	return hash[:], nil
+	signer, err = t.GetSigner(big.NewInt(int64(pledge)))
+	if err != nil {
+		return nil, err
+	}
+	tx, err := store.NodeUpdate(signer, node)
+	if err != nil {
+		return nil, err
+	}
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) NodeCancel() ([]byte, error) {
@@ -340,28 +347,7 @@ func (t *EVM) NodeCancel() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := tx.Hash()
-	mined, err := bind.WaitMined(context.Background(), ec, tx)
-	if err != nil {
-		return nil, err
-	}
-	if mined.Status == types.ReceiptStatusFailed {
-		return nil, errors.New("cancel failed")
-	}
-	for _, vLog := range mined.Logs {
-		contractAbi, err := abi.JSON(strings.NewReader(nodeStore.StoreMetaData.ABI))
-		if err != nil {
-			return nil, err
-		}
-		data, err := contractAbi.Unpack("UnRegisterNodeEvent", vLog.Data)
-		if err != nil {
-			return nil, err
-		}
-		for _, v := range data {
-			fmt.Println(v)
-		}
-	}
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) NodeWithDrawProfit() ([]byte, error) {
@@ -381,8 +367,7 @@ func (t *EVM) NodeWithDrawProfit() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := cancel.Hash()
-	return hash[:], nil
+	return TxResult(ec, cancel)
 }
 
 func copyUploadOption(opt *fs.UploadOption) fsStore.UploadOption {
@@ -468,8 +453,7 @@ func (t *EVM) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := reNew.Hash()
-	return hash[:], err
+	return TxResult(ec, reNew)
 }
 
 func (t *EVM) ProveParamSer(rootHash []byte, fileId pdp.FileID) ([]byte, error) {
@@ -680,12 +664,11 @@ func (t *EVM) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]by
 		CurOwner: t.DefAcc.EthAddress,
 		NewOwner: ethCommon.Address(newOwner),
 	}
-	owner, err := store.ChangeFileOwner(signer, ownerChange)
+	tx, err := store.ChangeFileOwner(signer, ownerChange)
 	if err != nil {
 		return nil, err
 	}
-	hash := owner.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]byte, error) {
@@ -705,12 +688,11 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 		FileHash:  []byte(fileHashStr),
 		Privilege: newPrivilege,
 	}
-	privilege, err := store.ChangeFilePrivilege(signer, pri)
+	tx, err := store.ChangeFilePrivilege(signer, pri)
 	if err != nil {
 		return nil, err
 	}
-	hash := privilege.Hash()
-	return hash[:], nil
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) GetFileList(addr common.Address) (*fs.FileList, error) {
@@ -834,12 +816,11 @@ func (t *EVM) AddWhiteLists(fileHashStr string, whitelists []fs.Rule) ([]byte, e
 		Op:       fs.ADD,
 		List:     list,
 	}
-	operate, err := store.WhiteListOperate(signer, param)
+	tx, err := store.WhiteListOperate(signer, param)
 	if err != nil {
 		return nil, err
 	}
-	hash := operate.Hash()
-	return hash[:], nil
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList) ([]byte, error) {
@@ -871,12 +852,11 @@ func (t *EVM) WhiteListOp(fileHashStr string, op uint64, whiteList fs.WhiteList)
 		Op:       fs.ADD,
 		List:     list,
 	}
-	operate, err := store.WhiteListOperate(signer, param)
+	tx, err := store.WhiteListOperate(signer, param)
 	if err != nil {
 		return nil, err
 	}
-	hash := operate.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
@@ -915,12 +895,11 @@ func (t *EVM) DeleteFile(fileHashStr string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	file, err := store.DeleteFile(signer, []byte(fileHashStr))
+	tx, err := store.DeleteFile(signer, []byte(fileHashStr))
 	if err != nil {
 		return nil, err
 	}
-	hash := file.Hash()
-	return hash[:], nil
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error) {
@@ -945,12 +924,11 @@ func (t *EVM) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error
 	for k, v := range fileHashStrs {
 		p[k] = []byte(v)
 	}
-	file, err := store.DeleteFiles(signer, p)
+	tx, err := store.DeleteFiles(signer, p)
 	if err != nil {
 		return nil, err
 	}
-	hash := file.Hash()
-	return hash[:], nil
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
@@ -975,19 +953,11 @@ func (t *EVM) FileProve(fileHashStr string, proveData []byte, blockHeight uint64
 		Profit:      0,
 		SectorID:    sectorId,
 	}
-	prove, err := store.FileProve(signer, param)
+	tx, err := store.FileProve(signer, param)
 	if err != nil {
 		return nil, err
 	}
-	hash := prove.Hash()
-	confirmed, err := t.PollForTxConfirmed(t.PollForTxDuration, hash[:])
-	if err != nil {
-		return nil, err
-	}
-	if !confirmed {
-		return nil, errors.New("tx failed")
-	}
-	return hash[:], nil
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
@@ -1072,12 +1042,11 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	if err != nil {
 		return nil, err
 	}
-	space, err := store.ManageUserSpace(signer, param)
+	tx, err = store.ManageUserSpace(signer, param)
 	if err != nil {
 		return nil, err
 	}
-	hash := space.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 // GetUserSpace. get user space with wallet address
@@ -1155,12 +1124,11 @@ func (t *EVM) DeleteUserSpace() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	space, err := store.DeleteUserSpace(signer, t.DefAcc.EthAddress)
+	tx, err := store.DeleteUserSpace(signer, t.DefAcc.EthAddress)
 	if err != nil {
 		return nil, err
 	}
-	hash := space.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPlots bool) ([]byte, error) {
@@ -1187,12 +1155,11 @@ func (t *EVM) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPl
 		GroupNum:         0,
 		FileList:         nil,
 	}
-	createSector, err := store.CreateSector(signer, sector)
+	tx, err := store.CreateSector(signer, sector)
 	if err != nil {
 		return nil, err
 	}
-	hash := createSector.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) DeleteSector(sectorId uint64) ([]byte, error) {
@@ -1209,12 +1176,11 @@ func (t *EVM) DeleteSector(sectorId uint64) ([]byte, error) {
 		NodeAddr: t.DefAcc.EthAddress,
 		SectorId: sectorId,
 	}
-	createSector, err := store.DeleteSector(signer, sector)
+	tx, err := store.DeleteSector(signer, sector)
 	if err != nil {
 		return nil, err
 	}
-	hash := createSector.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error) {
@@ -1274,12 +1240,11 @@ func (t *EVM) DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, e
 		FileHash:  []byte(fileHashStr),
 		FileOwner: t.DefAcc.EthAddress,
 	}
-	createSector, err := store.DeleteFileFromSector(signer, s, f) // TODO why todo?
+	tx, err := store.DeleteFileFromSector(signer, s, f) // TODO why todo?
 	if err != nil {
 		return nil, err
 	}
-	hash := createSector.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func copeSectorInfo(info sectorStore.SectorInfo) *fs.SectorInfo {
@@ -1346,12 +1311,11 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 		ChallengeHeight: challengeHeight,
 		ProveData:       proveData,
 	}
-	prove, err := store.SectorProve(signer, param)
+	tx, err := store.SectorProve(signer, param)
 	if err != nil {
 		return nil, err
 	}
-	hash := prove.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
@@ -1393,8 +1357,7 @@ func (t *EVM) DeleteUnSettledFiles() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := tx.Hash()
-	return hash[:], nil
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) ([]byte, error) {
@@ -1412,12 +1375,11 @@ func (t *EVM) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) (
 		NodeAddr: address,
 		SectorId: sectorId,
 	}
-	inTime, err := store.CheckNodeSectorProvedInTime(signer, param)
+	tx, err := store.CheckNodeSectorProvedInTime(signer, param)
 	if err != nil {
 		return nil, err
 	}
-	hash := inTime.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
 func (t *EVM) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error) {
@@ -1489,6 +1451,18 @@ func (t *EVM) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interfa
 		res = append(res, event)
 	}
 	return res, nil
+}
+
+func TxResult(ec *ethclient.Client, tx *types.Transaction) ([]byte, error) {
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	if err != nil {
+		return nil, err
+	}
+	if mined.Status != types.ReceiptStatusSuccessful {
+		return nil, errors.New("tx failed")
+	}
+	hash := tx.Hash()
+	return hash[:], nil
 }
 
 func GetFsEventNameByType(t uint8) string {
