@@ -45,16 +45,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xcf3c1715d108E9f2FEc9a2e264AA4cc6D9685894")
-var NodeAddress = ethCommon.HexToAddress("0x3837F14B40B3f1bea67AE5D1078018718b501Cb8")
-var SectorAddress = ethCommon.HexToAddress("0x6035eE68F41F87af68Ceed26CFd97AD9339199c5")
-var SpaceAddress = ethCommon.HexToAddress("0x173961eE994b70b5fFd4318d9Fb7fb8F942A4c9E")
-var FileAddress = ethCommon.HexToAddress("0x8065378433E6788Ab79CC3E8B1835A34d546445a")
-var FileExtraAddress = ethCommon.HexToAddress("0xd6c52b6abd1D948901529dE3DBB9102D2604d7Ff")
-var ListAddress = ethCommon.HexToAddress("0xB8f23d0cb0b0eDFBa9b1E6802e6bb6a79314FC77")
-var ProveAddress = ethCommon.HexToAddress("0xE301c065ECc2B2F8f3487e40EB0b78ed60baE6B0")
-var ProveExtraAddress = ethCommon.HexToAddress("0x0e3D873Aaa0a3c20d1fcB7F87423997AbA81632c")
-var PDPAddress = ethCommon.HexToAddress("0x0C2D050B1589a641b5Df2c8064A5433e418aAf62")
+var ConfigAddress = ethCommon.HexToAddress("0xf4B43D0748A84a8631517d1874FFE73F06c13E2a")
+var NodeAddress = ethCommon.HexToAddress("0x31b7608Cb30181C0f5C93439bf761cB43Aed4f2a")
+var SectorAddress = ethCommon.HexToAddress("0x7F522f4769569430d13872FDB7bdF9952905172D")
+var SpaceAddress = ethCommon.HexToAddress("0x5d0394c3f9c569a75A6A8DA41c7110EAE47517E5")
+var FileAddress = ethCommon.HexToAddress("0xD9716F380f37A888e8A1bCF80e2114506Cc229F3")
+var FileExtraAddress = ethCommon.HexToAddress("0x8005641d4898d4AD000B74B88A098c2f235A01Ee")
+var ListAddress = ethCommon.HexToAddress("0x85A07553755BD6B03a3aFE9991f06602f60E5efF")
+var ProveAddress = ethCommon.HexToAddress("0xD2164a171e0829A6eAF82f292FD53172fd370983")
+var ProveExtraAddress = ethCommon.HexToAddress("0xcBf3276eb802EC07D114461d9207B37FEDAde012")
+var PDPAddress = ethCommon.HexToAddress("0x1BD673c0aA60C94A7a7C6085eF7697CC28CD564f")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -315,11 +315,11 @@ func (t *EVM) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]
 		WalletAddr:  t.DefAcc.EthAddress,
 		NodeAddr:    []byte(nodeAddr),
 	}
-	pledge, err := store.CalculateNodePledge(&bind.CallOpts{}, node)
+	pledge, err := store.GetPledgeUpdate(&bind.CallOpts{}, node)
 	if err != nil {
 		return nil, err
 	}
-	signer, err = t.GetSigner(big.NewInt(int64(pledge)))
+	signer, err = t.GetSigner(big.NewInt(pledge))
 	if err != nil {
 		return nil, err
 	}

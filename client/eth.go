@@ -103,8 +103,11 @@ func (e *EthClient) getBlockByHash(qid, hash string) ([]byte, error) {
 }
 
 func (e *EthClient) getBlockByHeight(qid string, height uint32) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	header, err := e.Client.HeaderByNumber(context.Background(), big.NewInt(int64(height)))
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(header)
 }
 
 func (e *EthClient) getBlockHash(qid string, height uint32) ([]byte, error) {
