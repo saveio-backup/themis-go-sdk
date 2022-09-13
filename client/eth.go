@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	ethCom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/common"
@@ -125,9 +126,11 @@ func (e *EthClient) getBlockHash(qid string, height uint32) ([]byte, error) {
 }
 
 func (e *EthClient) getBlockHeightByTxHash(qid, txHash string) ([]byte, error) {
-	log.Errorf("getBlockHeightByTxHash not implemented")
-	rpcRsp := &JsonRpcResponse{}
-	return json.Marshal(rpcRsp)
+	receipt, err := e.Client.TransactionReceipt(context.Background(), ethCom.HexToHash(txHash))
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(uint32(receipt.BlockNumber.Uint64()))
 }
 
 func (e *EthClient) getBlockTxHashesByHeight(qid string, height uint32) ([]byte, error) {
@@ -146,8 +149,9 @@ func (e *EthClient) getSmartContract(qid, contractAddress string) ([]byte, error
 }
 
 func (e *EthClient) getSmartContractEvent(qid, txHash string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	log.Errorf("getSmartContractEvent not implemented")
+	events := make([]*sdkcom.SmartContactEvent, 0)
+	return json.Marshal(events)
 }
 
 func (e *EthClient) getSmartContractEventByBlock(qid string, blockHeight uint32) ([]byte, error) {
