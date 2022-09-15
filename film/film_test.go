@@ -23,7 +23,7 @@ var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
 var txt = "QmevhnWdtmz89BMXuuX5pSY2uZtqKLz7frJsrCojT5kmb6"
 var current *account.Account
-var testDns *dns.Dns
+var testDns *dns.Native
 var testFs *fs.Fs
 
 func TestMain(m *testing.M) {
@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 	current = acc
 	testFilm.DefAcc = acc
 
-	testDns = &dns.Dns{}
+	testDns = &dns.Native{}
 	testDns.Client = testFilm.Client
 	testDns.DefAcc = acc
 

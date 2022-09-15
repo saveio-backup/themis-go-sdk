@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/saveio/themis-go-sdk/client"
@@ -202,7 +203,7 @@ func (t *Native) ProveParamDes(proveParam []byte) (*fs.ProveParam, error) {
 func (t *Native) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 	fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error) {
+	primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo, url string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
@@ -239,7 +240,7 @@ func (t *Native) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		CandidateNodes: candidates,
 		IsPlotFile:     plotInfo != nil,
 		PlotInfo:       plotInfo,
-		Url: url,
+		Url:            url,
 	}
 	buf := new(bytes.Buffer)
 	if err := fileInfo.Serialize(buf); err != nil {
@@ -735,11 +736,11 @@ func (t *Native) GenChallenge(walletAddr common.Address, hash common.Uint256, fi
 
 // UpdateUserSpace. user space operation for space owner.
 func (t *Native) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
-	if t.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
+	// if t.DefAcc == nil {
+	// 	return nil, errors.New("DefAcc is nil")
+	// }
 	params := &fs.UserSpaceParams{
-		WalletAddr: t.DefAcc.Address,
+		WalletAddr: walletAddr,
 		Owner:      walletAddr,
 		Size:       size,
 		BlockCount: blockCount,
@@ -781,11 +782,11 @@ func (t *Native) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) 
 }
 
 func (t *Native) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error) {
-	if t.DefAcc == nil {
-		return nil, errors.New("DefAcc is nil")
-	}
+	// if t.DefAcc == nil {
+	// 	return nil, errors.New("DefAcc is nil")
+	// }
 	params := &fs.UserSpaceParams{
-		WalletAddr: t.DefAcc.Address,
+		WalletAddr: walletAddr,
 		Owner:      walletAddr,
 		Size:       size,
 		BlockCount: blockCount,
@@ -1054,4 +1055,8 @@ func (t *Native) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64
 		return nil, err
 	}
 	return ret.ToArray(), err
+}
+
+func (t *Native) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error) {
+	return nil, nil
 }

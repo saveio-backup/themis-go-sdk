@@ -189,11 +189,17 @@ func (this *NotifyEventInfo) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return this.originUnmarshal(info.States)
 	}
+	blockHeight := uint64(0)
+	err = dec.Decode(&blockHeight)
+	if err != nil {
+		return this.originUnmarshal(info.States)
+	}
 	this.States = []interface{}{
 		notifyMethod,
 		transferFrom,
 		transferTo,
 		transferAmount,
+		blockHeight,
 	}
 	return nil
 }

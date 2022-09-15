@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/ethereum/go-ethereum/ethclient"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
+	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
 	"math/big"
@@ -190,7 +191,24 @@ func (e *EthClient) getMemPoolTxCount(qid string) ([]byte, error) {
 
 func (e *EthClient) sendRawTransaction(qid string, tx *types.Transaction, isPreExec bool) ([]byte, error) {
 	// TODO wangyu: implement me
-	return nil, errors.New("implement me")
+	log.Errorf("sendRawTransaction not implemented")
+	if isPreExec {
+		res := &sdkcom.PreExecResult{
+			Result: &sdkcom.ResultItem{},
+		}
+		marshal, err := json.Marshal(res)
+		if err != nil {
+			return nil, err
+		}
+		return marshal, nil
+	} else {
+		res := common.Uint256{}
+		marshal, err := json.Marshal(res)
+		if err != nil {
+			return nil, err
+		}
+		return marshal, nil
+	}
 }
 
 func (e *EthClient) getGasPrice(qid string) ([]byte, error) {

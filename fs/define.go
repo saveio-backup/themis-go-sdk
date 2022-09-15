@@ -8,6 +8,7 @@ import (
 	fs "github.com/saveio/themis/smartcontract/service/native/savefs"
 	"github.com/saveio/themis/smartcontract/service/native/savefs/pdp"
 	"github.com/saveio/themis/smartcontract/service/native/usdt"
+	"math/big"
 	"time"
 )
 
@@ -41,7 +42,7 @@ type ContractClient interface {
 	StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		blockSize uint64, proveLevel uint64, expiredHeight uint64, copyNum uint64,
 		fileDesc []byte, privilege uint64, proveParam []byte, storageType uint64, realFileSize uint64,
-		primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo,url string) ([]byte, error)
+		primaryNodes, candidateNodes []common.Address, plotInfo *fs.PlotInfo, url string) ([]byte, error)
 	FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error)
 	GetFileInfo(fileHashStr string) (*fs.FileInfo, error)
 	GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error)
@@ -77,4 +78,6 @@ type ContractClient interface {
 	GetSectorInfo(sectorId uint64) (*fs.SectorInfo, error)
 	DeleteFileInSector(sectorId uint64, fileHashStr string) ([]byte, error)
 	GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error)
+
+	GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error)
 }

@@ -15,6 +15,7 @@ import (
 )
 
 var address = ethCom.HexToAddress("0x5406d22c2aDd39Fa7bE8Bc0f18a03D3CEfbBc0E8")
+var url = "http://localhost:8545"
 
 func CreateClientMgr() *client.ClientMgr {
 	c := &client.ClientMgr{}
