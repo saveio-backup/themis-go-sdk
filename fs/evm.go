@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
+	"runtime"
 	"strings"
 	"time"
 
@@ -25,7 +26,7 @@ import (
 	"github.com/saveio/themis-go-sdk/client"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	configStore "github.com/saveio/themis-go-sdk/fs/contracts/Config"
-	fsStore "github.com/saveio/themis-go-sdk/fs/contracts/FileSystem"
+	fileStore "github.com/saveio/themis-go-sdk/fs/contracts/File"
 	nodeStore "github.com/saveio/themis-go-sdk/fs/contracts/Node"
 	pdpStore "github.com/saveio/themis-go-sdk/fs/contracts/PDP"
 	proveStore "github.com/saveio/themis-go-sdk/fs/contracts/Prove"
@@ -45,16 +46,25 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xf4B43D0748A84a8631517d1874FFE73F06c13E2a")
-var NodeAddress = ethCommon.HexToAddress("0x31b7608Cb30181C0f5C93439bf761cB43Aed4f2a")
-var SectorAddress = ethCommon.HexToAddress("0x7F522f4769569430d13872FDB7bdF9952905172D")
-var SpaceAddress = ethCommon.HexToAddress("0x5d0394c3f9c569a75A6A8DA41c7110EAE47517E5")
-var FileAddress = ethCommon.HexToAddress("0xD9716F380f37A888e8A1bCF80e2114506Cc229F3")
-var FileExtraAddress = ethCommon.HexToAddress("0x8005641d4898d4AD000B74B88A098c2f235A01Ee")
-var ListAddress = ethCommon.HexToAddress("0x85A07553755BD6B03a3aFE9991f06602f60E5efF")
-var ProveAddress = ethCommon.HexToAddress("0xD2164a171e0829A6eAF82f292FD53172fd370983")
-var ProveExtraAddress = ethCommon.HexToAddress("0xcBf3276eb802EC07D114461d9207B37FEDAde012")
-var PDPAddress = ethCommon.HexToAddress("0x1BD673c0aA60C94A7a7C6085eF7697CC28CD564f")
+var ConfigAddress = ethCommon.HexToAddress("0x1552De14A0b34CDD78987C41011693838997bBa0")
+
+var NodeAddress = ethCommon.HexToAddress("0x2643A0AC908D65f301a615FF8f3E4156a8C57B66")
+
+var SectorAddress = ethCommon.HexToAddress("0xB79414B33380AeEeD05AEc9ECc9dbFe47Be52eE8")
+
+var SpaceAddress = ethCommon.HexToAddress("0xAe5f19A375Ee2b9aB70d7f9B3d5092Bab12d855b")
+
+var FileAddress = ethCommon.HexToAddress("0xD7A7B18A66Cc306124e9920BD0ec6640b32AE51a")
+
+var FileExtraAddress = ethCommon.HexToAddress("0xe5fcf96Ff73c6b8Bd97C0Cbe2a5Ae4a6FEDab21B")
+
+var ListAddress = ethCommon.HexToAddress("0xaAc4656Dd61DfCbc43F1B36246DfB194B8F9bf24")
+
+var ProveAddress = ethCommon.HexToAddress("0x113C05794924e035a57273E28Fc72d8A7eC3aBaB")
+
+var ProveExtraAddress = ethCommon.HexToAddress("0x6101E05FfeC568ADAdD090df2A8E194bfEeBdC1e")
+
+var PDPAddress = ethCommon.HexToAddress("0x53637116a9dC7F014B44531A6f165498269a95D1")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -319,6 +329,9 @@ func (t *EVM) NodeUpdate(volume uint64, serviceTime uint64, nodeAddr string) ([]
 	if err != nil {
 		return nil, err
 	}
+	if pledge < 0 {
+		pledge = 0
+	}
 	signer, err = t.GetSigner(big.NewInt(pledge))
 	if err != nil {
 		return nil, err
@@ -370,17 +383,17 @@ func (t *EVM) NodeWithDrawProfit() ([]byte, error) {
 	return TxResult(ec, cancel)
 }
 
-func copyUploadOption(opt *fs.UploadOption) fsStore.UploadOption {
-	list := make([]fsStore.WhiteList, opt.WhiteList.Num)
+func copyUploadOption(opt *fs.UploadOption) fileStore.UploadOption {
+	list := make([]fileStore.WhiteList, opt.WhiteList.Num)
 	for k, v := range opt.WhiteList.List {
 		addr := ethCommon.BytesToAddress(v.Addr[:])
-		list[k] = fsStore.WhiteList{
+		list[k] = fileStore.WhiteList{
 			Addr:         addr,
 			BaseHeight:   v.BaseHeight,
 			ExpireHeight: v.ExpireHeight,
 		}
 	}
-	o := fsStore.UploadOption{
+	o := fileStore.UploadOption{
 		FileDesc:        opt.FileDesc,
 		FileSize:        opt.FileSize,
 		ProveInterval:   opt.ProveInterval,
@@ -402,7 +415,7 @@ func copyUploadOption(opt *fs.UploadOption) fsStore.UploadOption {
 
 func (t *EVM) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +434,7 @@ func (t *EVM) GetUploadStorageFee(opt *fs.UploadOption) (*fs.StorageFee, error) 
 
 func (t *EVM) GetDeleteFilesStorageFee(fileHashStrs []string) (uint64, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return 0, err
 	}
@@ -435,7 +448,7 @@ func (t *EVM) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +457,7 @@ func (t *EVM) FileRenew(fileHashStr string, renewTimes uint64) ([]byte, error) {
 		return nil, err
 	}
 	fileHash := []byte(fileHashStr)
-	opt := fsStore.FileReNewInfo{
+	opt := fileStore.FileReNewInfo{
 		FileHash:   fileHash,
 		FromAddr:   t.DefAcc.EthAddress,
 		ReNewTimes: renewTimes,
@@ -484,7 +497,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -503,21 +516,21 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		candidates[k] = ethCommon.BytesToAddress(v[:])
 	}
 	fileHash := []byte(fileHashStr)
-	var evmPlotInfo fsStore.PlotInfo
+	var evmPlotInfo fileStore.PlotInfo
 	if plotInfo == nil {
-		evmPlotInfo = fsStore.PlotInfo{
+		evmPlotInfo = fileStore.PlotInfo{
 			NumberID:   0,
 			StartNonce: 0,
 			Nonces:     0,
 		}
 	} else {
-		evmPlotInfo = fsStore.PlotInfo{
+		evmPlotInfo = fileStore.PlotInfo{
 			NumberID:   plotInfo.NumericID,
 			StartNonce: plotInfo.StartNonce,
 			Nonces:     plotInfo.Nonces,
 		}
 	}
-	f := fsStore.FileInfo{
+	f := fileStore.FileInfo{
 		FileHash:       fileHash,
 		BlocksRoot:     []byte(blocksRoot),
 		FileOwner:      t.DefAcc.EthAddress,
@@ -545,18 +558,10 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 	if err != nil {
 		return nil, err
 	}
-	mined, err := bind.WaitMined(context.TODO(), ec, tx)
-	if err != nil {
-		return nil, err
-	}
-	if mined.Status != types.ReceiptStatusSuccessful {
-		return nil, errors.New("store file failed")
-	}
-	hash := tx.Hash()
-	return hash[:], err
+	return TxResult(ec, tx)
 }
 
-func copyFileInfo(info fsStore.FileInfo) fs.FileInfo {
+func copyFileInfo(info fileStore.FileInfo) fs.FileInfo {
 	pa := make([]common.Address, len(info.PrimaryNodes))
 	for k, v := range info.PrimaryNodes {
 		pa[k] = common.Address(v)
@@ -609,7 +614,7 @@ func copyFileInfo(info fsStore.FileInfo) fs.FileInfo {
 
 func (t *EVM) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -623,7 +628,7 @@ func (t *EVM) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 
 func (t *EVM) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -651,7 +656,7 @@ func (t *EVM) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]by
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +664,7 @@ func (t *EVM) ChangeFileOwner(fileHashStr string, newOwner common.Address) ([]by
 	if err != nil {
 		return nil, err
 	}
-	ownerChange := fsStore.OwnerChange{
+	ownerChange := fileStore.OwnerChange{
 		FileHash: []byte(fileHashStr),
 		CurOwner: t.DefAcc.EthAddress,
 		NewOwner: ethCommon.Address(newOwner),
@@ -676,7 +681,7 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -684,7 +689,7 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 	if err != nil {
 		return nil, err
 	}
-	pri := fsStore.PriChange{
+	pri := fileStore.PriChange{
 		FileHash:  []byte(fileHashStr),
 		Privilege: newPrivilege,
 	}
@@ -697,7 +702,7 @@ func (t *EVM) ChangeFilePrivilege(fileHashStr string, newPrivilege uint64) ([]by
 
 func (t *EVM) GetFileList(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -718,7 +723,7 @@ func (t *EVM) GetFileList(addr common.Address) (*fs.FileList, error) {
 
 func (t *EVM) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +744,7 @@ func (t *EVM) GetUnprovePrimaryFileList(addr common.Address) (*fs.FileList, erro
 
 func (t *EVM) GetUnProveCandidateFileList(addr common.Address) (*fs.FileList, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -887,7 +892,7 @@ func (t *EVM) GetWhiteList(fileHashStr string) (*fs.WhiteList, error) {
 
 func (t *EVM) DeleteFile(fileHashStr string) ([]byte, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -906,13 +911,8 @@ func (t *EVM) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")
 	}
-
-	if gasLimit == 0 {
-		gasLimit = sdkcom.GAS_LIMIT
-	}
-
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -928,7 +928,7 @@ func (t *EVM) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	return TxResult(ec, tx)
+	return TxResultWithError(ec, tx, fileStore.StoreMetaData.ABI)
 }
 
 func (t *EVM) FileProve(fileHashStr string, proveData []byte, blockHeight uint64, sectorId uint64) ([]byte, error) {
@@ -1017,7 +1017,6 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	if err != nil {
 		return nil, err
 	}
-
 	mined, err := bind.WaitMined(context.Background(), ec, tx)
 	var res spaceStore.TransferState
 	for _, vLog := range mined.Logs {
@@ -1037,7 +1036,6 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 			}))
 		}
 	}
-
 	signer, err = t.GetSigner(big.NewInt(int64(res.Value)))
 	if err != nil {
 		return nil, err
@@ -1321,7 +1319,7 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 func (t *EVM) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
 	address := ethCommon.BytesToAddress(addr[:])
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -1345,7 +1343,7 @@ func (t *EVM) DeleteUnSettledFiles() ([]byte, error) {
 		return nil, errors.New("DefAcc is nil")
 	}
 	ec := t.Client.GetEthClient().Client
-	store, err := fsStore.NewStore(FileAddress, ec)
+	store, err := fileStore.NewStore(FileAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -1397,7 +1395,7 @@ func (t *EVM) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interfa
 	if err != nil {
 		return nil, err
 	}
-	fsAbi, err := abi.JSON(strings.NewReader(fsStore.StoreMetaData.ABI))
+	fsAbi, err := abi.JSON(strings.NewReader(fileStore.StoreMetaData.ABI))
 	if err != nil {
 		return nil, err
 	}
@@ -1459,9 +1457,42 @@ func TxResult(ec *ethclient.Client, tx *types.Transaction) ([]byte, error) {
 		return nil, err
 	}
 	if mined.Status != types.ReceiptStatusSuccessful {
+		pc, _, _, ok := runtime.Caller(1)
+		details := runtime.FuncForPC(pc)
+		var funcName string
+		if ok && details != nil {
+			funcName = details.Name()
+		}
+		log.Errorf("tx failed: %s, func: %s, logs: %d", tx.Hash().String(), funcName, len(mined.Logs))
 		return nil, errors.New("tx failed")
 	}
 	hash := tx.Hash()
+	return hash[:], nil
+}
+
+func TxResultWithError(ec *ethclient.Client, tx *types.Transaction, abiData string) ([]byte, error) {
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	if err != nil {
+		return nil, err
+	}
+	if mined.Status != types.ReceiptStatusSuccessful {
+		return nil, errors.New("tx mined failed")
+	}
+	var errMsg string
+	for _, v := range mined.Logs {
+		contractAbi, err := abi.JSON(strings.NewReader(abiData))
+		if err != nil {
+			return nil, err
+		}
+		data, err := contractAbi.Unpack("FsError", v.Data)
+		for _, v := range data {
+			errMsg += v.(string)
+		}
+	}
+	hash := tx.Hash()
+	if errMsg != "" {
+		return hash[:], errors.New(errMsg)
+	}
 	return hash[:], nil
 }
 
