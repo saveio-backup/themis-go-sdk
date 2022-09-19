@@ -3,10 +3,13 @@ package dns
 import (
 	"context"
 	"errors"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/saveio/themis-go-sdk/client"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	store "github.com/saveio/themis-go-sdk/dns/contracts/Dns"
@@ -15,6 +18,7 @@ import (
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
 	"math/big"
+	"runtime"
 	"strings"
 )
 
@@ -25,7 +29,7 @@ type EVM struct {
 
 var _ DnsClient = (*EVM)(nil)
 
-var DnsAddress = ethCommon.HexToAddress("0x87bE10E94FD3c8E05cCdF2cfee0F0e0047D7328f")
+var DnsAddress = ethCommon.HexToAddress("0x96E16D3cA6399E5ACFB526A5aeb90d0Fde52060e")
 
 func (E *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := E.Client.GetEthClient().Client
@@ -91,7 +95,8 @@ func (E *EVM) GetPluginList() (*dns.NameInfoList, error) {
 }
 
 func (E *EVM) RegisterUrl(url string, rType uint64, name string, desc string, ttl uint64) (common.Uint256, error) {
-	newStore, err := store.NewStore(DnsAddress, E.Client.GetEthClient().Client)
+	ec := E.Client.GetEthClient().Client
+	newStore, err := store.NewStore(DnsAddress, ec)
 	if err != nil {
 		return common.Uint256{}, err
 	}
@@ -129,18 +134,12 @@ func (E *EVM) RegisterUrl(url string, rType uint64, name string, desc string, tt
 	if err != nil {
 		return common.Uint256{}, err
 	}
-	mined, err := bind.WaitMined(context.Background(), E.Client.GetEthClient().Client, tx)
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	if mined.Status != 1 {
-		return common.Uint256{}, errors.New("register url failed")
-	}
-	return common.Uint256(tx.Hash()), nil
+	return TxResult(ec, tx)
 }
 
 func (E *EVM) RegisterHeader(header string, desc string, ttl uint64) (common.Uint256, error) {
-	newStore, err := store.NewStore(DnsAddress, E.Client.GetEthClient().Client)
+	ec := E.Client.GetEthClient().Client
+	newStore, err := store.NewStore(DnsAddress, ec)
 	if err != nil {
 		return common.Uint256{}, err
 	}
@@ -159,17 +158,11 @@ func (E *EVM) RegisterHeader(header string, desc string, ttl uint64) (common.Uin
 	if err != nil {
 		return common.Uint256{}, err
 	}
-	mined, err := bind.WaitMined(context.Background(), E.Client.GetEthClient().Client, tx)
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	if mined.Status != 1 {
-		return common.Uint256{}, err
-	}
-	return common.Uint256(tx.Hash()), nil
+	return TxResult(ec, tx)
 }
 
 func (E *EVM) Binding(urlType uint64, url string, name string, desc string, ttl uint64) (common.Uint256, error) {
+	ec := E.Client.GetEthClient().Client
 	strs := strings.Split(url, "://")
 	if len(strs) != 2 {
 		return common.UINT256_EMPTY, errors.New("QueryUrl input url format valid")
@@ -183,7 +176,7 @@ func (E *EVM) Binding(urlType uint64, url string, name string, desc string, ttl 
 		Desc:      []byte(desc),
 		DesireTTL: ttl,
 	}
-	newStore, err := store.NewStore(DnsAddress, E.Client.GetEthClient().Client)
+	newStore, err := store.NewStore(DnsAddress, ec)
 	if err != nil {
 		return common.Uint256{}, err
 	}
@@ -195,14 +188,7 @@ func (E *EVM) Binding(urlType uint64, url string, name string, desc string, ttl 
 	if err != nil {
 		return common.Uint256{}, err
 	}
-	mined, err := bind.WaitMined(context.Background(), E.Client.GetEthClient().Client, tx)
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	if mined.Status != 1 {
-		return common.Uint256{}, err
-	}
-	return common.Uint256(tx.Hash()), nil
+	return TxResultWithError(ec, tx, store.StoreMetaData.ABI)
 }
 
 func (E *EVM) DeleteUrl(url string) (common.Uint256, error) {
@@ -226,7 +212,8 @@ func (E *EVM) TransferHeader(header string, toAdder string) (common.Uint256, err
 }
 
 func (E *EVM) QueryUrl(url string, ownerAddr common.Address) (*dns.NameInfo, error) {
-	newStore, err := store.NewStore(DnsAddress, E.Client.GetEthClient().Client)
+	ec := E.Client.GetEthClient().Client
+	newStore, err := store.NewStore(DnsAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +267,8 @@ func (E *EVM) GetDnsNodeByAddr(wallet common.Address) (*dns.DNSNodeInfo, error) 
 }
 
 func (E *EVM) GetAllDnsNodes() (map[string]dns.DNSNodeInfo, error) {
-	newStore, err := store.NewStore(DnsAddress, E.Client.GetEthClient().Client)
+	ec := E.Client.GetEthClient().Client
+	newStore, err := store.NewStore(DnsAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -339,4 +327,47 @@ func (E *EVM) GetPeerPoolMap() (*dns.PeerPoolMap, error) {
 func (E *EVM) GetPeerPoolItem(pubKey string) (*dns.PeerPoolItem, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func TxResult(ec *ethclient.Client, tx *types.Transaction) (common.Uint256, error) {
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	if mined.Status != types.ReceiptStatusSuccessful {
+		pc, _, _, ok := runtime.Caller(1)
+		details := runtime.FuncForPC(pc)
+		var funcName string
+		if ok && details != nil {
+			funcName = details.Name()
+		}
+		log.Errorf("tx failed: %s, func: %s, logs: %d", tx.Hash().String(), funcName, len(mined.Logs))
+		return common.Uint256{}, errors.New("tx failed")
+	}
+	return common.Uint256(tx.Hash()), nil
+}
+
+func TxResultWithError(ec *ethclient.Client, tx *types.Transaction, abiData string) (common.Uint256, error) {
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	if mined.Status != types.ReceiptStatusSuccessful {
+		return common.Uint256{}, errors.New("tx mined failed")
+	}
+	var errMsg string
+	for _, v := range mined.Logs {
+		contractAbi, err := abi.JSON(strings.NewReader(abiData))
+		if err != nil {
+			return common.Uint256{}, err
+		}
+		data, err := contractAbi.Unpack("DnsError", v.Data)
+		for _, v := range data {
+			errMsg += v.(string)
+		}
+	}
+	if errMsg != "" {
+		return common.Uint256(tx.Hash()), errors.New(errMsg)
+	}
+	return common.Uint256(tx.Hash()), nil
 }
