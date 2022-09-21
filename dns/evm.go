@@ -29,7 +29,7 @@ type EVM struct {
 
 var _ DnsClient = (*EVM)(nil)
 
-var DnsAddress = ethCommon.HexToAddress("0x96E16D3cA6399E5ACFB526A5aeb90d0Fde52060e")
+var DnsAddress = ethCommon.HexToAddress("0xE1CA1D63C1D2F0d3e2541bd12FD2C44F67E91934")
 
 func (E *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := E.Client.GetEthClient().Client
@@ -134,7 +134,7 @@ func (E *EVM) RegisterUrl(url string, rType uint64, name string, desc string, tt
 	if err != nil {
 		return common.Uint256{}, err
 	}
-	return TxResult(ec, tx)
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) RegisterHeader(header string, desc string, ttl uint64) (common.Uint256, error) {
@@ -188,7 +188,7 @@ func (E *EVM) Binding(urlType uint64, url string, name string, desc string, ttl 
 	if err != nil {
 		return common.Uint256{}, err
 	}
-	return TxResultWithError(ec, tx, store.StoreMetaData.ABI)
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) DeleteUrl(url string) (common.Uint256, error) {
@@ -347,7 +347,7 @@ func TxResult(ec *ethclient.Client, tx *types.Transaction) (common.Uint256, erro
 	return common.Uint256(tx.Hash()), nil
 }
 
-func TxResultWithError(ec *ethclient.Client, tx *types.Transaction, abiData string) (common.Uint256, error) {
+func TxResultWithError(ec *ethclient.Client, tx *types.Transaction) (common.Uint256, error) {
 	mined, err := bind.WaitMined(context.Background(), ec, tx)
 	if err != nil {
 		return common.Uint256{}, err
@@ -357,7 +357,7 @@ func TxResultWithError(ec *ethclient.Client, tx *types.Transaction, abiData stri
 	}
 	var errMsg string
 	for _, v := range mined.Logs {
-		contractAbi, err := abi.JSON(strings.NewReader(abiData))
+		contractAbi, err := abi.JSON(strings.NewReader(store.StoreMetaData.ABI))
 		if err != nil {
 			return common.Uint256{}, err
 		}

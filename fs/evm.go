@@ -46,25 +46,25 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x1552De14A0b34CDD78987C41011693838997bBa0")
+var ConfigAddress = ethCommon.HexToAddress("0x4ad90F2Cd4A60E15fFDF4157A2869847DFe6fc8b")
 
-var NodeAddress = ethCommon.HexToAddress("0x2643A0AC908D65f301a615FF8f3E4156a8C57B66")
+var NodeAddress = ethCommon.HexToAddress("0xa8A53C48221da7dd756eB832D5Aa1b7a36ba98d3")
 
-var SectorAddress = ethCommon.HexToAddress("0xB79414B33380AeEeD05AEc9ECc9dbFe47Be52eE8")
+var SectorAddress = ethCommon.HexToAddress("0x3c78a86e4f6Fef64307314b6b9C3D03FaeDdbDCb")
 
-var SpaceAddress = ethCommon.HexToAddress("0xAe5f19A375Ee2b9aB70d7f9B3d5092Bab12d855b")
+var SpaceAddress = ethCommon.HexToAddress("0x42D70821De3BF5E7111793120915D56B2D8b707d")
 
-var FileAddress = ethCommon.HexToAddress("0xD7A7B18A66Cc306124e9920BD0ec6640b32AE51a")
+var FileAddress = ethCommon.HexToAddress("0x7a0c88272a5Eab74E6F3707C319CAC345E25798B")
 
-var FileExtraAddress = ethCommon.HexToAddress("0xe5fcf96Ff73c6b8Bd97C0Cbe2a5Ae4a6FEDab21B")
+var FileExtraAddress = ethCommon.HexToAddress("0xf46b9Eb5239a9d5ED02Cc280364eCCc583ab0C4B")
 
-var ListAddress = ethCommon.HexToAddress("0xaAc4656Dd61DfCbc43F1B36246DfB194B8F9bf24")
+var ListAddress = ethCommon.HexToAddress("0xfc851E8Cfc462148167B886B0815F77c3941504c")
 
-var ProveAddress = ethCommon.HexToAddress("0x113C05794924e035a57273E28Fc72d8A7eC3aBaB")
+var ProveAddress = ethCommon.HexToAddress("0xa103b26272F2b8E0F5582A9f99aCa0ddb7ee4fEe")
 
-var ProveExtraAddress = ethCommon.HexToAddress("0x6101E05FfeC568ADAdD090df2A8E194bfEeBdC1e")
+var ProveExtraAddress = ethCommon.HexToAddress("0x225dB885234Fa48AD0606288B1FE13ccDF1E6071")
 
-var PDPAddress = ethCommon.HexToAddress("0x53637116a9dC7F014B44531A6f165498269a95D1")
+var PDPAddress = ethCommon.HexToAddress("0x7C9fFA750d39C94B3C5d2ca2bbeA98005a134dB3")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -621,6 +621,9 @@ func (t *EVM) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	info, err := store.GetFileInfo(&bind.CallOpts{}, []byte(fileHashStr))
 	if err != nil {
 		return nil, err
+	}
+	if info.ExpiredHeight.Cmp(big.NewInt(0)) == 0 {
+		return nil, errors.New("file not exist")
 	}
 	fileInfo := copyFileInfo(info)
 	return &fileInfo, nil
