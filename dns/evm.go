@@ -268,6 +268,9 @@ func (E *EVM) GetDnsNodeByAddr(wallet common.Address) (*dns.DNSNodeInfo, error) 
 
 func (E *EVM) GetAllDnsNodes() (map[string]dns.DNSNodeInfo, error) {
 	ec := E.Client.GetEthClient().Client
+	if ec == nil {
+		return nil, errors.New("eth client is nil")
+	}
 	newStore, err := store.NewStore(DnsAddress, ec)
 	if err != nil {
 		return nil, err
