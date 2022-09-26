@@ -46,25 +46,25 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x4ad90F2Cd4A60E15fFDF4157A2869847DFe6fc8b")
+var ConfigAddress = ethCommon.HexToAddress("0xad973E6356f34254035300624eCacde4985f5928")
 
-var NodeAddress = ethCommon.HexToAddress("0xa8A53C48221da7dd756eB832D5Aa1b7a36ba98d3")
+var NodeAddress = ethCommon.HexToAddress("0xa6579eA478BC818157BfEf4dA1236Db4513b1414")
 
-var SectorAddress = ethCommon.HexToAddress("0x3c78a86e4f6Fef64307314b6b9C3D03FaeDdbDCb")
+var SectorAddress = ethCommon.HexToAddress("0x8baD872E3623f6b92357474640975e7fDF4F9BcC")
 
-var SpaceAddress = ethCommon.HexToAddress("0x42D70821De3BF5E7111793120915D56B2D8b707d")
+var SpaceAddress = ethCommon.HexToAddress("0xA8C748e48418b8eBDfBD4826a0c0f2e519A68765")
 
-var FileAddress = ethCommon.HexToAddress("0x7a0c88272a5Eab74E6F3707C319CAC345E25798B")
+var FileAddress = ethCommon.HexToAddress("0xAe7651927963e62b2F01fe51d8C95b0D00D11812")
 
-var FileExtraAddress = ethCommon.HexToAddress("0xf46b9Eb5239a9d5ED02Cc280364eCCc583ab0C4B")
+var FileExtraAddress = ethCommon.HexToAddress("0xB2f4Bce0069d35aa3fAA1cf052Bf93aA1d01fdC3")
 
-var ListAddress = ethCommon.HexToAddress("0xfc851E8Cfc462148167B886B0815F77c3941504c")
+var ListAddress = ethCommon.HexToAddress("0xFFaFf9145c42e04E6654211713d84D2368d947E1")
 
-var ProveAddress = ethCommon.HexToAddress("0xa103b26272F2b8E0F5582A9f99aCa0ddb7ee4fEe")
+var ProveAddress = ethCommon.HexToAddress("0xB658B307F3d7B9fcFb6697cf3c746Cb21427d053")
 
-var ProveExtraAddress = ethCommon.HexToAddress("0x225dB885234Fa48AD0606288B1FE13ccDF1E6071")
+var ProveExtraAddress = ethCommon.HexToAddress("0xAd151b6c3821F07A359A3928b45Be2018a704e8b")
 
-var PDPAddress = ethCommon.HexToAddress("0x7C9fFA750d39C94B3C5d2ca2bbeA98005a134dB3")
+var PDPAddress = ethCommon.HexToAddress("0x546869055C8B668Cc21E6683A78Ed231A16b7669")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -960,7 +960,7 @@ func (t *EVM) FileProve(fileHashStr string, proveData []byte, blockHeight uint64
 	if err != nil {
 		return nil, err
 	}
-	return TxResult(ec, tx)
+	return TxResultWithError(ec, tx, proveStore.StoreMetaData.ABI)
 }
 
 func (t *EVM) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBlockNum, proveNum uint64) []pdp.Challenge {
