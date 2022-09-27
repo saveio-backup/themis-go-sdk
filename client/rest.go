@@ -243,7 +243,6 @@ func (this *RestClient) sendRawTransaction(qid string, tx *types.Transaction, is
 		reqValues = &url.Values{}
 		reqValues.Add("preExec", "1")
 	}
-	log.Debug("sendRestPostRequest 方法执行前")
 	return this.sendRestPostRequest(sink.Bytes(), reqPath, reqValues)
 }
 
