@@ -46,25 +46,25 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xad973E6356f34254035300624eCacde4985f5928")
+var ConfigAddress = ethCommon.HexToAddress("0x1db85675d9549EE8deA446D9F3EFb54d700A92d7")
 
-var NodeAddress = ethCommon.HexToAddress("0xa6579eA478BC818157BfEf4dA1236Db4513b1414")
+var NodeAddress = ethCommon.HexToAddress("0x24E0E9386EadE839681779c959425bca903160FF")
 
-var SectorAddress = ethCommon.HexToAddress("0x8baD872E3623f6b92357474640975e7fDF4F9BcC")
+var SectorAddress = ethCommon.HexToAddress("0x09ac6b433bd96829446cD9C648CdE1CbeBBe6F8D")
 
-var SpaceAddress = ethCommon.HexToAddress("0xA8C748e48418b8eBDfBD4826a0c0f2e519A68765")
+var SpaceAddress = ethCommon.HexToAddress("0x15E507Aa0283558815ef884f459C1C54Ba1aF5a0")
 
-var FileAddress = ethCommon.HexToAddress("0xAe7651927963e62b2F01fe51d8C95b0D00D11812")
+var FileAddress = ethCommon.HexToAddress("0x23201a6f92ce6280dAd87Dc173028dc407B11EbD")
 
-var FileExtraAddress = ethCommon.HexToAddress("0xB2f4Bce0069d35aa3fAA1cf052Bf93aA1d01fdC3")
+var FileExtraAddress = ethCommon.HexToAddress("0xaf0B855117Ed2a8777a64CC3DF279eBB879552F9")
 
-var ListAddress = ethCommon.HexToAddress("0xFFaFf9145c42e04E6654211713d84D2368d947E1")
+var ListAddress = ethCommon.HexToAddress("0xCea0F1A8ed57742b72436feF52139e74E8D1768b")
 
-var ProveAddress = ethCommon.HexToAddress("0xB658B307F3d7B9fcFb6697cf3c746Cb21427d053")
+var ProveAddress = ethCommon.HexToAddress("0xF5c9980112B0f76Aa8D070022d7bf8F9fa93f8d1")
 
-var ProveExtraAddress = ethCommon.HexToAddress("0xAd151b6c3821F07A359A3928b45Be2018a704e8b")
+var ProveExtraAddress = ethCommon.HexToAddress("0x99032Fe6fc79BD403cf5EA9896dDD7BC9abf291d")
 
-var PDPAddress = ethCommon.HexToAddress("0x546869055C8B668Cc21E6683A78Ed231A16b7669")
+var PDPAddress = ethCommon.HexToAddress("0x168691785E3c67f8B098cd4d63EdD84425840725")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -502,7 +502,7 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		return nil, err
 	}
 	// TODO wangyu
-	signer, err := t.GetSigner(big.NewInt(10000))
+	signer, err := t.GetSigner(big.NewInt(100000000))
 	if err != nil {
 		return nil, err
 	}

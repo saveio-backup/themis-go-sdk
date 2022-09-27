@@ -2,7 +2,6 @@ package chain
 
 import (
 	"github.com/saveio/themis-go-sdk/auth"
-	"github.com/saveio/themis-go-sdk/channel"
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis-go-sdk/dns"
 	"github.com/saveio/themis-go-sdk/fs"
@@ -20,7 +19,6 @@ type EVMContract struct {
 	Auth         *auth.Auth
 	Fs           *fs.Fs
 	Dns          *dns.Dns
-	Channel      *channel.Channel
 	Governance   *governance.Governance
 }
 
@@ -41,14 +39,13 @@ func newEVMContract(client *client.ClientMgr) *EVMContract {
 		DefAcc:            nil,
 		PollForTxDuration: DEFAULT_POLL_FOR_CONFIRM_DURATION,
 	})
-	evm.Channel = &channel.Channel{Client: client}
 	evm.Governance = &governance.Governance{Client: client}
 	return evm
 }
 
-func (this *EVMContract) SetDefaultAccount(acc *account.Account) {
-	this.Channel.DefAcc = acc
-	this.Fs.SetDefaultAccount(acc)
-	this.Dns.SetDefaultAccount(acc)
-	this.Governance.DefAcc = acc
+func (e *EVMContract) SetDefaultAccount(acc *account.Account) {
+	e.ERC20.DefAcc = acc
+	e.Fs.SetDefaultAccount(acc)
+	e.Dns.SetDefaultAccount(acc)
+	e.Governance.DefAcc = acc
 }
