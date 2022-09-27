@@ -203,17 +203,33 @@ func TestOntFs_NodeWithDrawProfit(t *testing.T) {
 	fmt.Println("NodeWithDrawProfit Success")
 }
 
-func Testsavefs_AddUserSpace(t *testing.T) {
+func TestSavefs_AddUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")
 	}
-	ret, err := testFs.UpdateUserSpace(testFs.Client.GetDefaultAccount().Address, nil, nil)
+	ret, err := testFs.UpdateUserSpace(testFs.Client.GetDefaultAccount().Address,&fs.UserSpaceOperation{
+		Type:  uint64(fs.UserSpaceAdd),
+		Value: 10,
+	}, &fs.UserSpaceOperation{
+		Type:  uint64(fs.UserSpaceAdd),
+		Value: 100000,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("add user space ret %v\n", ret)
 }
 
+func TestSaveFs_CashUserSpace(t *testing.T) {
+	if testFs == nil {
+		t.Fatal("testFs is nil")
+	}
+	ret,err := testFs.CashUserSpace(testFs.Client.GetDefaultAccount().Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("cash user space ret %v\n", ret)
+}
 func TestOntFs_GetUserSpace(t *testing.T) {
 	userspace, err := testFs.GetUserSpace(testFs.Client.GetDefaultAccount().Address)
 	if err != nil {

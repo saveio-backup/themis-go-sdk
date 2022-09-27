@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/core/payload"

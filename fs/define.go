@@ -69,6 +69,7 @@ type ContractClient interface {
 	GetFileProveDetails(fileHashStr string) (*fs.FsProveDetails, error)
 
 	UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error)
+	CashUserSpace(walletAddr common.Address) ([]byte, error)
 	GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error)
 	GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) (*usdt.State, error)
 	DeleteUserSpace() ([]byte, error)

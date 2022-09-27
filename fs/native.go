@@ -746,8 +746,22 @@ func (t *Native) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs
 		BlockCount: blockCount,
 	}
 	ret, err := t.InvokeNativeContract(
-		t.DefAcc, fs.FS_MANAGE_USER_SPACE,
+		t.DefAcc, fs.NEW_FS_MANAGE_USER_SPACE,
 		[]interface{}{params},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret.ToArray(), err
+}
+// CashUserSpace. user space operation for space owner.
+func (t *Native) CashUserSpace(walletAddr common.Address) ([]byte, error) {
+	//params := &fs.UserSpaceParams{
+	//	WalletAddr: walletAddr,
+	//}
+	ret, err := t.InvokeNativeContract(
+		t.DefAcc, fs.FS_CASH_USER_SPACE,
+		[]interface{}{walletAddr},
 	)
 	if err != nil {
 		return nil, err

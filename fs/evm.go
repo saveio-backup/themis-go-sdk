@@ -1048,7 +1048,73 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	}
 	return TxResult(ec, tx)
 }
+// UpdateUserSpace. user space operation for space owner.
+func (t *EVM) NewUpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
+	if t.DefAcc == nil {
+		return nil, errors.New("DefAcc is nil")
+	}
+	address := ethCommon.BytesToAddress(walletAddr[:])
+	ec := t.Client.GetEthClient().Client
+	store, err := spaceStore.NewStore(SpaceAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	param := spaceStore.UserSpaceParams{
+		WalletAddr: t.DefAcc.EthAddress,
+		Owner:      address,
+		Size: spaceStore.UserSpaceOperation{
+			Type:  uint8(size.Type),
+			Value: size.Value,
+		},
+		BlockCount: spaceStore.UserSpaceOperation{
+			Type:  uint8(blockCount.Type),
+			Value: blockCount.Value,
+		},
+	}
+	tx, err := store.GetUpdateCost(signer, param)
+	if err != nil {
+		return nil, err
+	}
 
+	mined, err := bind.WaitMined(context.Background(), ec, tx)
+	var res spaceStore.TransferState
+	for _, vLog := range mined.Logs {
+		contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
+		if err != nil {
+			return nil, err
+		}
+		data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range data {
+			res = spaceStore.TransferState(v.(struct {
+				From  ethCommon.Address `json:"From"`
+				To    ethCommon.Address `json:"To"`
+				Value uint64            `json:"Value"`
+			}))
+		}
+	}
+
+	signer, err = t.GetSigner(big.NewInt(int64(res.Value)))
+	if err != nil {
+		return nil, err
+	}
+	tx, err = store.ManageUserSpace(signer, param)
+	if err != nil {
+		return nil, err
+	}
+	return TxResult(ec, tx)
+}
+// CashUserSpace. user space operation for space owner.
+func (t *EVM) CashUserSpace(walletAddr common.Address) ([]byte, error) {
+	//TODO
+	return []byte{},nil
+}
 // GetUserSpace. get user space with wallet address
 func (t *EVM) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 	ec := t.Client.GetEthClient().Client
