@@ -46,25 +46,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x1db85675d9549EE8deA446D9F3EFb54d700A92d7")
-
-var NodeAddress = ethCommon.HexToAddress("0x24E0E9386EadE839681779c959425bca903160FF")
-
-var SectorAddress = ethCommon.HexToAddress("0x09ac6b433bd96829446cD9C648CdE1CbeBBe6F8D")
-
-var SpaceAddress = ethCommon.HexToAddress("0x15E507Aa0283558815ef884f459C1C54Ba1aF5a0")
-
-var FileAddress = ethCommon.HexToAddress("0x23201a6f92ce6280dAd87Dc173028dc407B11EbD")
-
-var FileExtraAddress = ethCommon.HexToAddress("0xaf0B855117Ed2a8777a64CC3DF279eBB879552F9")
-
-var ListAddress = ethCommon.HexToAddress("0xCea0F1A8ed57742b72436feF52139e74E8D1768b")
-
-var ProveAddress = ethCommon.HexToAddress("0xF5c9980112B0f76Aa8D070022d7bf8F9fa93f8d1")
-
-var ProveExtraAddress = ethCommon.HexToAddress("0x99032Fe6fc79BD403cf5EA9896dDD7BC9abf291d")
-
-var PDPAddress = ethCommon.HexToAddress("0x168691785E3c67f8B098cd4d63EdD84425840725")
+var ConfigAddress = ethCommon.HexToAddress("0x3ad4Aa72049FA58FCAD2bb462e530B4314935935")
+var NodeAddress = ethCommon.HexToAddress("0xff5C50e7080a5e116d0EF8F11e519Ac9De4EC2a7")
+var SectorAddress = ethCommon.HexToAddress("0x251201a0CDc5e011b35FA39a84BCA284Dcefc8d4")
+var SpaceAddress = ethCommon.HexToAddress("0x1246B61f24CEAcAD9bAdE4a07b71248F4905371a")
+var FileAddress = ethCommon.HexToAddress("0x83AFEFFd26CF0ba8BF1AfF5605dDa7812f6AEF10")
+var FileExtraAddress = ethCommon.HexToAddress("0xF3D9D2E306dA5C2c15A1e3B5006e70f952E61d77")
+var ListAddress = ethCommon.HexToAddress("0xfe56D4853f006f168ef746727555323026176e2E")
+var ProveAddress = ethCommon.HexToAddress("0x9111f68a213909eF7aa62C1517F77530a8610329")
+var ProveExtraAddress = ethCommon.HexToAddress("0x45771759191173D99C9b35931a716732aA9037d1")
+var PDPAddress = ethCommon.HexToAddress("0xDb96e5bbC0785A22Ef73F835C59F4424f38A15E0")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -92,8 +83,8 @@ func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	}
 	auth.From = t.DefAcc.EthAddress
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = value                 // in wei
-	auth.GasLimit = uint64(10_000_000) // in units
+	auth.Value = value                  // in wei
+	auth.GasLimit = uint64(100_000_000) // in units
 	auth.GasPrice = gasPrice
 
 	gas := new(big.Int).Mul(auth.GasPrice, big.NewInt(int64(auth.GasLimit)))
@@ -919,7 +910,7 @@ func (t *EVM) DeleteFiles(fileHashStrs []string, gasLimit uint64) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	signer, err := t.GetSigner(big.NewInt(0))
+	signer, err := t.GetSigner(big.NewInt(10000))
 	if err != nil {
 		return nil, err
 	}
@@ -1049,6 +1040,7 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	}
 	return TxResult(ec, tx)
 }
+
 // UpdateUserSpace. user space operation for space owner.
 func (t *EVM) NewUpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
 	if t.DefAcc == nil {
@@ -1111,11 +1103,13 @@ func (t *EVM) NewUpdateUserSpace(walletAddr common.Address, size, blockCount *fs
 	}
 	return TxResult(ec, tx)
 }
+
 // CashUserSpace. user space operation for space owner.
 func (t *EVM) CashUserSpace(walletAddr common.Address) ([]byte, error) {
 	//TODO
-	return []byte{},nil
+	return []byte{}, nil
 }
+
 // GetUserSpace. get user space with wallet address
 func (t *EVM) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 	ec := t.Client.GetEthClient().Client
@@ -1544,7 +1538,7 @@ func TxResultWithError(ec *ethclient.Client, tx *types.Transaction, abiData stri
 	if err != nil {
 		return nil, err
 	}
-	if mined.Status != types.ReceiptStatusSuccessful {
+	if mined.Status == types.ReceiptStatusFailed {
 		return nil, errors.New("tx mined failed")
 	}
 	var errMsg string

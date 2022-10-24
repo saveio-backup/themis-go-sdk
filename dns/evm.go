@@ -29,7 +29,7 @@ type EVM struct {
 
 var _ DnsClient = (*EVM)(nil)
 
-var DnsAddress = ethCommon.HexToAddress("0x1287486016f39bBD275e16aE8e31BCd1C1Cf10Db")
+var DnsAddress = ethCommon.HexToAddress("0x7cD105A603C15fe40A78dA1555051E8fBD950931")
 
 func (E *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := E.Client.GetEthClient().Client
