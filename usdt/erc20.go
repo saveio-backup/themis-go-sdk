@@ -11,6 +11,7 @@ import (
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common/log"
 	"math/big"
+	"math/rand"
 )
 
 type ERC20 struct {
@@ -46,7 +47,7 @@ func (t *ERC20) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = value                 // in wei
 	auth.GasLimit = uint64(10_000_000) // in units
-	auth.GasPrice = gasPrice
+	auth.GasPrice = gasPrice.Add(gasPrice, big.NewInt(int64(rand.Intn(1))))
 
 	gas := new(big.Int).Mul(auth.GasPrice, big.NewInt(int64(auth.GasLimit)))
 	gas = new(big.Int).Add(auth.Value, gas)

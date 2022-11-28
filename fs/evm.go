@@ -46,16 +46,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x3ad4Aa72049FA58FCAD2bb462e530B4314935935")
-var NodeAddress = ethCommon.HexToAddress("0xff5C50e7080a5e116d0EF8F11e519Ac9De4EC2a7")
-var SectorAddress = ethCommon.HexToAddress("0x251201a0CDc5e011b35FA39a84BCA284Dcefc8d4")
-var SpaceAddress = ethCommon.HexToAddress("0x1246B61f24CEAcAD9bAdE4a07b71248F4905371a")
-var FileAddress = ethCommon.HexToAddress("0x83AFEFFd26CF0ba8BF1AfF5605dDa7812f6AEF10")
-var FileExtraAddress = ethCommon.HexToAddress("0xF3D9D2E306dA5C2c15A1e3B5006e70f952E61d77")
-var ListAddress = ethCommon.HexToAddress("0xfe56D4853f006f168ef746727555323026176e2E")
-var ProveAddress = ethCommon.HexToAddress("0x9111f68a213909eF7aa62C1517F77530a8610329")
-var ProveExtraAddress = ethCommon.HexToAddress("0x45771759191173D99C9b35931a716732aA9037d1")
-var PDPAddress = ethCommon.HexToAddress("0xDb96e5bbC0785A22Ef73F835C59F4424f38A15E0")
+var ConfigAddress = ethCommon.HexToAddress("0x8526c2b937C52D7B06423c8ec03D6BE081377ecC")
+var NodeAddress = ethCommon.HexToAddress("0x88F5B4Ca0019586F3Ad474ceb403709745E1cBfc")
+var SectorAddress = ethCommon.HexToAddress("0x03E8f706303C2a327D72E290B3f5627c90d881A1")
+var SpaceAddress = ethCommon.HexToAddress("0x1c7C3EC367394617e0a603C781Be45ff839d3d4b")
+var FileAddress = ethCommon.HexToAddress("0xF160fe7CCd372478a4f411c8a70f45518d2c446E")
+var FileExtraAddress = ethCommon.HexToAddress("0xdEA474a4265382f4c95f9601B092194a7ecf8b87")
+var ListAddress = ethCommon.HexToAddress("0x94787afb0234B132b9d1Ae7450f230ffD02Bbc3d")
+var ProveAddress = ethCommon.HexToAddress("0xb2b1Bb7B70a40a279D51D81B6170265E10f3Fab1")
+var ProveExtraAddress = ethCommon.HexToAddress("0x7BF115E9eB5b79674121ba9EA0516ACAba5B16C1")
+var PDPAddress = ethCommon.HexToAddress("0x7b41389e0A8a2cF0929EdD7AeF13B1ff2d92c304")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -1007,34 +1007,15 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 			Value: blockCount.Value,
 		},
 	}
-	tx, err := store.GetUpdateCost(signer, param)
+	res, err := store.GetUpdateCost(&bind.CallOpts{}, param)
 	if err != nil {
 		return nil, err
-	}
-	mined, err := bind.WaitMined(context.Background(), ec, tx)
-	var res spaceStore.TransferState
-	for _, vLog := range mined.Logs {
-		contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
-		if err != nil {
-			return nil, err
-		}
-		data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
-		if err != nil {
-			return nil, err
-		}
-		for _, v := range data {
-			res = spaceStore.TransferState(v.(struct {
-				From  ethCommon.Address `json:"From"`
-				To    ethCommon.Address `json:"To"`
-				Value uint64            `json:"Value"`
-			}))
-		}
 	}
 	signer, err = t.GetSigner(big.NewInt(int64(res.Value)))
 	if err != nil {
 		return nil, err
 	}
-	tx, err = store.ManageUserSpace(signer, param)
+	tx, err := store.ManageUserSpace(signer, param)
 	if err != nil {
 		return nil, err
 	}
@@ -1068,36 +1049,15 @@ func (t *EVM) NewUpdateUserSpace(walletAddr common.Address, size, blockCount *fs
 			Value: blockCount.Value,
 		},
 	}
-	tx, err := store.GetUpdateCost(signer, param)
+	res, err := store.GetUpdateCost(&bind.CallOpts{}, param)
 	if err != nil {
 		return nil, err
 	}
-
-	mined, err := bind.WaitMined(context.Background(), ec, tx)
-	var res spaceStore.TransferState
-	for _, vLog := range mined.Logs {
-		contractAbi, err := abi.JSON(strings.NewReader(spaceStore.StoreMetaData.ABI))
-		if err != nil {
-			return nil, err
-		}
-		data, err := contractAbi.Unpack("GetUpdateCostEvent", vLog.Data)
-		if err != nil {
-			return nil, err
-		}
-		for _, v := range data {
-			res = spaceStore.TransferState(v.(struct {
-				From  ethCommon.Address `json:"From"`
-				To    ethCommon.Address `json:"To"`
-				Value uint64            `json:"Value"`
-			}))
-		}
-	}
-
 	signer, err = t.GetSigner(big.NewInt(int64(res.Value)))
 	if err != nil {
 		return nil, err
 	}
-	tx, err = store.ManageUserSpace(signer, param)
+	tx, err := store.ManageUserSpace(signer, param)
 	if err != nil {
 		return nil, err
 	}
@@ -1142,10 +1102,6 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 	if err != nil {
 		return nil, err
 	}
-	signer, err := t.GetSigner(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
 	param := spaceStore.UserSpaceParams{
 		WalletAddr: address,
 		Owner:      t.DefAcc.EthAddress,
@@ -1158,16 +1114,18 @@ func (t *EVM) GetUpdateSpaceCost(walletAddr common.Address, size, blockCount *fs
 			Value: blockCount.Value,
 		},
 	}
-	cost, err := store.GetUpdateCost(signer, param)
+	res, err := store.GetUpdateCost(&bind.CallOpts{}, param)
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("GetUpdateSpaceCost: %+v", cost)
-	// TODO wangyu get res
+	if res.Value == 0 {
+		return nil, errors.New("params error")
+	}
+	log.Debugf("GetUpdateSpaceCost: %+v", res)
 	state := &usdt.State{
-		From:  common.Address{},
-		To:    common.Address{},
-		Value: 0,
+		From:  common.Address(res.From),
+		To:    common.Address(res.To),
+		Value: res.Value,
 	}
 	return state, nil
 }
