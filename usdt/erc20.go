@@ -2,6 +2,9 @@ package usdt
 
 import (
 	"context"
+	"math/big"
+	"math/rand"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -10,8 +13,6 @@ import (
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis/account"
 	"github.com/saveio/themis/common/log"
-	"math/big"
-	"math/rand"
 )
 
 type ERC20 struct {
@@ -63,7 +64,7 @@ func (e *ERC20) BalanceOf(address common.Address) (uint64, error) {
 	return at.Uint64(), nil
 }
 
-func (e *ERC20) Transfer(from, to common.Address, amount uint64) ([]byte, error) {
+func (e *ERC20) Transfer(from, to common.Address, amount *big.Int, data []byte) ([]byte, error) {
 	ec := e.Client.GetEthClient().Client
 	nonce, err := ec.PendingNonceAt(context.TODO(), e.DefAcc.EthAddress)
 	if err != nil {
@@ -74,8 +75,7 @@ func (e *ERC20) Transfer(from, to common.Address, amount uint64) ([]byte, error)
 		return nil, err
 	}
 
-	var data []byte
-	tx := types.NewTransaction(nonce, to, big.NewInt(int64(amount)), uint64(10_000_000), gasPrice, data)
+	tx := types.NewTransaction(nonce, to, amount, uint64(10_000_000), gasPrice, data)
 	chainID, err := ec.ChainID(context.TODO())
 	if err != nil {
 		return nil, err

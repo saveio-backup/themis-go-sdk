@@ -3,6 +3,10 @@ package dns
 import (
 	"context"
 	"errors"
+	"math/big"
+	"runtime"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethCommon "github.com/ethereum/go-ethereum/common"
@@ -17,9 +21,6 @@ import (
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/smartcontract/service/native/dns"
-	"math/big"
-	"runtime"
-	"strings"
 )
 
 type EVM struct {

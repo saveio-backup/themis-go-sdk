@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
+	"sync"
+	"time"
+
 	ethCom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/common/log"
 	"github.com/saveio/themis/core/types"
-	"math/big"
-	"sync"
-	"time"
 )
 
 type EthClient struct {
@@ -112,13 +113,13 @@ func (e *EthClient) getBlockByHeight(qid string, height uint32) ([]byte, error) 
 }
 
 func (e *EthClient) getBlockHash(qid string, height uint32) ([]byte, error) {
-	block, err := e.Client.BlockByNumber(context.TODO(), big.NewInt(int64(height)))
+	header, err := e.Client.HeaderByNumber(context.Background(), big.NewInt(int64(height)))
 	if err != nil {
 		return nil, err
 	}
-	hex := block.Hash().Hex()
-	hex = hex[2:]
-	marshal, err := json.Marshal(hex)
+	hex := header.Hash().String()
+
+	marshal, err := json.Marshal(hex[2:])
 	if err != nil {
 		return nil, err
 	}
@@ -139,8 +140,11 @@ func (e *EthClient) getBlockTxHashesByHeight(qid string, height uint32) ([]byte,
 }
 
 func (e *EthClient) getRawTransaction(qid, txHash string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	tx, _, err := e.Client.TransactionByHash(context.Background(), ethCom.HexToHash(txHash))
+	if err != nil {
+		return nil, err
+	}
+	return tx.MarshalBinary()
 }
 
 func (e *EthClient) getSmartContract(qid, contractAddress string) ([]byte, error) {

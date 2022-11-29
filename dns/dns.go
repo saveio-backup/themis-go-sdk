@@ -9,7 +9,9 @@ import (
 )
 
 type Dns struct {
-	Client DnsClient
+	Client   DnsClient
+	GasPrice uint64
+	GasLimit uint64
 }
 
 var _ DnsClient = (*Dns)(nil)
