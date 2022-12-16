@@ -46,16 +46,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x8526c2b937C52D7B06423c8ec03D6BE081377ecC")
-var NodeAddress = ethCommon.HexToAddress("0x88F5B4Ca0019586F3Ad474ceb403709745E1cBfc")
-var SectorAddress = ethCommon.HexToAddress("0x03E8f706303C2a327D72E290B3f5627c90d881A1")
-var SpaceAddress = ethCommon.HexToAddress("0x1c7C3EC367394617e0a603C781Be45ff839d3d4b")
-var FileAddress = ethCommon.HexToAddress("0xF160fe7CCd372478a4f411c8a70f45518d2c446E")
-var FileExtraAddress = ethCommon.HexToAddress("0xdEA474a4265382f4c95f9601B092194a7ecf8b87")
-var ListAddress = ethCommon.HexToAddress("0x94787afb0234B132b9d1Ae7450f230ffD02Bbc3d")
-var ProveAddress = ethCommon.HexToAddress("0xb2b1Bb7B70a40a279D51D81B6170265E10f3Fab1")
-var ProveExtraAddress = ethCommon.HexToAddress("0x7BF115E9eB5b79674121ba9EA0516ACAba5B16C1")
-var PDPAddress = ethCommon.HexToAddress("0x7b41389e0A8a2cF0929EdD7AeF13B1ff2d92c304")
+var ConfigAddress = ethCommon.HexToAddress("0xd87d00592F2DfB77FCd54593AD98F7fC445d24ed")
+var NodeAddress = ethCommon.HexToAddress("0xE57FC42905a707ECc767A6202E2c10C40531D9Ac")
+var SectorAddress = ethCommon.HexToAddress("0x8923E0C53874b948F74b4Ae48035c81ba70E2FFd")
+var SpaceAddress = ethCommon.HexToAddress("0x7b370b9DFa50785f346546Bf43d05Afe37563D89")
+var FileAddress = ethCommon.HexToAddress("0xc8f7B6f8b22E25C4493da78Daeb41e9E977Bd6a8")
+var FileExtraAddress = ethCommon.HexToAddress("0x3FeF66D2696Be7E1bff5F193FE4e49A26567CcFb")
+var ListAddress = ethCommon.HexToAddress("0xe714F96FaEecCEC1353579785228A47f7b33c6E7")
+var ProveAddress = ethCommon.HexToAddress("0x355974143f451e724230AD15841312142eB4F06e")
+var ProveExtraAddress = ethCommon.HexToAddress("0x7f0383478089501deBFfBeC052943cd2aDa9bFE2")
+var PDPAddress = ethCommon.HexToAddress("0xD94Bb2F064b8637a8Fa91Ec25fc1A4701512A9a5")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -83,8 +83,8 @@ func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	}
 	auth.From = t.DefAcc.EthAddress
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = value                  // in wei
-	auth.GasLimit = uint64(100_000_000) // in units
+	auth.Value = value                 // in wei
+	auth.GasLimit = uint64(10_000_000) // in units
 	auth.GasPrice = gasPrice
 
 	gas := new(big.Int).Mul(auth.GasPrice, big.NewInt(int64(auth.GasLimit)))
