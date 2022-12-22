@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,6 +19,7 @@ import (
 type ERC20 struct {
 	Client *client.ClientMgr
 	DefAcc *account.Account
+	lock   sync.Mutex
 }
 
 func (t *ERC20) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
@@ -65,6 +67,8 @@ func (e *ERC20) BalanceOf(address common.Address) (uint64, error) {
 }
 
 func (e *ERC20) Transfer(from, to common.Address, amount *big.Int, data []byte) ([]byte, error) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
 	ec := e.Client.GetEthClient().Client
 	nonce, err := ec.PendingNonceAt(context.TODO(), e.DefAcc.EthAddress)
 	if err != nil {

@@ -37,14 +37,16 @@ func (e *EthClient) DialClient() {
 		url := key.(string)
 		dial, err := ethclient.Dial(url)
 		if err != nil {
+			log.Errorf("dial eth client failed, url: %s, err: %s", url, err.Error())
 			return true
 		}
+		e.Client = dial
 		id, err := dial.ChainID(context.TODO())
 		if err != nil {
+			log.Errorf("get chain id failed, err: %s", err.Error())
 			return true
 		}
 		e.Urls.Store(url, id)
-		e.Client = dial
 		return false
 	})
 	log.Debugf("eth client dialed")
