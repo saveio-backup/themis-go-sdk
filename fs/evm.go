@@ -1019,7 +1019,7 @@ func (t *EVM) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.Us
 	if err != nil {
 		return nil, err
 	}
-	return TxResult(ec, tx)
+	return TxResultWithError(ec, tx, spaceStore.StoreMetaData.ABI)
 }
 
 // UpdateUserSpace. user space operation for space owner.

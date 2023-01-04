@@ -263,8 +263,23 @@ func (E *EVM) DNSNodeReg(ip []byte, port []byte, initPos uint64) (common.Uint256
 }
 
 func (E *EVM) GetDnsNodeByAddr(wallet common.Address) (*dns.DNSNodeInfo, error) {
-	//TODO implement me
-	panic("implement me")
+	ec := E.Client.GetEthClient().Client
+	if ec == nil {
+		return nil, errors.New("eth client is nil")
+	}
+	newStore, err := store.NewStore(DnsAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	info, err := newStore.GetDNSNodeByAddress(nil, ethCommon.BytesToAddress(wallet[:]))
+	res := &dns.DNSNodeInfo{
+		WalletAddr:  common.Address(info.WalletAddr),
+		IP:          info.IP,
+		Port:        info.Port,
+		InitDeposit: info.InitDeposit,
+		PeerPubKey:  info.PeerPubKey,
+	}
+	return res, nil
 }
 
 func (E *EVM) GetAllDnsNodes() (map[string]dns.DNSNodeInfo, error) {
