@@ -2,7 +2,9 @@ package dns
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
+	"github.com/saveio/themis/crypto/keypair"
 	"math/big"
 	"runtime"
 	"strings"
@@ -66,6 +68,18 @@ func (E *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	gas = new(big.Int).Add(auth.Value, gas)
 	log.Debugf("get signer with gas: %v, %v, %v, %v", auth.GasPrice, auth.GasLimit, auth.Value, gas)
 	return auth, nil
+}
+
+func GetStore(E *EVM) (*ethclient.Client, *store.Store, error) {
+	ec := E.Client.GetEthClient().Client
+	if ec == nil {
+		return nil, nil, errors.New("eth client is nil")
+	}
+	newStore, err := store.NewStore(DnsAddress, ec)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ec, newStore, nil
 }
 
 func (E *EVM) SetDefaultAccount(acc *account.Account) {
@@ -193,23 +207,115 @@ func (E *EVM) Binding(urlType uint64, url string, name string, desc string, ttl 
 }
 
 func (E *EVM) DeleteUrl(url string) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	strs := strings.Split(url, "://")
+	if len(strs) != 2 {
+		return common.UINT256_EMPTY, errors.New("QueryUrl input url format valid")
+	}
+	req := store.ReqInfo{
+		Header: []byte(strs[0]),
+		URL:    []byte(strs[1]),
+		Owner:  E.DefAcc.EthAddress,
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	tx, err := getStore.DelDNS(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) DeleteHeader(header string) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	req := store.ReqInfo{
+		Header: []byte(header),
+		Owner:  E.DefAcc.EthAddress,
+	}
+	tx, err := getStore.DelHeader(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) TransferUrl(url string, toAdder string) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	strs := strings.Split(url, "://")
+	if len(strs) != 2 {
+		return common.UINT256_EMPTY, errors.New("QueryUrl input url format valid")
+	}
+	to, err := common.AddressFromHexString(toAdder)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	req := store.TransferInfo{
+		Header: []byte(strs[0]),
+		URL:    []byte(strs[1]),
+		From:   E.DefAcc.EthAddress,
+		To:     ethCommon.BytesToAddress(to[:]),
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	tx, err := getStore.TransferName(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) TransferHeader(header string, toAdder string) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	to, err := common.AddressFromHexString(toAdder)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	req := store.TransferInfo{
+		Header: []byte(header),
+		From:   E.DefAcc.EthAddress,
+		To:     ethCommon.BytesToAddress(to[:]),
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	tx, err := getStore.TransferHeader(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) QueryUrl(url string, ownerAddr common.Address) (*dns.NameInfo, error) {
@@ -248,18 +354,79 @@ func (E *EVM) QueryUrl(url string, ownerAddr common.Address) (*dns.NameInfo, err
 }
 
 func (E *EVM) QueryHeader(header string, ownerAddr common.Address) (*dns.HeaderInfo, error) {
-	//TODO implement me
-	panic("implement me")
+	ec := E.Client.GetEthClient().Client
+	newStore, err := store.NewStore(DnsAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	addr := ethCommon.BytesToAddress(ownerAddr[:])
+	req := store.ReqInfo{
+		Header: []byte(header),
+		Owner:  addr,
+	}
+	res, err := newStore.GetHeader(nil, req)
+	if err != nil {
+		return nil, err
+	}
+	if res.BlockHeight.Uint64() == 0 {
+		return nil, errors.New("not found")
+	}
+	return &dns.HeaderInfo{
+		Header:      res.Header,
+		HeaderOwner: common.Address(res.HeaderOwner),
+		BlockHeight: res.BlockHeight.Uint64(),
+	}, nil
 }
 
 func (E *EVM) UnregisterDNSNode() (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	pk := keypair.SerializePublicKey(E.DefAcc.PublicKey)
+	req := store.UnRegisterCandidateParam{
+		PeerPubKey: hex.EncodeToString(pk),
+		Address:    E.DefAcc.EthAddress,
+	}
+	tx, err := getStore.UnRegDNSNode(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) DNSNodeReg(ip []byte, port []byte, initPos uint64) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	pk := keypair.SerializePublicKey(E.DefAcc.PublicKey)
+	req := store.DNSNodeInfo{
+		PeerPubKey:  hex.EncodeToString(pk),
+		WalletAddr:  E.DefAcc.EthAddress,
+		IP:          ip,
+		Port:        port,
+		InitDeposit: initPos,
+	}
+	tx, err := getStore.DNSNodeReg(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) GetDnsNodeByAddr(wallet common.Address) (*dns.DNSNodeInfo, error) {
