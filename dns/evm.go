@@ -476,43 +476,184 @@ func (E *EVM) GetAllDnsNodes() (map[string]dns.DNSNodeInfo, error) {
 }
 
 func (E *EVM) ApproveCandidate(pubKey string) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	tx, err := getStore.ApproveDNSCandidate(signer, pubKey)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) RejectDNSCandidate(pubKey string) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	tx, err := getStore.RejectDNSCandidate(signer, pubKey)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) QuitNode() (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+
+	pk := keypair.SerializePublicKey(E.DefAcc.PublicKey)
+	req := store.QuitNodeParam{
+		PeerPubKey: hex.EncodeToString(pk),
+		Address:    E.DefAcc.EthAddress,
+	}
+	tx, err := getStore.QuitNode(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) UpdateNode(ip []byte, port []byte) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+
+	req := store.UpdateNodeParam{
+		WalletAddr: E.DefAcc.EthAddress,
+		IP:         ip,
+		Port:       port,
+	}
+	tx, err := getStore.UpdateDNSNodesInfo(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) AddInitPos(addPosAmount uint64) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+
+	pk := keypair.SerializePublicKey(E.DefAcc.PublicKey)
+	req := store.ChangeInitPosParam{
+		PeerPubKey: hex.EncodeToString(pk),
+		Address:    E.DefAcc.EthAddress,
+		Pos:        addPosAmount,
+	}
+	tx, err := getStore.AddInitPos(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) ReduceInitPos(changePosAmount uint64) (common.Uint256, error) {
-	//TODO implement me
-	panic("implement me")
+	if E.DefAcc == nil {
+		return common.UINT256_EMPTY, errors.New("account is nil")
+	}
+	ec, getStore, err := GetStore(E)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	signer, err := E.GetSigner(big.NewInt(0))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+
+	pk := keypair.SerializePublicKey(E.DefAcc.PublicKey)
+	req := store.ChangeInitPosParam{
+		PeerPubKey: hex.EncodeToString(pk),
+		Address:    E.DefAcc.EthAddress,
+		Pos:        changePosAmount,
+	}
+	tx, err := getStore.ReduceInitPos(signer, req)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return TxResultWithError(ec, tx)
 }
 
 func (E *EVM) GetPeerPoolMap() (*dns.PeerPoolMap, error) {
-	//TODO implement me
-	panic("implement me")
+	_, getStore, err := GetStore(E)
+	if err != nil {
+		return nil, err
+	}
+	poolMap, err := getStore.GetPeerPoolMap(nil)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]*dns.PeerPoolItem)
+	for _, v := range poolMap {
+		m[v.PeerPubKey] = &dns.PeerPoolItem{
+			PeerPubkey:    v.PeerPubKey,
+			WalletAddress: common.Address(v.WalletAddress),
+			TotalInitPos:  v.TotalInitPos,
+			Status:        dns.Status(v.Status),
+		}
+	}
+	res := &dns.PeerPoolMap{
+		PeerPoolMap: m,
+	}
+	return res, nil
 }
 
 func (E *EVM) GetPeerPoolItem(pubKey string) (*dns.PeerPoolItem, error) {
-	//TODO implement me
-	panic("implement me")
+	_, getStore, err := GetStore(E)
+	if err != nil {
+		return nil, err
+	}
+	item, err := getStore.GetPeerPoolItem(nil, pubKey)
+	if err != nil {
+		return nil, err
+	}
+	return &dns.PeerPoolItem{
+		PeerPubkey:    item.PeerPubKey,
+		WalletAddress: common.Address(item.WalletAddress),
+		TotalInitPos:  item.TotalInitPos,
+		Status:        dns.Status(item.Status),
+	}, nil
 }
 
 func TxResult(ec *ethclient.Client, tx *types.Transaction) (common.Uint256, error) {
