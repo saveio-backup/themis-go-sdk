@@ -201,6 +201,8 @@ func (t *EVM) GetNodeList() (*fs.FsNodesInfo, error) {
 		NodeNum:  uint64(len(list)),
 		NodeInfo: nodes,
 	}
+	// TODO start verifier in correct time
+	go t.NewVerifier()
 	return nodeList, nil
 }
 
@@ -1542,4 +1544,29 @@ func GetFsEventNameByType(t uint8) string {
 		return "deleteSector"
 	}
 	return ""
+}
+
+func (t *EVM) NewVerifier() {
+	client := t.Client.GetEthClient().Client
+
+	query := ethereum.FilterQuery{
+		Addresses: []ethCommon.Address{PDPAddress},
+	}
+
+	logs := make(chan types.Log)
+	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case vLog := <-logs:
+			fmt.Println(vLog) // pointer to event log
+			// TODO get proofs list
+			// TODO verify proofs
+		}
+	}
 }
