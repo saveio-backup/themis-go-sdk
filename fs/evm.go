@@ -1403,6 +1403,36 @@ func (t *EVM) CheckNodeSectorProveInTime(addr common.Address, sectorId uint64) (
 	return TxResult(ec, tx)
 }
 
+func (t *EVM) GetUnVerifyProofList() ([]pdpStore.ProofRecordWithParams, error) {
+	ec := t.Client.GetEthClient().Client
+	store, err := pdpStore.NewStore(PDPAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	prs, err := store.GetUnVerifyProofList(&bind.CallOpts{})
+	if err != nil {
+		return nil, err
+	}
+	return prs, nil
+}
+
+func (t *EVM) VerifyProof(vParams pdpStore.ProofRecord, chgs []pdpStore.Challenge, mp []pdpStore.MerklePath) ([]byte, error) {
+	ec := t.Client.GetEthClient().Client
+	store, err := pdpStore.NewStore(ProveAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	signer, err := t.GetSigner(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+	tx, err := store.VerifyProof(signer, vParams, chgs, mp)
+	if err != nil {
+		return nil, err
+	}
+	return TxResultWithError(ec, tx, pdpStore.StoreMetaData.ABI)
+}
+
 func (t *EVM) GetEventsByBlockHeight(blockHeight *big.Int) ([]map[string]interface{}, error) {
 	res := make([]map[string]interface{}, 0)
 	query := ethereum.FilterQuery{
@@ -1565,8 +1595,93 @@ func (t *EVM) NewVerifier() {
 			log.Fatal(err)
 		case vLog := <-logs:
 			fmt.Println(vLog) // pointer to event log
-			// TODO get proofs list
-			// TODO verify proofs
+			list, err := t.GetUnVerifyProofList()
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			for _, v := range list {
+				res := VerifyPDPByEVMParams(v)
+				pr := pdpStore.ProofRecord{
+					Proof:            v.Proof,
+					State:            res,
+					LastUpdateHeight: nil,
+				}
+				txHash, err := t.VerifyProof(pr, v.Challenge, v.MerklePath)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				log.Infof("verify proof tx: %s, res: %b", txHash, res)
+				// TODO roll back
+				if !res {
+					// TODO
+				}
+			}
 		}
 	}
+}
+
+func VerifyPDPByEVMParams(pr pdpStore.ProofRecordWithParams) bool {
+	var proofs []byte
+	var fileId pdp.FileID
+	var tags []pdp.Tag
+	var challenges []pdp.Challenge
+	var merklePath []*pdp.MerklePath
+	var rootHash []byte
+
+	proofs = pr.Proof.Proofs
+	copy(fileId[:], pr.Proof.FileIds)
+	tags = tagsCovert(pr.Proof.Tags)
+	challenges = challengesCovert(pr.Challenge)
+	merklePath = merklePathCovert(pr.MerklePath)
+	copy(rootHash[:], pr.Proof.RootHashes)
+
+	proofState := false
+	p := pdp.NewPdp(0)
+	err := p.VerifyProofWithMerklePathForFile(0, proofs, fileId, tags, challenges, merklePath, rootHash)
+	if err != nil {
+		proofState = false
+	} else {
+		proofState = true
+	}
+	return proofState
+}
+
+func tagsCovert(s [][]byte) []pdp.Tag {
+	tags := make([]pdp.Tag, len(s))
+	for i, val := range s {
+		copy(tags[i][:], val)
+	}
+	return tags
+}
+
+func challengesCovert(s []pdpStore.Challenge) []pdp.Challenge {
+	challenges := make([]pdp.Challenge, len(s))
+	for i, val := range s {
+		challenges[i].Index = val.Index
+		challenges[i].Rand = val.Rand
+	}
+	return challenges
+}
+
+func merklePathCovert(s []pdpStore.MerklePath) []*pdp.MerklePath {
+	merklePath := make([]*pdp.MerklePath, len(s))
+	for i, val := range s {
+		merklePath[i] = &pdp.MerklePath{
+			PathLen: val.PathLen,
+			Path:    merkleNodeCovert(val.Path),
+		}
+	}
+	return merklePath
+}
+
+func merkleNodeCovert(s []pdpStore.MerkleNode) []*pdp.MerkleNode {
+	merkleNode := make([]*pdp.MerkleNode, len(s))
+	for i, val := range s {
+		merkleNode[i] = &pdp.MerkleNode{
+			Hash: val.Hash,
+		}
+	}
+	return merkleNode
 }
