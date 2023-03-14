@@ -280,7 +280,7 @@ func (this *Channel) GetSecretRevealBlockHeight(secretHash []byte) (uint64, erro
 	if err != nil {
 		return 0, err
 	}
-	height, err := strconv.ParseUint(hex.EncodeToString(common.ToArrayReverse(buf)), 16, 64)
+	height, err := strconv.ParseUint(hex.EncodeToString(buf), 16, 64)
 	if err != nil {
 		return 0, err
 	}

@@ -163,7 +163,7 @@ func (this *ClientMgr) GetBlockHash(height uint32) (common.Uint256, error) {
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
-	return utils.GetUint256(data)
+	return utils.GetUint256Reversed(data)
 }
 
 func (this *ClientMgr) GetBlockHeightByTxHash(txHash string) (uint32, error) {
@@ -441,7 +441,7 @@ func (this *ClientMgr) PollForTxConfirmed(timeout time.Duration, txHash []byte) 
 	if len(txHash) == 0 {
 		return false, fmt.Errorf("txHash is empty")
 	}
-	txHashStr := hex.EncodeToString(common.ToArrayReverse(txHash))
+	txHashStr := hex.EncodeToString(txHash)
 	interval := time.Duration(sdkcom.POLL_TX_INTERVAL) * time.Second
 	secs := int(timeout / interval)
 	if secs <= 0 {
@@ -464,7 +464,7 @@ func (this *ClientMgr) PollForTxConfirmedHeight(timeout time.Duration, txHash []
 	if len(txHash) == 0 {
 		return 0, fmt.Errorf("txHash is empty")
 	}
-	txHashStr := hex.EncodeToString(common.ToArrayReverse(txHash))
+	txHashStr := hex.EncodeToString(txHash)
 	interval := time.Duration(sdkcom.POLL_TX_INTERVAL) * time.Second
 	secs := int(timeout / interval)
 	if secs <= 0 {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/saveio/themis-go-sdk/client"
 	"github.com/saveio/themis-go-sdk/wallet"
-	"github.com/saveio/themis/common"
 )
 
 var testGov *Governance
@@ -41,7 +40,7 @@ func TestGov_RegisterCandidate(t *testing.T) {
 		return
 	}
 	fmt.Println("RegisterCandidate Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }
 
 func TestGov_UnRegisterCandidate(t *testing.T) {
@@ -51,7 +50,7 @@ func TestGov_UnRegisterCandidate(t *testing.T) {
 		return
 	}
 	fmt.Println("UnRegisterCandidate Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }
 
 func TestGov_Withdraw(t *testing.T) {
@@ -63,7 +62,7 @@ func TestGov_Withdraw(t *testing.T) {
 		return
 	}
 	fmt.Println("Withdraw Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }
 
 func TestGov_QuitNode(t *testing.T) {
@@ -73,7 +72,7 @@ func TestGov_QuitNode(t *testing.T) {
 		return
 	}
 	fmt.Println("QuitNode Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }
 
 func TestGov_WithdrawFee(t *testing.T) {
@@ -83,7 +82,7 @@ func TestGov_WithdrawFee(t *testing.T) {
 		return
 	}
 	fmt.Println("WithdrawFee Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }
 
 func TestGov_AddInitPos(t *testing.T) {
@@ -93,7 +92,7 @@ func TestGov_AddInitPos(t *testing.T) {
 		return
 	}
 	fmt.Println("AddInitPos Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }
 
 func TestGov_ReduceInitPos(t *testing.T) {
@@ -103,5 +102,5 @@ func TestGov_ReduceInitPos(t *testing.T) {
 		return
 	}
 	fmt.Println("ReduceInitPos Success")
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 }

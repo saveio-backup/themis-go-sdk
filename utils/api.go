@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	sdkcom "github.com/saveio/themis-go-sdk/common"
 	"github.com/saveio/themis/common"
 	"github.com/saveio/themis/core/payload"
@@ -61,6 +62,19 @@ func GetInt(data []byte) (int, error) {
 }
 
 func GetUint256(data []byte) (common.Uint256, error) {
+	hexHash := ""
+	err := json.Unmarshal(data, &hexHash)
+	if err != nil {
+		return common.Uint256{}, fmt.Errorf("json.Unmarshal hash:%s error:%s", data, err)
+	}
+	hx, err := common.HexToBytes(hexHash)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	return Uint256ParseFromBytes(hx)
+}
+
+func GetUint256Reversed(data []byte) (common.Uint256, error) {
 	hexHash := ""
 	err := json.Unmarshal(data, &hexHash)
 	if err != nil {

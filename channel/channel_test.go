@@ -65,7 +65,7 @@ func TestSetTotalDeposit(t *testing.T) {
 	assert.Nil(t, err)
 	tx, err := testChannel.SetTotalDeposit(104, testChannel.DefAcc.Address, wallet2Addr, 25)
 	assert.Nil(t, err)
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 	confirmed, err := testChannel.Client.PollForTxConfirmed(time.Duration(60)*time.Second, tx)
 	assert.Nil(t, err)
 	assert.True(t, confirmed)
@@ -109,7 +109,7 @@ func TestRegisterSecret(t *testing.T) {
 	secret := "hello world117"
 	tx, err := testChannel.RegisterSecret([]byte(secret))
 	assert.Nil(t, err)
-	fmt.Printf("tx :%s\n", hex.EncodeToString(common.ToArrayReverse(tx)))
+	fmt.Printf("tx :%s\n", hex.EncodeToString(tx))
 	confirmed, err := testChannel.Client.PollForTxConfirmed(time.Duration(60)*time.Second, tx)
 	fmt.Printf("confirmed:%t\n", confirmed)
 	assert.Nil(t, err)

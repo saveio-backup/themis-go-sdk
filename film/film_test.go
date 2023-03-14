@@ -49,8 +49,8 @@ func TestMain(m *testing.M) {
 	testDns.DefAcc = acc
 
 	testFs = &fs.Fs{}
-	testFs.Client = testFilm.Client
-	testFs.DefAcc = acc
+	//testFs.Client = testFilm.Client
+	//testFs.DefAcc = acc
 
 	m.Run()
 }
