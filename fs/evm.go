@@ -46,16 +46,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xd87d00592F2DfB77FCd54593AD98F7fC445d24ed")
-var NodeAddress = ethCommon.HexToAddress("0xE57FC42905a707ECc767A6202E2c10C40531D9Ac")
-var SectorAddress = ethCommon.HexToAddress("0x8923E0C53874b948F74b4Ae48035c81ba70E2FFd")
-var SpaceAddress = ethCommon.HexToAddress("0x7b370b9DFa50785f346546Bf43d05Afe37563D89")
-var FileAddress = ethCommon.HexToAddress("0xc8f7B6f8b22E25C4493da78Daeb41e9E977Bd6a8")
-var FileExtraAddress = ethCommon.HexToAddress("0x3FeF66D2696Be7E1bff5F193FE4e49A26567CcFb")
-var ListAddress = ethCommon.HexToAddress("0xe714F96FaEecCEC1353579785228A47f7b33c6E7")
-var ProveAddress = ethCommon.HexToAddress("0x355974143f451e724230AD15841312142eB4F06e")
-var ProveExtraAddress = ethCommon.HexToAddress("0x7f0383478089501deBFfBeC052943cd2aDa9bFE2")
-var PDPAddress = ethCommon.HexToAddress("0xD94Bb2F064b8637a8Fa91Ec25fc1A4701512A9a5")
+var ConfigAddress = ethCommon.HexToAddress("0x97eCFa59497E3a3639D792a38256b01ae9BE21D5")
+var NodeAddress = ethCommon.HexToAddress("0x68cb1a29B3c73a69FD86f3D8c7D2573c4aF186f3")
+var SectorAddress = ethCommon.HexToAddress("0xa42a48AfD2055f21d7a14f2c9d997b850aDAd241")
+var SpaceAddress = ethCommon.HexToAddress("0x97D5571F7DE10dE443d087d1701c41d1952dD327")
+var FileAddress = ethCommon.HexToAddress("0x54Daf146b78644467ecE01f392a06192F247CB27")
+var FileExtraAddress = ethCommon.HexToAddress("0x7d1Ad98bD0884017F7C78674B9Fd2A9b02B43d96")
+var ListAddress = ethCommon.HexToAddress("0xE3dE2Cf622f4f3bA75d35bb886E721861351076A")
+var ProveAddress = ethCommon.HexToAddress("0xFCc237C697Fd7f8949c9B13D749677B78c1d109b")
+var ProveExtraAddress = ethCommon.HexToAddress("0x2d3c5041B63f308B355541BD428008D5d28963D1")
+var PDPAddress = ethCommon.HexToAddress("0xb3Afda1A0e62830b0e97e0044e6d3d4c1c4d85f7")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -1577,7 +1577,11 @@ func GetFsEventNameByType(t uint8) string {
 }
 
 func (t *EVM) NewVerifier() {
-	client := t.Client.GetEthClient().Client
+	client := t.Client.GetEthClient().WSClient
+	if client == nil {
+		log.Error("client is nil")
+		return
+	}
 
 	query := ethereum.FilterQuery{
 		Addresses: []ethCommon.Address{PDPAddress},
@@ -1585,14 +1589,15 @@ func (t *EVM) NewVerifier() {
 
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || sub == nil {
+		log.Errorf("subscribe filter logs err: %s", err)
+		return
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Fatal(err)
+			log.Errorf("sub err: %s", err)
 		case vLog := <-logs:
 			fmt.Println(vLog) // pointer to event log
 			list, err := t.GetUnVerifyProofList()

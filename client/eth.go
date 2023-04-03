@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,9 +18,10 @@ import (
 )
 
 type EthClient struct {
-	Client *ethclient.Client
-	Urls   *sync.Map // string => int
-	dial   chan bool
+	Client   *ethclient.Client
+	WSClient *ethclient.Client
+	Urls     *sync.Map // string => int
+	dial     chan bool
 }
 
 func NewEthClient() *EthClient {
@@ -40,14 +42,19 @@ func (e *EthClient) DialClient() {
 			log.Errorf("dial eth client failed, url: %s, err: %s", url, err.Error())
 			return true
 		}
-		e.Client = dial
+		if strings.HasPrefix(url, "HTTP") {
+			e.Client = dial
+		}
+		if strings.HasPrefix(url, "WS") {
+			e.WSClient = dial
+		}
 		id, err := dial.ChainID(context.TODO())
 		if err != nil {
 			log.Errorf("get chain id failed, err: %s", err.Error())
 			return true
 		}
 		e.Urls.Store(url, id)
-		return false
+		return true
 	})
 	log.Debugf("eth client dialed")
 }
