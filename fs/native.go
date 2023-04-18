@@ -67,7 +67,11 @@ func (t *Native) InvokeNativeContractWithGasLimitUserDefine(signer *account.Acco
 	if signer == nil {
 		return common.UINT256_EMPTY, errors.New("signer is nil")
 	}
-	tx, err := utils.NewNativeInvokeTransaction(sdkcom.GAS_PRICE, gasLimit, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
+	gasPrice := t.GasPrice
+	if gasPrice == 0 {
+		gasPrice = sdkcom.GAS_PRICE
+	}
+	tx, err := utils.NewNativeInvokeTransaction(gasPrice, gasLimit, FS_CONTRACT_VERSION, FS_CONTRACT_ADDRESS, method, params)
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
@@ -754,6 +758,7 @@ func (t *Native) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs
 	}
 	return ret.ToArray(), err
 }
+
 // CashUserSpace. user space operation for space owner.
 func (t *Native) CashUserSpace(walletAddr common.Address) ([]byte, error) {
 	//params := &fs.UserSpaceParams{
