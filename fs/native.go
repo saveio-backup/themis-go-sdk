@@ -615,6 +615,9 @@ func (t *Native) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasFo
 	return ret.ToArray(), err
 }
 
+func (t *Native) NewVerifierService() {
+}
+
 func (t *Native) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	if t.DefAcc == nil {
 		return nil, errors.New("DefAcc is nil")

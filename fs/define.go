@@ -28,6 +28,7 @@ type ContractClient interface {
 	GetSetting() (*fs.FsSetting, error)
 	savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForChallenge,
 		maxProveBlockNum, defProveLevel uint64, minVolume uint64) ([]byte, error)
+	NewVerifierService()
 
 	GetNodeList() (*fs.FsNodesInfo, error)
 	GetNodeListByAddrs(addrs []common.Address) (*fs.FsNodesInfo, error)

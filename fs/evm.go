@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -46,16 +47,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x97eCFa59497E3a3639D792a38256b01ae9BE21D5")
-var NodeAddress = ethCommon.HexToAddress("0x68cb1a29B3c73a69FD86f3D8c7D2573c4aF186f3")
-var SectorAddress = ethCommon.HexToAddress("0xa42a48AfD2055f21d7a14f2c9d997b850aDAd241")
-var SpaceAddress = ethCommon.HexToAddress("0x97D5571F7DE10dE443d087d1701c41d1952dD327")
-var FileAddress = ethCommon.HexToAddress("0x54Daf146b78644467ecE01f392a06192F247CB27")
-var FileExtraAddress = ethCommon.HexToAddress("0x7d1Ad98bD0884017F7C78674B9Fd2A9b02B43d96")
-var ListAddress = ethCommon.HexToAddress("0xE3dE2Cf622f4f3bA75d35bb886E721861351076A")
-var ProveAddress = ethCommon.HexToAddress("0xFCc237C697Fd7f8949c9B13D749677B78c1d109b")
-var ProveExtraAddress = ethCommon.HexToAddress("0x2d3c5041B63f308B355541BD428008D5d28963D1")
-var PDPAddress = ethCommon.HexToAddress("0xb3Afda1A0e62830b0e97e0044e6d3d4c1c4d85f7")
+var ConfigAddress = ethCommon.HexToAddress("0x786bd101fA16d0243d085f5850D5666154eB1277")
+var NodeAddress = ethCommon.HexToAddress("0x361eE58bbDFd0b320C063b900932A4E3dD9D3112")
+var SectorAddress = ethCommon.HexToAddress("0xa05Ad8cE3a256A05BEA6bB85CECFdBcb8EfEd001")
+var SpaceAddress = ethCommon.HexToAddress("0x48b4d0e8b626c1fBcCB62258D939fd8D151BB89e")
+var FileAddress = ethCommon.HexToAddress("0x15083fBC432F7f5aC9F34Afddd441c614eB44639")
+var FileExtraAddress = ethCommon.HexToAddress("0x23f936c0d405c067309E2DA6bCb74A81a306E4d8")
+var ListAddress = ethCommon.HexToAddress("0x599a1590D10A70D575C27e3ffa4ED145082AeF8C")
+var ProveAddress = ethCommon.HexToAddress("0x1F86902045355e344e5F957F44341c239158f794")
+var ProveExtraAddress = ethCommon.HexToAddress("0xa15Db8Bea785eF6771f2a20Ab8c9F6DA272706CD")
+var PDPAddress = ethCommon.HexToAddress("0x49065229EA79e183677CcfeDb006CD290b59ea30")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -175,6 +176,10 @@ func (t *EVM) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForCh
 	return []byte{}, nil
 }
 
+func (t *EVM) NewVerifierService() {
+	go t.NewVerifier()
+}
+
 func (t *EVM) GetNodeList() (*fs.FsNodesInfo, error) {
 	store, err := nodeStore.NewStore(NodeAddress, t.Client.GetEthClient().Client)
 	if err != nil {
@@ -201,8 +206,6 @@ func (t *EVM) GetNodeList() (*fs.FsNodesInfo, error) {
 		NodeNum:  uint64(len(list)),
 		NodeInfo: nodes,
 	}
-	// TODO start verifier in correct time
-	go t.NewVerifier()
 	return nodeList, nil
 }
 
@@ -1318,11 +1321,21 @@ func (t *EVM) GetSectorInfosForNode(addr common.Address) (*fs.SectorInfos, error
 
 func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []byte) ([]byte, error) {
 	ec := t.Client.GetEthClient().Client
+	// get node info
+	nodeStore, err := nodeStore.NewStore(NodeAddress, ec)
+	if err != nil {
+		return nil, err
+	}
+	nodeInfo, err := nodeStore.GetNodeInfoByWalletAddr(&bind.CallOpts{}, t.DefAcc.EthAddress)
+	if err != nil {
+		return nil, err
+	}
+	// to prove
 	store, err := proveStore.NewStore(ProveAddress, ec)
 	if err != nil {
 		return nil, err
 	}
-	signer, err := t.GetSigner(big.NewInt(0))
+	signer, err := t.GetSigner(big.NewInt(int64(nodeInfo.Pledge + 1)))
 	if err != nil {
 		return nil, err
 	}
@@ -1336,7 +1349,8 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 	if err != nil {
 		return nil, err
 	}
-	return TxResult(ec, tx)
+	res, err := TxResultWithError(ec, tx, proveStore.StoreMetaData.ABI)
+	return res, err
 }
 
 func (t *EVM) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
@@ -1582,11 +1596,9 @@ func (t *EVM) NewVerifier() {
 		log.Error("client is nil")
 		return
 	}
-
 	query := ethereum.FilterQuery{
 		Addresses: []ethCommon.Address{PDPAddress},
 	}
-
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil || sub == nil {
@@ -1597,12 +1609,11 @@ func (t *EVM) NewVerifier() {
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("sub err: %s", err)
+			log.Errorf("subscribe filter logs err: %s", err)
 		case vLog := <-logs:
-			fmt.Println(vLog) // pointer to event log
 			list, err := t.GetUnVerifyProofList()
 			if err != nil {
-				log.Error(err)
+				log.Error("err get", err)
 				continue
 			}
 			for _, v := range list {
@@ -1612,9 +1623,13 @@ func (t *EVM) NewVerifier() {
 					State:            res,
 					LastUpdateHeight: nil,
 				}
+				if len(v.Challenge) != len(v.MerklePath) {
+					log.Error("VerifyProof challenge and merkle path not match")
+					continue
+				}
 				txHash, err := t.VerifyProof(pr, v.Challenge, v.MerklePath)
 				if err != nil {
-					log.Error(err)
+					log.Error("VerifyProof", err)
 					continue
 				}
 				log.Infof("verify proof tx: %s, res: %b", txHash, res)

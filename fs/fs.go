@@ -155,6 +155,10 @@ func (f *Fs) savefsInit(fsGasPrice, gasPerGBPerBlock, gasPerKBForRead, gasForCha
 		maxProveBlockNum, defProveLevel, minVolume)
 }
 
+func (f *Fs) NewVerifierService() {
+	f.Client.NewVerifierService()
+}
+
 func (f *Fs) NodeRegister(volume uint64, serviceTime uint64, nodeAddr string) ([]byte, error) {
 	return f.Client.NodeRegister(volume, serviceTime, nodeAddr)
 }
@@ -187,10 +191,12 @@ func (f *Fs) GenChallenge(walletAddr common.Address, hash common.Uint256, fileBl
 func (f *Fs) UpdateUserSpace(walletAddr common.Address, size, blockCount *fs.UserSpaceOperation) ([]byte, error) {
 	return f.Client.UpdateUserSpace(walletAddr, size, blockCount)
 }
+
 // UpdateUserSpace. user space operation for space owner.
 func (f *Fs) CashUserSpace(walletAddr common.Address) ([]byte, error) {
 	return f.Client.CashUserSpace(walletAddr)
 }
+
 // GetUserSpace. get user space with wallet address
 func (f *Fs) GetUserSpace(walletAddr common.Address) (*fs.UserSpace, error) {
 	return f.Client.GetUserSpace(walletAddr)
