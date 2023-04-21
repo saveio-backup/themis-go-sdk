@@ -13,8 +13,8 @@ import (
 )
 
 var testFs *Fs
-var walletAddr = "AXW72DaTC9iiVXb1xdNtAN6fR9W3GcweC6"
-var walletPath = "/Users/zorro/go/src/github.com/saveio/edge/client1/keystore.dat"
+var walletAddr = "AZAo89XZUpcMUWKeGRZgk1F22Zbt2PqV2j"
+var walletPath = "/Users/smallyu/work/gogs/themis-deploy/solo/wallet.dat"
 var pwd = []byte("123")
 var rpc_addr = "http://127.0.0.1:20336"
 var txt = "SaveQmShtV2hrntparv8eUAFi5yg1fTfbjuGoBNZjYYxwbxCdY"
@@ -207,7 +207,7 @@ func TestSavefs_AddUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")
 	}
-	ret, err := testFs.UpdateUserSpace(testFs.Client.GetDefaultAccount().Address,&fs.UserSpaceOperation{
+	ret, err := testFs.UpdateUserSpace(testFs.Client.GetDefaultAccount().Address, &fs.UserSpaceOperation{
 		Type:  uint64(fs.UserSpaceAdd),
 		Value: 10,
 	}, &fs.UserSpaceOperation{
@@ -224,7 +224,7 @@ func TestSaveFs_CashUserSpace(t *testing.T) {
 	if testFs == nil {
 		t.Fatal("testFs is nil")
 	}
-	ret,err := testFs.CashUserSpace(testFs.Client.GetDefaultAccount().Address)
+	ret, err := testFs.CashUserSpace(testFs.Client.GetDefaultAccount().Address)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,4 +262,26 @@ func TestGetNodeListByAddrs(t *testing.T) {
 		}
 	}
 	fmt.Printf("%v\n", info)
+}
+
+func TestNative_GetUpdateSpaceCost(t1 *testing.T) {
+	base58, err2 := common.AddressFromBase58(walletAddr)
+	if err2 != nil {
+		t1.Errorf(err2.Error())
+		return
+	}
+	size := &fs.UserSpaceOperation{
+		Type:  1,
+		Value: 102400,
+	}
+	blockCount := &fs.UserSpaceOperation{
+		Type:  1,
+		Value: 41591,
+	}
+	cost, err := testFs.GetUpdateSpaceCost(base58, size, blockCount)
+	if err != nil {
+		t1.Errorf(err.Error())
+		return
+	}
+	fmt.Println("GetUpdateSpaceCost Success", cost)
 }
