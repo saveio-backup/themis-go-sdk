@@ -47,16 +47,16 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0x786bd101fA16d0243d085f5850D5666154eB1277")
-var NodeAddress = ethCommon.HexToAddress("0x361eE58bbDFd0b320C063b900932A4E3dD9D3112")
-var SectorAddress = ethCommon.HexToAddress("0xa05Ad8cE3a256A05BEA6bB85CECFdBcb8EfEd001")
-var SpaceAddress = ethCommon.HexToAddress("0x48b4d0e8b626c1fBcCB62258D939fd8D151BB89e")
-var FileAddress = ethCommon.HexToAddress("0x15083fBC432F7f5aC9F34Afddd441c614eB44639")
-var FileExtraAddress = ethCommon.HexToAddress("0x23f936c0d405c067309E2DA6bCb74A81a306E4d8")
-var ListAddress = ethCommon.HexToAddress("0x599a1590D10A70D575C27e3ffa4ED145082AeF8C")
-var ProveAddress = ethCommon.HexToAddress("0x1F86902045355e344e5F957F44341c239158f794")
-var ProveExtraAddress = ethCommon.HexToAddress("0xa15Db8Bea785eF6771f2a20Ab8c9F6DA272706CD")
-var PDPAddress = ethCommon.HexToAddress("0x49065229EA79e183677CcfeDb006CD290b59ea30")
+var ConfigAddress = ethCommon.HexToAddress("0xb66875f3c2c3330BBe996aB345fef9e036912039")
+var NodeAddress = ethCommon.HexToAddress("0x255773A04c54cB63BfE10c59c302d3F3CCBDD48f")
+var SectorAddress = ethCommon.HexToAddress("0xa19dFfeeEcFEe54f144dbB30F38b2122fbf9a705")
+var SpaceAddress = ethCommon.HexToAddress("0x1aCEC6dAE48E5ADac7772a4Fae602A971dbE9657")
+var FileAddress = ethCommon.HexToAddress("0x6CEeCEe9746776A9cfdE7D7a35974086dD94EE18")
+var FileExtraAddress = ethCommon.HexToAddress("0xAE683a079Ed1716B361b2e932D3fB3ab1E3E83ad")
+var ListAddress = ethCommon.HexToAddress("0x368E45EeE3280eB95Be42882770E537e88cc7f9F")
+var ProveAddress = ethCommon.HexToAddress("0xb73A2B92d34011c8dA9BBA6F6a890D897a6914B4")
+var ProveExtraAddress = ethCommon.HexToAddress("0x8669e2fe53E069a09e1a203E8EA4e6CdB30BdD29")
+var PDPAddress = ethCommon.HexToAddress("0x5A4F31120363E08B3A527d0e485C22D1a458471E")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -944,9 +944,21 @@ func (t *EVM) FileProve(fileHashStr string, proveData []byte, blockHeight uint64
 	if err != nil {
 		return nil, err
 	}
+	var proveDataFs fs.ProveData
+	reader := bytes.NewReader(proveData)
+	err = proveDataFs.Deserialize(reader)
+	if err != nil {
+		return nil, err
+	}
+	proveDataEVM := proveStore.ProveData{
+		Proofs:     proveDataFs.Proofs,
+		BlockNum:   proveDataFs.BlockNum,
+		Tags:       tagsReverseCovert(proveDataFs.Tags),
+		MerklePath: merklePathReverseCovert(proveDataFs.MerklePath),
+	}
 	param := proveStore.FileProveParams{
 		FileHash:    fileHash,
-		ProveData:   proveData,
+		ProveData:   proveDataEVM,
 		BlockHeight: big.NewInt(int64(blockHeight)),
 		NodeWallet:  t.DefAcc.EthAddress,
 		Profit:      0,
@@ -1339,11 +1351,26 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 	if err != nil {
 		return nil, err
 	}
+	// deserialize prove data
+	var proveDataFs fs.SectorProveData
+	reader := bytes.NewReader(proveData)
+	err = proveDataFs.Deserialize(reader)
+	if err != nil {
+		return nil, err
+	}
+	proveDataEVM := proveStore.SectorProveData{
+		ProveFileNum: proveDataFs.ProveFileNum,
+		BlockNum:     proveDataFs.BlockNum,
+		Proofs:       proveDataFs.Proofs,
+		Tags:         tagsReverseCovert(proveDataFs.Tags),
+		MerklePath:   merklePathReverseCovert(proveDataFs.MerklePath),
+		PlotData:     proveDataFs.PlotData,
+	}
 	param := proveStore.SectorProveParams{
 		NodeAddr:        t.DefAcc.EthAddress,
 		SectorID:        sectorId,
 		ChallengeHeight: challengeHeight,
-		ProveData:       proveData,
+		ProveData:       proveDataEVM,
 	}
 	tx, err := store.SectorProve(signer, param)
 	if err != nil {
@@ -1432,7 +1459,7 @@ func (t *EVM) GetUnVerifyProofList() ([]pdpStore.ProofRecordWithParams, error) {
 
 func (t *EVM) VerifyProof(vParams pdpStore.ProofRecord, chgs []pdpStore.Challenge, mp []pdpStore.MerklePath) ([]byte, error) {
 	ec := t.Client.GetEthClient().Client
-	store, err := pdpStore.NewStore(ProveAddress, ec)
+	store, err := pdpStore.NewStore(PDPAddress, ec)
 	if err != nil {
 		return nil, err
 	}
@@ -1593,7 +1620,7 @@ func GetFsEventNameByType(t uint8) string {
 func (t *EVM) NewVerifier() {
 	client := t.Client.GetEthClient().WSClient
 	if client == nil {
-		log.Error("client is nil")
+		log.Error("[EVM PDP Verifier] client is nil")
 		return
 	}
 	query := ethereum.FilterQuery{
@@ -1602,18 +1629,19 @@ func (t *EVM) NewVerifier() {
 	logs := make(chan types.Log)
 	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil || sub == nil {
-		log.Errorf("subscribe filter logs err: %s", err)
+		log.Errorf("[EVM PDP Verifier] subscribe filter logs err: %s", err)
 		return
 	}
 
 	for {
 		select {
 		case err := <-sub.Err():
-			log.Errorf("subscribe filter logs err: %s", err)
+			log.Errorf("[EVM PDP Verifier] subscribe filter logs err: %s", err)
 		case vLog := <-logs:
+			log.Debugf("[EVM PDP Verifier] receive log: %v", vLog)
 			list, err := t.GetUnVerifyProofList()
 			if err != nil {
-				log.Error("err get", err)
+				log.Error("[EVM PDP Verifier] err get", err)
 				continue
 			}
 			for _, v := range list {
@@ -1621,19 +1649,14 @@ func (t *EVM) NewVerifier() {
 				pr := pdpStore.ProofRecord{
 					Proof:            v.Proof,
 					State:            res,
-					LastUpdateHeight: nil,
-				}
-				if len(v.Challenge) != len(v.MerklePath) {
-					log.Error("VerifyProof challenge and merkle path not match")
-					continue
+					LastUpdateHeight: big.NewInt(0),
 				}
 				txHash, err := t.VerifyProof(pr, v.Challenge, v.MerklePath)
 				if err != nil {
-					log.Error("VerifyProof", err)
+					log.Error("[EVM PDP Verifier] VerifyProof", err)
 					continue
 				}
-				log.Infof("verify proof tx: %s, res: %b", txHash, res)
-				// TODO roll back
+				log.Infof("[EVM PDP Verifier] verify proof tx: %v, res: %v", txHash, res)
 				if !res {
 					// TODO
 				}
@@ -1676,6 +1699,14 @@ func tagsCovert(s [][]byte) []pdp.Tag {
 	return tags
 }
 
+func tagsReverseCovert(s []pdp.Tag) [][]byte {
+	tags := make([][]byte, len(s))
+	for i, val := range s {
+		tags[i] = val[:]
+	}
+	return tags
+}
+
 func challengesCovert(s []pdpStore.Challenge) []pdp.Challenge {
 	challenges := make([]pdp.Challenge, len(s))
 	for i, val := range s {
@@ -1700,6 +1731,27 @@ func merkleNodeCovert(s []pdpStore.MerkleNode) []*pdp.MerkleNode {
 	merkleNode := make([]*pdp.MerkleNode, len(s))
 	for i, val := range s {
 		merkleNode[i] = &pdp.MerkleNode{
+			Hash: val.Hash,
+		}
+	}
+	return merkleNode
+}
+
+func merklePathReverseCovert(s []*pdp.MerklePath) []proveStore.MerklePath {
+	merklePath := make([]proveStore.MerklePath, len(s))
+	for i, val := range s {
+		merklePath[i] = proveStore.MerklePath{
+			PathLen: val.PathLen,
+			Path:    merkleNodeReverseCovert(val.Path),
+		}
+	}
+	return merklePath
+}
+
+func merkleNodeReverseCovert(s []*pdp.MerkleNode) []proveStore.MerkleNode {
+	merkleNode := make([]proveStore.MerkleNode, len(s))
+	for i, val := range s {
+		merkleNode[i] = proveStore.MerkleNode{
 			Hash: val.Hash,
 		}
 	}
