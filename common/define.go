@@ -13,7 +13,7 @@ import (
 
 var (
 	VERSION_TRANSACTION = byte(0)
-	GAS_PRICE           = uint64(500)
+	GAS_PRICE           = uint64(1)
 	//GAS_LIMIT           = uint64(30000)
 	GAS_LIMIT = uint64(1000000)
 )
