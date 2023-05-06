@@ -988,9 +988,11 @@ func (t *EVM) GenChallenge(walletAddr common.Address, hash common.Uint256, fileB
 	if err != nil {
 		return nil
 	}
+	var h [32]byte
+	copy(h[:], hash[:])
 	param := pdpStore.GenChallengeParams{
 		WalletAddr:   ethCommon.BytesToAddress(walletAddr[:]),
-		HashValue:    hash[:],
+		HashValue:    h,
 		FileBlockNum: fileBlockNum,
 		ProveNum:     proveNum,
 	}
