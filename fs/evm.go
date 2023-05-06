@@ -47,16 +47,17 @@ type EVM struct {
 
 var _ ContractClient = (*EVM)(nil)
 
-var ConfigAddress = ethCommon.HexToAddress("0xb66875f3c2c3330BBe996aB345fef9e036912039")
-var NodeAddress = ethCommon.HexToAddress("0x255773A04c54cB63BfE10c59c302d3F3CCBDD48f")
-var SectorAddress = ethCommon.HexToAddress("0xa19dFfeeEcFEe54f144dbB30F38b2122fbf9a705")
-var SpaceAddress = ethCommon.HexToAddress("0x1aCEC6dAE48E5ADac7772a4Fae602A971dbE9657")
-var FileAddress = ethCommon.HexToAddress("0x6CEeCEe9746776A9cfdE7D7a35974086dD94EE18")
-var FileExtraAddress = ethCommon.HexToAddress("0xAE683a079Ed1716B361b2e932D3fB3ab1E3E83ad")
-var ListAddress = ethCommon.HexToAddress("0x368E45EeE3280eB95Be42882770E537e88cc7f9F")
-var ProveAddress = ethCommon.HexToAddress("0xb73A2B92d34011c8dA9BBA6F6a890D897a6914B4")
-var ProveExtraAddress = ethCommon.HexToAddress("0x8669e2fe53E069a09e1a203E8EA4e6CdB30BdD29")
-var PDPAddress = ethCommon.HexToAddress("0x5A4F31120363E08B3A527d0e485C22D1a458471E")
+var ConfigAddress = ethCommon.HexToAddress("0xCFE44e7607CE54E64958D995e770C97FeA5dD72F")
+var NodeAddress = ethCommon.HexToAddress("0xe0B742a49eD6c66B07d3e96c9AF4Aa95F894fFC1")
+var SectorAddress = ethCommon.HexToAddress("0xf2Ab97331407B2FAb34dacc3Ce5f81b2779Ff93E")
+var SpaceAddress = ethCommon.HexToAddress("0x94b83FcA1b8E86B20ca4E95AB6f5987A8967ea1F")
+var FileAddress = ethCommon.HexToAddress("0xb241C685BDDa217E24966cE3E6e479f0Ee5eec04")
+var FileExtraAddress = ethCommon.HexToAddress("0x709F557C897A3F662Dfd20c863da0ad9D10517f0")
+var ListAddress = ethCommon.HexToAddress("0x6618928571FF28a7ed4833272088824cCfbdb847")
+var ProveAddress = ethCommon.HexToAddress("0x4a8E92ECc1609F82690EA44116187c04b9ad3826")
+var ProveExtraAddress = ethCommon.HexToAddress("0x0296449Bbc636906650D4E73CBC3da07942DdE72")
+var PDPAddress = ethCommon.HexToAddress("0x0264dE291F63A52c9884Bad73699C0f4C93dA9d2")
+var PDPExtraAddress = ethCommon.HexToAddress("0xd16395985c4A526956ac18EdB0a1d81c502C5151")
 
 func (t *EVM) GetSigner(value *big.Int) (*bind.TransactOpts, error) {
 	ec := t.Client.GetEthClient().Client
@@ -526,20 +527,27 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 			Nonces:     plotInfo.Nonces,
 		}
 	}
+	pp, err := t.ProveParamDes(proveParam)
+	if err != nil {
+		return nil, err
+	}
 	f := fileStore.FileInfo{
-		FileHash:       fileHash,
-		BlocksRoot:     []byte(blocksRoot),
-		FileOwner:      t.DefAcc.EthAddress,
-		FileDesc:       fileDesc,
-		Privilege:      privilege,
-		FileBlockNum:   blockNum,
-		FileBlockSize:  blockSize,
-		ProveLevel:     uint8(proveLevel),
-		ProveTimes:     0,
-		ExpiredHeight:  big.NewInt(int64(expiredHeight)),
-		CopyNum:        copyNum,
-		Deposit:        0,
-		FileProveParam: proveParam,
+		FileHash:      fileHash,
+		BlocksRoot:    []byte(blocksRoot),
+		FileOwner:     t.DefAcc.EthAddress,
+		FileDesc:      fileDesc,
+		Privilege:     privilege,
+		FileBlockNum:  blockNum,
+		FileBlockSize: blockSize,
+		ProveLevel:    uint8(proveLevel),
+		ProveTimes:    0,
+		ExpiredHeight: big.NewInt(int64(expiredHeight)),
+		CopyNum:       copyNum,
+		Deposit:       0,
+		FileProveParam: fileStore.FileProveParam{
+			RootHash: pp.RootHash,
+			FileID:   pp.FileID[:],
+		},
 		ProveBlockNum:  0,
 		BlockHeight:    big.NewInt(0),
 		ValidFlag:      true,
@@ -551,13 +559,10 @@ func (t *EVM) StoreFile(fileHashStr, blocksRoot string, blockNum uint64,
 		PlotInfo:       evmPlotInfo,
 	}
 	tx, err := store.StoreFile(signer, f)
-	if err != nil {
-		return nil, err
-	}
-	return TxResult(ec, tx)
+	return TxResultWithError(ec, tx, fileStore.StoreMetaData.ABI)
 }
 
-func copyFileInfo(info fileStore.FileInfo) fs.FileInfo {
+func (t *EVM) copyFileInfo(info fileStore.FileInfo) fs.FileInfo {
 	pa := make([]common.Address, len(info.PrimaryNodes))
 	for k, v := range info.PrimaryNodes {
 		pa[k] = common.Address(v)
@@ -579,6 +584,12 @@ func copyFileInfo(info fileStore.FileInfo) fs.FileInfo {
 		StartNonce: info.PlotInfo.StartNonce,
 		Nonces:     info.PlotInfo.Nonces,
 	}
+	var fi pdp.FileID
+	copy(fi[:], info.FileProveParam.FileID)
+	pp, err := t.ProveParamSer(info.FileProveParam.RootHash, fi)
+	if err != nil {
+		return fs.FileInfo{}
+	}
 	fileInfo := fs.FileInfo{
 		FileHash:       info.FileHash,
 		FileOwner:      common.Address(info.FileOwner),
@@ -591,7 +602,7 @@ func copyFileInfo(info fileStore.FileInfo) fs.FileInfo {
 		ExpiredHeight:  info.ExpiredHeight.Uint64(),
 		CopyNum:        info.CopyNum,
 		Deposit:        info.Deposit,
-		FileProveParam: info.FileProveParam,
+		FileProveParam: pp,
 		ProveBlockNum:  info.ProveBlockNum,
 		BlockHeight:    info.BlockHeight.Uint64(),
 		ValidFlag:      info.ValidFlag,
@@ -621,7 +632,7 @@ func (t *EVM) GetFileInfo(fileHashStr string) (*fs.FileInfo, error) {
 	if info.ExpiredHeight.Cmp(big.NewInt(0)) == 0 {
 		return nil, errors.New("file not exist")
 	}
-	fileInfo := copyFileInfo(info)
+	fileInfo := t.copyFileInfo(info)
 	return &fileInfo, nil
 }
 
@@ -641,7 +652,7 @@ func (t *EVM) GetFileInfos(fileHashStrs []string) (*fs.FileInfoList, error) {
 	}
 	rlist := make([]fs.FileInfo, len(info))
 	for k, v := range info {
-		rlist[k] = copyFileInfo(v)
+		rlist[k] = t.copyFileInfo(v)
 	}
 	ret := &fs.FileInfoList{
 		FileNum: uint64(len(info)),
@@ -1192,10 +1203,7 @@ func (t *EVM) CreateSector(sectorId uint64, proveLevel uint64, size uint64, isPl
 		FileList:         nil,
 	}
 	tx, err := store.CreateSector(signer, sector)
-	if err != nil {
-		return nil, err
-	}
-	return TxResult(ec, tx)
+	return TxResultWithError(ec, tx, sectorStore.StoreMetaData.ABI)
 }
 
 func (t *EVM) DeleteSector(sectorId uint64) ([]byte, error) {
@@ -1376,8 +1384,7 @@ func (t *EVM) SectorProve(sectorId uint64, challengeHeight uint64, proveData []b
 	if err != nil {
 		return nil, err
 	}
-	res, err := TxResultWithError(ec, tx, proveStore.StoreMetaData.ABI)
-	return res, err
+	return TxResultWithError(ec, tx, proveStore.StoreMetaData.ABI)
 }
 
 func (t *EVM) GetUnSettledFiles(addr common.Address) (*fs.FileList, error) {
@@ -1641,11 +1648,12 @@ func (t *EVM) NewVerifier() {
 			log.Debugf("[EVM PDP Verifier] receive log: %v", vLog)
 			list, err := t.GetUnVerifyProofList()
 			if err != nil {
-				log.Error("[EVM PDP Verifier] err get", err)
+				log.Error("[EVM PDP Verifier] err get un verify proof list", err)
 				continue
 			}
 			for _, v := range list {
 				res := VerifyPDPByEVMParams(v)
+				log.Debugf("[EVM PDP Verifier] verify proof res: %v", res)
 				pr := pdpStore.ProofRecord{
 					Proof:            v.Proof,
 					State:            res,
@@ -1653,10 +1661,10 @@ func (t *EVM) NewVerifier() {
 				}
 				txHash, err := t.VerifyProof(pr, v.Challenge, v.MerklePath)
 				if err != nil {
-					log.Error("[EVM PDP Verifier] VerifyProof", err)
+					log.Error("[EVM PDP Verifier] err verify proof", err)
 					continue
 				}
-				log.Infof("[EVM PDP Verifier] verify proof tx: %v, res: %v", txHash, res)
+				log.Debugf("[EVM PDP Verifier] VerifyProof tx hash: %s", string(txHash))
 				if !res {
 					// TODO
 				}
@@ -1667,23 +1675,22 @@ func (t *EVM) NewVerifier() {
 
 func VerifyPDPByEVMParams(pr pdpStore.ProofRecordWithParams) bool {
 	var proofs []byte
-	var fileId pdp.FileID
+	var fileId []pdp.FileID
 	var tags []pdp.Tag
 	var challenges []pdp.Challenge
 	var merklePath []*pdp.MerklePath
-	var rootHash []byte
 
 	proofs = pr.Proof.Proofs
-	copy(fileId[:], pr.Proof.FileIds)
+	fileId = fileIdCovert(pr.Proof.FileIds)
 	tags = tagsCovert(pr.Proof.Tags)
 	challenges = challengesCovert(pr.Challenge)
 	merklePath = merklePathCovert(pr.MerklePath)
-	copy(rootHash[:], pr.Proof.RootHashes)
 
 	proofState := false
 	p := pdp.NewPdp(0)
-	err := p.VerifyProofWithMerklePathForFile(0, proofs, fileId, tags, challenges, merklePath, rootHash)
+	err := p.VerifyProofWithMerklePath(0, proofs, fileId, tags, challenges, merklePath, pr.Proof.RootHashes)
 	if err != nil {
+		log.Errorf("[EVM PDP Verifier] verify proof err: %s", err)
 		proofState = false
 	} else {
 		proofState = true
@@ -1691,10 +1698,33 @@ func VerifyPDPByEVMParams(pr pdpStore.ProofRecordWithParams) bool {
 	return proofState
 }
 
+func rightPadByteArray(arr []byte, m int) []byte {
+	n := len(arr)
+	if n >= m {
+		return arr
+	}
+	paddingCount := m - n
+	newArr := make([]byte, m)
+	copy(newArr[paddingCount:], arr)
+	return newArr
+}
+
+func fileIdCovert(s [][]byte) []pdp.FileID {
+	fileId := make([]pdp.FileID, len(s))
+	for i, val := range s {
+		v := make([]byte, len(val))
+		copy(v[:], val[:])
+		copy(fileId[i][:], v)
+	}
+	return fileId
+}
+
 func tagsCovert(s [][]byte) []pdp.Tag {
 	tags := make([]pdp.Tag, len(s))
 	for i, val := range s {
-		copy(tags[i][:], val)
+		tag := make([]byte, len(val))
+		copy(tag[:], val[:])
+		copy(tags[i][:], tag)
 	}
 	return tags
 }
@@ -1702,7 +1732,9 @@ func tagsCovert(s [][]byte) []pdp.Tag {
 func tagsReverseCovert(s []pdp.Tag) [][]byte {
 	tags := make([][]byte, len(s))
 	for i, val := range s {
-		tags[i] = val[:]
+		tag := make([]byte, len(val))
+		copy(tag[:], val[:])
+		tags[i] = tag
 	}
 	return tags
 }
@@ -1720,7 +1752,7 @@ func merklePathCovert(s []pdpStore.MerklePath) []*pdp.MerklePath {
 	merklePath := make([]*pdp.MerklePath, len(s))
 	for i, val := range s {
 		merklePath[i] = &pdp.MerklePath{
-			PathLen: val.PathLen,
+			PathLen: uint64(len(merkleNodeCovert(val.Path))),
 			Path:    merkleNodeCovert(val.Path),
 		}
 	}
@@ -1730,8 +1762,10 @@ func merklePathCovert(s []pdpStore.MerklePath) []*pdp.MerklePath {
 func merkleNodeCovert(s []pdpStore.MerkleNode) []*pdp.MerkleNode {
 	merkleNode := make([]*pdp.MerkleNode, len(s))
 	for i, val := range s {
+		h := make([]byte, len(val.Hash))
+		copy(h[:], val.Hash[:])
 		merkleNode[i] = &pdp.MerkleNode{
-			Hash: val.Hash,
+			Hash: h,
 		}
 	}
 	return merkleNode
@@ -1751,8 +1785,10 @@ func merklePathReverseCovert(s []*pdp.MerklePath) []proveStore.MerklePath {
 func merkleNodeReverseCovert(s []*pdp.MerkleNode) []proveStore.MerkleNode {
 	merkleNode := make([]proveStore.MerkleNode, len(s))
 	for i, val := range s {
+		h := make([]byte, len(val.Hash))
+		copy(h[:], val.Hash[:])
 		merkleNode[i] = proveStore.MerkleNode{
-			Hash: val.Hash,
+			Hash: h,
 		}
 	}
 	return merkleNode
