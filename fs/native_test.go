@@ -2,6 +2,7 @@ package fs
 
 import (
 	"fmt"
+	"github.com/saveio/themis/cmd/utils"
 	"math/rand"
 	"testing"
 	"time"
@@ -15,7 +16,7 @@ import (
 var testFs *Fs
 var walletAddr = "AZAo89XZUpcMUWKeGRZgk1F22Zbt2PqV2j"
 var walletPath = "/Users/smallyu/work/gogs/themis-deploy/solo/wallet.dat"
-var pwd = []byte("123")
+var pwd = []byte("pwd")
 var rpc_addr = "http://127.0.0.1:20336"
 var txt = "SaveQmShtV2hrntparv8eUAFi5yg1fTfbjuGoBNZjYYxwbxCdY"
 
@@ -55,10 +56,10 @@ func TestCalculateFee(t *testing.T) {
 	}
 
 	opt := &fs.UploadOption{
-		FileDesc:        []byte(""),
-		FileSize:        uint64(166974),
-		ProveInterval:   uint64(60),
-		ExpiredHeight:   1563560,
+		FileDesc: []byte(""),
+		FileSize: uint64(166974),
+		//ProveInterval:   uint64(60),
+		ExpiredHeight:   518400,
 		Privilege:       1,
 		CopyNum:         uint64(2),
 		Encrypt:         false,
@@ -68,13 +69,15 @@ func TestCalculateFee(t *testing.T) {
 		DnsURL:          []byte{},
 		WhiteList:       wh,
 		Share:           true,
-		StorageType:     uint64(0),
+		StorageType:     uint64(1),
 	}
 	fee, err := testFs.GetUploadStorageFee(opt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fmt.Printf("fee :%v\n", fee)
+	amount := utils.FormatAssetAmount(fee.TxnFee, 9)
+	fmt.Printf("amount :%v\n", amount)
 }
 
 func TestOntFsClient_GetNodeList(t *testing.T) {
